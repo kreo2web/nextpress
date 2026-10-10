@@ -15,6 +15,8 @@ type PageRow = typeof pages.$inferSelect;
 
 type FormSubmissionDeps = {
 	findPublishedPagesWithBlock: (blockId: string) => Promise<PageRow[]>;
+	/** The page's blocks with linked template parts swapped for their templates, as visitors see them. */
+	resolveTemplateParts: (page: PageRow) => Promise<BlockConfig[]>;
 	submissions: {
 		create: (data: {
 			siteId: string;
@@ -35,7 +37,11 @@ export type SubmitResult =
 	| { ok: true; message: string; stored: boolean }
 	| { ok: false; status: 400 | 404; message: string; field?: string };
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * A form's id: its block's UUID, or — for a form inside a linked template part — the part block's
+ * UUID followed by `-n` steps (the ids the page gets when the part is swapped for its template).
+ */
+const FORM_ID = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})((?:-\d+)*)$/i;
 
 /**
  * Live pages whose blocks mention this id. The id is a checked UUID, so it is unique across pages;
@@ -58,10 +64,14 @@ export function createFormSubmissionService(deps: FormSubmissionDeps) {
 		formId: string;
 		values: Record<string, unknown>;
 	}): Promise<SubmitResult> => {
-		if (!UUID.test(formId)) return { ok: false, status: 404, message: "This form is no longer available." };
+		const id = FORM_ID.exec(formId);
+		if (!id) return { ok: false, status: 404, message: "This form is no longer available." };
 
-		const [page] = await deps.findPublishedPagesWithBlock(formId);
-		const blocks = Array.isArray(page?.blocks) ? (page.blocks as BlockConfig[]) : [];
+		// The leading UUID is stored in the page: the form's own block, or the template part holding it.
+		const [page] = await deps.findPublishedPagesWithBlock(id[1]);
+		const stored = Array.isArray(page?.blocks) ? (page.blocks as BlockConfig[]) : [];
+		const insidePart = Boolean(id[2]);
+		const blocks = page && insidePart ? await deps.resolveTemplateParts(page) : stored;
 		const form = page ? findFormBlock(blocks, formId) : null;
 		if (!page || !form) return { ok: false, status: 404, message: "This form is no longer available." };
 

@@ -3,7 +3,7 @@ import type { Deps } from './shared/deps';
 import { asyncHandler } from './shared/async-handler';
 import { safeTryAsync } from '../utils';
 import { z } from 'zod';
-import { readRequestSiteId, resolveRequestSite } from './shared/resolve-request-site';
+import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
 
 /**
  * Site information routes for managing site-level fields
@@ -43,11 +43,7 @@ export function createSiteRoutes(deps: Deps): Router {
       }
 
       const { err, result } = await safeTryAsync(async () => {
-        const site = await resolveRequestSite({
-          models,
-          userId,
-          siteId: readRequestSiteId(req),
-        });
+        const site = await resolveRequestSite({ models, req, userId });
 
         return {
           status: true,
@@ -63,7 +59,7 @@ export function createSiteRoutes(deps: Deps): Router {
       if (err) {
         console.error('Error fetching site info:', err);
         const message = err instanceof Error ? err.message : 'Failed to fetch site information';
-        const status = message === 'Site not accessible' ? 403 : 500;
+        const status = readErrorStatus(err);
         return res.status(status).json({
           status: false,
           message,
@@ -103,11 +99,7 @@ export function createSiteRoutes(deps: Deps): Router {
       }
 
       const { err, result } = await safeTryAsync(async () => {
-        const site = await resolveRequestSite({
-          models,
-          userId,
-          siteId: readRequestSiteId(req),
-        });
+        const site = await resolveRequestSite({ models, req, userId });
 
         // Update only provided fields
         const updateData: any = {
@@ -143,7 +135,7 @@ export function createSiteRoutes(deps: Deps): Router {
       if (err) {
         console.error('Error updating site info:', err);
         const message = err instanceof Error ? err.message : 'Failed to update site information';
-        const status = message === 'Site not accessible' ? 403 : 500;
+        const status = readErrorStatus(err);
         return res.status(status).json({
           status: false,
           message,

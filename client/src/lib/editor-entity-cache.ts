@@ -25,7 +25,10 @@ export function listEditorEntityQueryKeys({
   return keys;
 }
 
-/** Writes the same entity under every editor address for that record. */
+/**
+ * Writes the same entity under every editor address for that record, including the site-scoped
+ * form a page opened by name uses (`[address, { siteId }]`).
+ */
 export function writeEditorEntityCache({
   queryClient,
   keys,
@@ -37,6 +40,7 @@ export function writeEditorEntityCache({
 }): void {
   for (const key of keys) {
     queryClient.setQueryData(key, entity);
+    queryClient.setQueriesData({ queryKey: key }, entity);
   }
 }
 

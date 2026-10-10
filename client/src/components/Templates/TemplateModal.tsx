@@ -98,8 +98,8 @@ export function TemplateModal({ open, onOpenChange, initialData }: TemplateModal
       toast({
         title: "Success",
         description: isEdit
-          ? "Template updated successfully"
-          : "Template created successfully",
+          ? "Pre-designed block updated"
+          : "Pre-designed block created",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/templates"] });
       handleClose();
@@ -108,8 +108,8 @@ export function TemplateModal({ open, onOpenChange, initialData }: TemplateModal
       toast({
         title: "Error",
         description: isEdit
-          ? "Failed to update template"
-          : "Failed to create template",
+          ? "Couldn't update the pre-designed block. Try again."
+          : "Couldn't create the pre-designed block. Try again.",
         variant: "destructive",
       });
     },
@@ -172,12 +172,12 @@ export function TemplateModal({ open, onOpenChange, initialData }: TemplateModal
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
-              {isEdit ? "Edit Template" : "Create Template"}
+              {isEdit ? "Edit pre-designed block" : "Create pre-designed block"}
             </DialogTitle>
             <DialogDescription>
               {isEdit
-                ? "Update the template details and display rules."
-                : "Enter the details for your new template."}
+                ? "Update the details and display rules of this pre-designed block."
+                : "Enter the details for your new pre-designed block."}
             </DialogDescription>
           </DialogHeader>
 
@@ -282,7 +282,7 @@ export function TemplateModal({ open, onOpenChange, initialData }: TemplateModal
                   : "Creating..."
                 : isEdit
                   ? "Save Changes"
-                  : "Create Template"}
+                  : "Create pre-designed block"}
             </Button>
           </DialogFooter>
         </form>

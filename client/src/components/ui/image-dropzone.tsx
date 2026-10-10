@@ -7,7 +7,7 @@ import { isImageFile } from '@/lib/is-image-asset';
 interface ImageDropzoneProps {
   value?: string; // Image URL
   onChange?: (url: string | undefined) => void; // Called with URL after upload (if onUpload provided)
-  onUpload?: (file: File) => Promise<string>; // Optional custom upload handler - if provided, uploads immediately
+  onUpload?: (file: File) => Promise<string>; // Stores the file (in the right site's library) and returns its URL
   onFileSelect?: (file: File) => void; // Called with file when selected (for deferred upload)
   disabled?: boolean;
   className?: string;
@@ -34,30 +34,15 @@ export function ImageDropzone({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
-   * Handles file upload to backend
+   * Uploads through the caller's handler. There is deliberately no built-in upload: only the caller
+   * knows which site's media library the file belongs to, and the old default sent every file to the
+   * default site.
    */
   const uploadFile = useCallback(async (file: File): Promise<string> => {
-    if (onUpload) {
-      return await onUpload(file);
+    if (!onUpload) {
+      throw new Error('ImageDropzone needs onUpload (or onFileSelect) to store a file');
     }
-
-    // Default upload handler using /api/media endpoint
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch('/api/media', {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || 'Failed to upload image');
-    }
-
-    const mediaItem = await response.json();
-    return mediaItem.url;
+    return onUpload(file);
   }, [onUpload]);
 
   /**

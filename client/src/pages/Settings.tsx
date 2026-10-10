@@ -393,13 +393,15 @@ export default function Settings() {
       );
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result: { notice?: string | null }) => {
       setValidationErrors({});
       toast({
         title: 'Settings saved',
-        description: 'Your site settings were updated successfully.',
+        // The server adds a plain note when a new site address isn't live yet.
+        description: result?.notice || 'Your site settings were updated successfully.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sites'] });
       if (settingsSaveAckTimerRef.current) {
         clearTimeout(settingsSaveAckTimerRef.current);
       }
@@ -453,9 +455,11 @@ export default function Settings() {
         console.error('Error parsing validation errors:', parseError);
       }
       
+      // apiRequest already turns the server's reply into its plain message (e.g. "Shop already uses this address.").
+      const serverMessage = typeof error?.message === 'string' ? error.message.trim() : '';
       toast({
-        title: 'Save failed',
-        description: 'Failed to save settings. Try again or check the console for details.',
+        title: 'Could not save',
+        description: serverMessage || 'Failed to save settings. Try again.',
         variant: 'destructive',
       });
     },
@@ -566,8 +570,16 @@ export default function Settings() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await apiRequest('POST', '/api/media/upload', formData);
-      const mediaData = await response.json();
+      // A real file upload to this site's media library (the old call sent the file as JSON to a missing route).
+      const response = await fetch(appendSiteIdToUrl('/api/media', activeSiteId), {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error((await response.text()) || 'Failed to upload file');
+      }
+      const mediaData = (await response.json()) as { url?: string };
 
       if (!mediaData || !mediaData.url) {
         throw new Error('Failed to upload file');
@@ -602,7 +614,7 @@ export default function Settings() {
     } finally {
       setUploading(false);
     }
-  }, [logoFile, faviconFile, siteInfo, saveSiteInfoMutation, toast]);
+  }, [logoFile, faviconFile, siteInfo, saveSiteInfoMutation, toast, activeSiteId]);
 
   /**
    * Cancel file preview

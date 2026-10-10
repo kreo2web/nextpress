@@ -40,7 +40,13 @@ const buildApp = () => {
 
 	const deps = {
 		models: {
-			sites: { findDefaultSite: async () => SITE },
+			// Uploads name their site; the user owns it, so the access check passes.
+			sites: {
+				findById: async (id: string) => (id === SITE.id ? SITE : undefined),
+				findByOwner: async () => [{ ...SITE, siteUrl: null, isDefault: true }],
+				findDefaultSite: async () => SITE,
+			},
+			userRoles: { findByUser: async () => [] },
 			media: {
 				findManyWhere: async (filters: Array<{ where: string; equals: string }>) =>
 					rows.filter((row) => filters.every((f) => String(row[f.where]) === f.equals)),
@@ -101,7 +107,7 @@ describe("POST /api/media/svgl", () => {
 		const body = JSON.stringify({ url: "https://svgl.app/library/cursor_light.svg", title: "Cursor" });
 		const headers = { "Content-Type": "application/json" };
 
-		const first = await fetch(`${base}/api/media/svgl`, { method: "POST", headers, body });
+		const first = await fetch(`${base}/api/media/svgl?siteId=${SITE.id}`, { method: "POST", headers, body });
 		expect(first.status).toBe(201);
 		const item = (await first.json()) as MediaRow;
 		expect(item.originalName).toBe("svgl-cursor_light.svg");
@@ -111,7 +117,7 @@ describe("POST /api/media/svgl", () => {
 		expect(saved).not.toMatch(/script|onload|<\?xml/);
 		expect(saved).toContain('<path d="M0 0h1v1z"/>');
 
-		const again = await fetch(`${base}/api/media/svgl`, { method: "POST", headers, body });
+		const again = await fetch(`${base}/api/media/svgl?siteId=${SITE.id}`, { method: "POST", headers, body });
 		expect(again.status).toBe(200);
 		expect(((await again.json()) as MediaRow).id).toBe(item.id);
 		expect(svglDownloads).toBe(1);
@@ -119,7 +125,7 @@ describe("POST /api/media/svgl", () => {
 
 	it("refuses anything that is not a svgl.app logo file, without fetching it", async () => {
 		const base = await start();
-		const res = await fetch(`${base}/api/media/svgl`, {
+		const res = await fetch(`${base}/api/media/svgl?siteId=${SITE.id}`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ url: "http://169.254.169.254/latest/meta-data", title: "x" }),
@@ -136,7 +142,7 @@ describe("POST /api/media with an SVG", () => {
 		const base = await start();
 		const form = new FormData();
 		form.append("file", new Blob([HOSTILE_LOGO], { type: "image/svg+xml" }), "mark.svg");
-		const res = await fetch(`${base}/api/media`, { method: "POST", body: form });
+		const res = await fetch(`${base}/api/media?siteId=${SITE.id}`, { method: "POST", body: form });
 		expect(res.status).toBe(201);
 		const item = (await res.json()) as MediaRow;
 		const saved = await readFile(path.join(uploadDir, String(item.filename)), "utf8");
@@ -152,10 +158,23 @@ describe("POST /api/media with an SVG", () => {
 			new Blob(['<!DOCTYPE svg [<!ENTITY x "y">]><svg>&x;</svg>'], { type: "image/svg+xml" }),
 			"trick.svg",
 		);
-		const res = await fetch(`${base}/api/media`, { method: "POST", body: form });
+		const res = await fetch(`${base}/api/media?siteId=${SITE.id}`, { method: "POST", body: form });
 		expect(res.status).toBe(400);
 		expect(((await res.json()) as { message: string }).message).toMatch(/Export it again/);
 		expect(await readdir(uploadDir)).toHaveLength(0);
 		expect(rows).toHaveLength(0);
+	});
+});
+
+describe("POST /api/media without a site", () => {
+	it("refuses instead of filing the upload under the default site, and keeps no file", async () => {
+		const base = await start();
+		const form = new FormData();
+		form.append("file", new Blob(['<svg xmlns="http://www.w3.org/2000/svg"/>'], { type: "image/svg+xml" }), "logo.svg");
+		const res = await fetch(`${base}/api/media`, { method: "POST", body: form });
+		expect(res.status).toBe(400);
+		expect(await res.json()).toEqual({ message: "Pick a site first." });
+		expect(rows).toHaveLength(0);
+		expect(await readdir(uploadDir)).toEqual([]);
 	});
 });

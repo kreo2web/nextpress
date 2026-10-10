@@ -5,6 +5,7 @@ import BlockLibrary, {
   type BlockLibraryCategory,
 } from './BlockLibrary';
 import { TemplateLibrary } from './TemplateLibrary';
+import { TemplatePartLibrary } from './TemplatePartLibrary';
 
 /** Inputs shared by compact and wide library shells. */
 export type BuilderLibraryPanelProps = {
@@ -47,6 +48,7 @@ export function BuilderLibraryPanel({
             openCategories={openCategories}
             onCategoryOpenChange={onCategoryOpenChange}
           />
+          <TemplatePartLibrary />
           {onInsertTemplate ? (
             <div className={templateWrapClass}>
               <TemplateLibrary onInsertTemplate={onInsertTemplate} />

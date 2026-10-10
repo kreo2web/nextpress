@@ -12,6 +12,7 @@ import {
 import { describeMissingFiles } from '@/lib/page-transfer/page-transfer-api';
 import { showErrorToast, showSuccessToast } from '@/lib/sonner-toast';
 import { PasteBlocksDialog } from '@/components/PageTransfer/PasteBlocksDialog';
+import { useOptionalActiveSite } from '@/hooks/useActiveSite';
 import { ExportPageDialog } from '@/components/PageTransfer/ExportPageDialog';
 
 const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? '' : 's'}`;
@@ -57,6 +58,8 @@ export function usePageTransfer({
   const [pending, setPending] = useState<PagePackage | null>(null);
   const [isPasting, setIsPasting] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  // Pasted files go to the media library of the site being edited.
+  const siteId = useOptionalActiveSite()?.activeSiteId ?? '';
 
   const copy = useCallback(async ({ items, done }: { items: BlockConfig[]; done: string }) => {
     const result = await copyBlocksToSystemClipboard({ blocks: items });
@@ -85,14 +88,14 @@ export function usePageTransfer({
   /** Files first (so a failure changes nothing), then the blocks. */
   const land = useCallback(async (pkg: PagePackage): Promise<Awaited<ReturnType<typeof landPastedPackage>> | null> => {
     setIsPasting(true);
-    const landed = await landPastedPackage({ pkg }).catch((error: Error) => {
-      console.error('[page-transfer] Paste failed while adding files', { atFunction: 'usePageTransfer.land', error });
+    const landed = await landPastedPackage({ pkg, siteId }).catch((error: Error) => {
+      console.error('[page-transfer] Paste failed while adding files', { atFunction: 'usePageTransfer.land', siteId, error });
       showErrorToast(error.message);
       return null;
     });
     setIsPasting(false);
     return landed;
-  }, []);
+  }, [siteId]);
 
   const pasteAll = useCallback(
     async ({ pkg, mode }: { pkg: PagePackage; mode: PasteAllMode }) => {

@@ -4,6 +4,8 @@ import { createHash } from "node:crypto";
  * One stored HTML document. The key is the page version plus the theme baked into that HTML.
  * A save bumps the version, so the next request misses and builds again. The theme is part of
  * the key because its colors are written into the HTML without bumping the page version.
+ * Linked template parts work the same way: the page shows their current blocks, so their
+ * stamp is part of the key, and editing a header reaches every page on the next visit.
  */
 export type PublishedPageCacheKey = {
 	documentId: string;
@@ -11,6 +13,8 @@ export type PublishedPageCacheKey = {
 	canonicalUrl: string;
 	themeId: string | null;
 	themeSettingsJson: string;
+	/** From templatePartsStamp. Empty when the page shows no linked parts. */
+	templatePartsStamp: string;
 };
 
 /**
@@ -35,10 +39,14 @@ export function publishedPageCacheKey({
 	canonicalUrl,
 	themeId,
 	themeSettingsJson,
+	templatePartsStamp,
 }: PublishedPageCacheKey): string {
 	const themeHash = createHash("sha256").update(themeSettingsJson).digest("hex").slice(0, 16);
+	const partsHash = templatePartsStamp
+		? createHash("sha256").update(templatePartsStamp).digest("hex").slice(0, 16)
+		: "none";
 	const address = canonicalUrlWithoutQuery(canonicalUrl);
-	return `${documentId}:${version}:${address}:${themeId ?? "none"}:${themeHash}`;
+	return `${documentId}:${version}:${address}:${themeId ?? "none"}:${themeHash}:${partsHash}`;
 }
 
 export function createPublishedPageCache({ maxEntries }: { maxEntries: number }) {

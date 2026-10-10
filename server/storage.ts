@@ -1,6 +1,8 @@
 import { db } from "./db";
 import { createModel, type DatabaseInstance } from "@shared/create-models";
 import { normalizeSiteHostname } from "./utils/validate-domain";
+import { pickPreferredSite, readSiteAddress, siteAnswersHost } from "./utils/site-address";
+import type { Site } from "@shared/schema-types";
 import {
 	sites,
 	roles,
@@ -18,6 +20,12 @@ import {
 	formSubmissions,
 	sessions,
 } from "@shared/schema";
+
+/** A stored jsonb value as a plain object (empty when it isn't one), so one nested key can be replaced safely. */
+const readSettingsObject = (value: Site["settings"]): Record<string, Site["settings"]> =>
+	value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, Site["settings"]>)
+		: {};
 
 // Specialized model factories for complex operations
 export function createUserModel(dbInstance: DatabaseInstance = db) {
@@ -283,18 +291,12 @@ export function createThemeModel(dbInstance: DatabaseInstance = db) {
 	const baseModel = createModel(themes, dbInstance);
 	return {
 		...baseModel,
+		/**
+		 * The theme seeded as active on first run. Used only to give the default site a theme at
+		 * start-up; each site's own choice lives in `sites.activeThemeId`.
+		 */
 		async findActiveTheme() {
 			return baseModel.findFirst([{ where: "status", equals: "active" }]);
-		},
-		async setActiveTheme(id: string) {
-			// Deactivate all themes first
-			const allThemes = await baseModel.findMany();
-			for (const theme of allThemes) {
-				await baseModel.update(theme.id, {
-					status: "inactive",
-				});
-			}
-			return baseModel.update(id, { status: "active" });
 		},
 		async findByName(name: string) {
 			return baseModel.findFirst([{ where: "name", equals: name }]);
@@ -458,18 +460,33 @@ export function createSiteModel(dbInstance: DatabaseInstance = db) {
 			return baseModel.findManyWhere([{ where: "ownerId", equals: ownerId }]);
 		},
 
-		/** Match a site by hostname derived from sites.siteUrl. */
+		/**
+		 * The site a visitor host belongs to (`www.` twin included). When several sites claim it, the
+		 * default site wins, then the oldest — never whichever row the database returns first.
+		 */
 		async findByHostname(hostname: string) {
-			const normalized = hostname.trim().toLowerCase();
-			if (!normalized) return undefined;
+			const host = normalizeSiteHostname(hostname);
+			if (!host) return undefined;
 
 			const allSites = await baseModel.findMany();
-			for (const site of allSites) {
-				if (!site.siteUrl) continue;
-				const siteHost = normalizeSiteHostname(site.siteUrl);
-				if (siteHost === normalized) return site;
-			}
-			return undefined;
+			return pickPreferredSite(allSites.filter((site) => siteAnswersHost({ site, host })));
+		},
+
+		/**
+		 * Stores a site's address on the site record and keeps the Settings copy in step. This is the
+		 * only writer of the address: two copies saved by different screens is how domains stopped working.
+		 */
+		async saveAddress({ siteId, address }: { siteId: string; address: string | null }) {
+			const site = await baseModel.findById(siteId);
+			if (!site) throw new Error("Site not found");
+
+			const settings = readSettingsObject(site.settings);
+			const general = readSettingsObject(settings.general);
+			return baseModel.update(siteId, {
+				siteUrl: address,
+				settings: { ...settings, general: { ...general, siteUrl: address ?? "" } },
+				updatedAt: new Date(),
+			});
 		},
 		
 		/**
@@ -495,7 +512,9 @@ export function createSiteModel(dbInstance: DatabaseInstance = db) {
 			}
 
 			const storedSettings = site.settings || {};
-			return deepMerge(DEFAULT_SETTINGS, storedSettings as any);
+			const merged = deepMerge(DEFAULT_SETTINGS, storedSettings as any);
+			// Settings shows the address visitors are really matched by (the site record's own field).
+			return { ...merged, general: { ...merged.general, siteUrl: readSiteAddress(site) } };
 		},
 
 		/**
@@ -524,9 +543,12 @@ export function createSiteModel(dbInstance: DatabaseInstance = db) {
 			}
 
 			const currentSettings = site.settings || {};
+			// The address has its own writer (`saveAddress`) so the record and Settings can't drift apart.
+			const { siteUrl: _address, ...generalWithoutAddress } = partial?.general ?? {};
+			const withoutAddress = partial?.general ? { ...partial, general: generalWithoutAddress } : partial;
 			const merged = deepMerge(
 				deepMerge(DEFAULT_SETTINGS, currentSettings as any),
-				partial
+				withoutAddress
 			);
 
 			// Validate merged result

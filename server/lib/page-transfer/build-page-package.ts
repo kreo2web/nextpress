@@ -56,9 +56,15 @@ const readRemoteFont = async (url: string): Promise<RemoteFontBody | null> => {
 	}
 };
 
+/**
+ * Builds the page file. `resolvePageParts` swaps each linked template part for the template's
+ * current blocks, so the file stands on its own: a template is not part of a page file, and a
+ * part that reaches another site would point at a template that is not there.
+ */
 export function createPagePackageBuilder({
 	listSiteMedia,
 	readActiveTheme,
+	resolvePageParts,
 	uploadDir,
 	uploadLimit,
 	appVersion,
@@ -66,6 +72,7 @@ export function createPagePackageBuilder({
 }: {
 	listSiteMedia: (siteId: string) => Promise<Media[]>;
 	readActiveTheme: (siteId: string) => Promise<PackageTheme | null>;
+	resolvePageParts: (input: { siteId: string; pageId: string; blocks: BlockConfig[] }) => Promise<BlockConfig[]>;
 	uploadDir: string;
 	uploadLimit: number;
 	appVersion: string;
@@ -109,12 +116,16 @@ export function createPagePackageBuilder({
 		return { ...described, size: bytes.length, data: bytes.toString("base64") };
 	};
 
-	const toPackagePage = (row: PageRow): PackageExtraPage => ({
+	const toPackagePage = async (row: PageRow): Promise<PackageExtraPage> => ({
 		title: row.title,
 		slug: row.slug,
 		featuredImage: row.featuredImage ?? null,
 		other: isRecord(row.other) ? row.other : {},
-		blocks: Array.isArray(row.blocks) ? (row.blocks as BlockConfig[]) : [],
+		blocks: await resolvePageParts({
+			siteId: String(row.siteId),
+			pageId: row.id,
+			blocks: Array.isArray(row.blocks) ? (row.blocks as BlockConfig[]) : [],
+		}),
 	});
 
 	/**
@@ -131,8 +142,8 @@ export function createPagePackageBuilder({
 		includeFiles: boolean;
 	}): Promise<PagePackage> => {
 		const siteId = String(page.siteId);
-		const main = toPackagePage(page);
-		const extras = extraPages.map(toPackagePage);
+		const main = await toPackagePage(page);
+		const extras = await Promise.all(extraPages.map(toPackagePage));
 		const siteMedia = await listSiteMedia(siteId);
 		const mediaByUrl = new Map(siteMedia.map((item) => [item.url, item]));
 

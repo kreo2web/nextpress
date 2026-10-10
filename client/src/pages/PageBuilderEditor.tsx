@@ -12,6 +12,8 @@ import PageBuilder from '@/components/PageBuilder/PageBuilder';
 import PublishDialog from '@/components/PageBuilder/PublishDialog';
 import { SiteMenu } from '@/components/PageBuilder/EditorBar';
 import { useToast } from '@/hooks/use-toast';
+import { useOptionalActiveSite } from '@/hooks/useActiveSite';
+import { isTemplatePart } from '@shared/template-usage';
 import type { BlockConfig, Page, PageOther, Post, Template } from '@shared/schema-types';
 import { storeSlugToIdMapping } from '@/lib/editorStorage';
 import { setParentIds } from '@/lib/handlers/treeUtils';
@@ -253,13 +255,21 @@ export default function PageBuilderEditor({
    */
   const resolvedPageId = postId;
 
+  // A page name ("contact") only means something inside one site, and most sites have one. Look it
+  // up in the admin's current site; without that the server could hand back another site's page.
+  const activeSites = useOptionalActiveSite();
+  const slugSiteId = isSlug ? activeSites?.activeSiteId ?? '' : undefined;
+  const waitingForSite = isSlug && !slugSiteId;
+
   const {
     data: rawData,
     isLoading,
     error,
   } = useQuery<Page | Post | Template>({
-    queryKey: [`${apiBase}/${resolvedPageId || postId}`],
-    enabled: !!(resolvedPageId || postId),
+    queryKey: slugSiteId
+      ? [`${apiBase}/${resolvedPageId || postId}`, { siteId: slugSiteId }]
+      : [`${apiBase}/${resolvedPageId || postId}`],
+    enabled: !!(resolvedPageId || postId) && !waitingForSite,
   });
 
   /** Normalise raw API data into the EditorData shape */
@@ -270,6 +280,12 @@ export default function PageBuilderEditor({
         ? adaptPostToEditorData(rawData as Post)
         : (rawData as Page)
     : undefined;
+
+  // Linked parts live under Templates; everything else a template editor opens is a pre-designed block.
+  const templateListPath =
+    isTemplate && rawData && isTemplatePart((rawData as Template).other)
+      ? '/admin/templates'
+      : '/admin/pre-designed-blocks';
 
   // Keep refs fresh every render for stable useMountEffect handlers
   dataRef.current = data;
@@ -788,7 +804,7 @@ latestPageStateRef.current = {
     [clearPersistedDraft, handleRemoteEntityUpdate],
   );
 
-  if (isLoading || (data && !pageState.isInitialized)) {
+  if (isLoading || waitingForSite || (data && !pageState.isInitialized)) {
     return (
       <div className="flex h-screen bg-npb-canvas-bg">
         <AdminSidebar />
@@ -801,7 +817,7 @@ latestPageStateRef.current = {
   }
 
   if (error || !data) {
-    const backPath = isTemplate ? '/admin/templates' : isPost ? '/admin/posts' : '/admin/pages';
+    const backPath = isTemplate ? templateListPath : isPost ? '/admin/posts' : '/admin/pages';
     const label = isTemplate ? 'Template' : isPost ? 'Post' : 'Page';
     return (
       <div className="flex h-screen">
@@ -1067,7 +1083,7 @@ latestPageStateRef.current = {
   };
 
   const handleBackToList = () => {
-    setLocation(isTemplate ? '/admin/templates' : isPost ? '/admin/posts' : '/admin/pages');
+    setLocation(isTemplate ? templateListPath : isPost ? '/admin/posts' : '/admin/pages');
   };
 
   /** Determine the label and back behavior based on inline editing state */

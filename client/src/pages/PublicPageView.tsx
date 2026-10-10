@@ -61,7 +61,6 @@ export default function PublicPageView({ slug: propSlug, type = 'page' }: Public
   const [location] = useLocation();
   const slug = propSlug || routeSlug;
   const siteIdHint = getPublicSiteIdHint(location);
-  const { cssVars: themeCssVars, settings: themeSettings } = useSiteThemeSettings(siteIdHint);
   
   // Determine the API endpoint based on type
   const getApiEndpoint = () => {
@@ -83,6 +82,9 @@ export default function PublicPageView({ slug: propSlug, type = 'page' }: Public
     },
     enabled: !!(slug || type === 'homepage'),
   });
+  // On a site's own domain there is no ?siteId= hint: take the theme of the site the page came from.
+  const contentSiteId = siteIdHint ?? (data as { siteId?: string | null } | undefined)?.siteId ?? undefined;
+  const { cssVars: themeCssVars, settings: themeSettings } = useSiteThemeSettings(contentSiteId);
 
   if (isLoading) {
     return (

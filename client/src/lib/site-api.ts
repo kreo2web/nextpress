@@ -25,6 +25,29 @@ export const readVisitorSiteIdHint = (): string | undefined => {
 	}
 };
 
+type PublicSite = { id: string; siteUrl: string | null; isDefault: boolean };
+
+/**
+ * Where visitors see a page or post of `site`. A site with its own address gets an absolute link to
+ * it: a relative link opened whatever site the admin's current address belongs to. A site without
+ * an address can only show pages at `/sites/<id>/<slug>`; `null` means there is no public link yet.
+ */
+export const buildPublicContentUrl = ({
+	site,
+	slug,
+	kind,
+}: {
+	site: PublicSite | undefined;
+	slug: string;
+	kind: "page" | "post";
+}): string | null => {
+	const path = kind === "post" ? `/post/${encodeURIComponent(slug)}` : `/${encodeURIComponent(slug)}`;
+	const address = site?.siteUrl?.trim().replace(/\/+$/, "");
+	if (address) return `${address}${path}`;
+	if (!site || site.isDefault) return path;
+	return kind === "page" ? `/sites/${encodeURIComponent(site.id)}/${encodeURIComponent(slug)}` : null;
+};
+
 /** Builds a site-scoped options API URL. */
 export const buildSiteOptionUrl = (params: { name: string; siteId: string }): string =>
 	appendSiteIdToUrl(`/api/options/${params.name}`, params.siteId);

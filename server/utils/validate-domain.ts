@@ -1,16 +1,38 @@
 import dns from 'node:dns/promises';
 
 const IPV4_REGEX = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+const IPV6_LITERAL_REGEX = /^\[[0-9a-f:.]+\]$/i;
 const LOCALHOST_REGEX = /^(localhost|.*\.localhost)$/;
 
 /**
+ * Second-level labels that sit under a two-letter country code (example.co.uk, example.co.ug), so
+ * `example.co.uk` is a top-level domain of its own and still gets a `www.` twin.
+ */
+const COUNTRY_SECOND_LEVELS = new Set([
+  'ac', 'co', 'com', 'edu', 'go', 'gov', 'gv', 'ltd', 'me', 'mil', 'ne', 'net', 'nic', 'or', 'org', 'plc', 'sch',
+]);
+
+/**
  * Checks if a domain requires DNS validation.
- * Skips validation for localhost variants and plain IPv4 addresses
+ * Skips validation for localhost variants and plain IP addresses
  * since these are used during initial self-hosting setup before DNS is configured.
  */
 function shouldSkipValidation(domain: string): boolean {
   const host = stripPort(domain);
-  return IPV4_REGEX.test(host) || LOCALHOST_REGEX.test(host);
+  return IPV4_REGEX.test(host) || IPV6_LITERAL_REGEX.test(host) || LOCALHOST_REGEX.test(host);
+}
+
+/**
+ * True for a domain people also type with `www.` (example.com, example.co.uk). A subdomain such as
+ * shop.example.com gets no twin: nobody sets up DNS for www.shop.example.com, and requiring it blocked saves.
+ */
+function isTopLevelDomain(host: string): boolean {
+  const labels = host.split('.');
+  if (labels.length === 2) return true;
+  if (labels.length !== 3) return false;
+  const second = labels[1] ?? '';
+  const countryCode = labels[2] ?? '';
+  return countryCode.length === 2 && COUNTRY_SECOND_LEVELS.has(second);
 }
 
 /**
@@ -30,10 +52,13 @@ function stripPort(domain: string): string {
 }
 
 /**
- * Normalized hostname for DNS / Caddy (no scheme, no port).
+ * Normalized hostname for DNS, Caddy and visitor matching: lower case, no scheme, path, port or
+ * trailing dot. `Site.com/` and `site.com` must compare equal or the visitor lands on the default site.
  */
 export function normalizeSiteHostname(domainOrUrl: string): string {
-  return stripPort(stripProtocol(domainOrUrl.trim()));
+  const withoutScheme = stripProtocol(domainOrUrl.trim().toLowerCase());
+  const hostAndPort = withoutScheme.split(/[/?#]/)[0] ?? '';
+  return stripPort(hostAndPort).replace(/\.$/, '');
 }
 
 /**
@@ -44,8 +69,8 @@ export function isIpv4Host(host: string): boolean {
 }
 
 /**
- * Hostnames that will be listed on the Caddy site line (apex + www for public DNS names).
- * Localhost and IPv4 return a single host only.
+ * Every host a site answers on, main host first: the Caddy site line and visitor matching both use
+ * this list. Top-level domains add their `www.` twin; subdomains, localhost and IPs stay single.
  */
 export function getCaddyTlsHostnames(domainOrUrl: string): string[] {
   const host = normalizeSiteHostname(domainOrUrl);
@@ -55,7 +80,7 @@ export function getCaddyTlsHostnames(domainOrUrl: string): string[] {
     const apex = host.slice(4);
     return apex ? [host, apex] : [host];
   }
-  return [host, `www.${host}`];
+  return isTopLevelDomain(host) ? [host, `www.${host}`] : [host];
 }
 
 /**

@@ -19,6 +19,8 @@ import {
 import { SettingsLabel } from "./shared";
 
 const RAW_ITEM = "__raw__";
+/** A minus sign that starts a number (`-5px`, `-.5rem`). Subtraction inside `calc(1rem - 2px)` has a space after it. */
+const NEGATIVE_NUMBER = /(?:^|\s)-(?:\d|\.\d)/;
 
 type UnitValueFieldProps = {
 	id?: string;
@@ -38,6 +40,8 @@ type UnitValueFieldProps = {
 	active?: boolean;
 	/** Base name for screen readers; the number box and the unit dropdown build on it. */
 	ariaLabel?: string;
+	/** False refuses a minus sign, for lengths that cannot be negative (padding). Nothing is saved until it is fixed. */
+	allowNegative?: boolean;
 	className?: string;
 };
 
@@ -57,6 +61,7 @@ export function UnitValueField({
 	segmentLabel = "Custom",
 	active = false,
 	ariaLabel,
+	allowNegative = true,
 	className,
 }: UnitValueFieldProps) {
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +87,8 @@ export function UnitValueField({
 			onChange(undefined);
 			return;
 		}
+		// Typed text stays in the draft so the person can see it, but nothing is saved until it is allowed.
+		if (!allowNegative && NEGATIVE_NUMBER.test(trimmed)) return;
 		if (freeText) {
 			onChange(trimmed);
 			return;
@@ -121,6 +128,7 @@ export function UnitValueField({
 
 	const selectValue = parsed.kind === "keyword" ? parsed.keyword : parsed.kind === "raw" ? RAW_ITEM : unit;
 	const hasSegment = segmentLabel !== null;
+	const refusesNegative = draft !== null && !allowNegative && NEGATIVE_NUMBER.test(draft.trim());
 
 	return (
 		<div className={cn("space-y-1.5", className)}>
@@ -151,9 +159,11 @@ export function UnitValueField({
 					spellCheck={false}
 					autoComplete="off"
 					aria-label={`${name} custom value`}
+					aria-invalid={refusesNegative || undefined}
 					className={cn(
 						"relative h-9 min-w-0 flex-1 rounded-none text-sm focus-visible:z-10 focus-visible:outline-none",
 						hasSegment && "-ml-px",
+						refusesNegative && "border-destructive",
 					)}
 				/>
 				{freeText ? null : (
@@ -183,6 +193,7 @@ export function UnitValueField({
 					</Select>
 				)}
 			</div>
+			{refusesNegative ? <p className="npb-settings-hint-muted text-xs">Use zero or a positive length.</p> : null}
 		</div>
 	);
 }

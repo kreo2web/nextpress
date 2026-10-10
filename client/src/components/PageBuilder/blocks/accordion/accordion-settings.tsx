@@ -20,12 +20,17 @@ import type { IconReference } from "@/lib/icon-indexes";
 import { SettingsLabel } from "../../shared";
 import { SettingsChipGroup } from "../../settings-chip-group";
 import { DimensionPresetField } from "../../dimension-preset-field";
+import { SpacingField } from "../../spacing-field";
+import { applySpacingShorthandPatch, expandSpacingShorthand } from "../../spacing-styles";
 import ColorField, { type ColorTarget } from "../../ColorField";
 import { IconPickerButton } from "../../IconPicker/IconPickerButton";
 import { IconRenderer } from "../shared/IconRenderer";
 import { useSettingsState } from "../useSettingsState";
 import { generateBlockId } from "../../utils";
 import { buildAccordionItem } from "./accordion-factory";
+
+/** The accordion item's inner padding when none is saved. A side that is cleared falls back to it. */
+const ACCORDION_INNER_PADDING = "20px 24px";
 
 const OPEN_MODE_OPTIONS = [
 	{ value: "one", label: "One at a time" },
@@ -171,12 +176,26 @@ export function AccordionSettings({ block, onUpdate }: AccordionSettingsProps) {
 							onChange={(next) => updateContent({ gap: next || "12px" })}
 						/>
 					) : null}
-					<DimensionPresetField
-						label="Inner padding"
-						presets={SPACING_PRESETS}
-						value={content.itemPadding}
-						onChange={(next) => updateContent({ itemPadding: next || "20px 24px" })}
-						customPlaceholder="e.g. 20px 24px"
+					<SpacingField
+						sideModes={["all", "pairs"]}
+						targets={[
+							{
+								kind: "padding",
+								label: "Inner padding",
+								sides: expandSpacingShorthand(content.itemPadding),
+								defaultSides: expandSpacingShorthand(ACCORDION_INNER_PADDING),
+							},
+						]}
+						onCommit={(patch) =>
+							updateContent({
+								itemPadding: applySpacingShorthandPatch({
+									kind: "padding",
+									current: content.itemPadding,
+									patch,
+									fallback: ACCORDION_INNER_PADDING,
+								}),
+							})
+						}
 					/>
 					{content.look === "cards" ? (
 						<DimensionPresetField

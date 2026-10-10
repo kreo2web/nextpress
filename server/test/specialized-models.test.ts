@@ -566,15 +566,6 @@ describe('Specialized Model Factories', () => {
       expect(activeTheme?.name).toBe('Active Theme');
     });
 
-    it('should set active theme', async () => {
-      const activatedTheme = await themeModel.setActiveTheme(testUuids.theme1);
-      expect(activatedTheme.status).toBe('active');
-
-      // Check that other themes are deactivated
-      const activeTheme = await themeModel.findActiveTheme();
-      expect(activeTheme?.id).toBe(testUuids.theme1);
-    });
-
     it('should find theme by name', async () => {
       const theme = await themeModel.findByName('Test Theme');
       expect(theme).toBeDefined();

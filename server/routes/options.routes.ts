@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { Deps } from './shared/deps';
 import { asyncHandler } from './shared/async-handler';
-import { readRequestSiteId, resolveRequestSite } from './shared/resolve-request-site';
+import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
 import { resolvePublicSite, readPublicSiteIdHint } from './shared/resolve-public-site';
 
 /**
@@ -55,11 +55,7 @@ export function createOptionsRoutes(deps: Deps) {
         return res.status(400).json({ message: 'value is required' });
       }
 
-      const site = await resolveRequestSite({
-        models,
-        userId,
-        siteId: readRequestSiteId(req),
-      });
+      const site = await resolveRequestSite({ models, req, userId });
 
       const option = await models.options.setOption({
         name,
@@ -69,9 +65,9 @@ export function createOptionsRoutes(deps: Deps) {
       res.json(option);
     } catch (error) {
       console.error('Error setting option:', error);
-      const message = error instanceof Error ? error.message : 'Failed to set option';
-      const status = message === 'Site not accessible' ? 403 : 500;
-      res.status(status).json({ message });
+      const err = error instanceof Error ? error : new Error('Failed to set option');
+      const status = readErrorStatus(err);
+      res.status(status).json({ message: status >= 500 ? 'Failed to set option' : err.message });
     }
   }));
 

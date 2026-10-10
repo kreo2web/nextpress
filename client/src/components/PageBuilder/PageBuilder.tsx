@@ -36,6 +36,10 @@ import {
   readBlockFromClipboard,
 } from './block-clipboard';
 import { reIdTemplateBlocks } from '@/lib/re-id-template-blocks';
+import { replaceBlockDeep } from '@/lib/handlers/replace-block-deep';
+import { appendBlockToPageShell } from '@/lib/handlers/append-block-to-page-shell';
+import { buildTemplatePartBlock } from '@shared/template-parts';
+import { TemplatePartActionsProvider } from './blocks/template-part/template-part-actions';
 import { persistResponsiveDefaultsToBlocks } from '@shared/persist-responsive-defaults';
 import { applyResponsiveHealthFixes, validateBlockResponsiveHealth } from '@shared/validate-block-responsive-health';
 import { writePreviewSession } from '@shared/preview-session';
@@ -751,6 +755,27 @@ export default function PageBuilder({
     [commitBlocks],
   );
 
+  /** Adds a linked template part at the end of the page content and selects it, so its template can be picked or checked. */
+  const handleInsertTemplatePart = useCallback(
+    (templateId: string) => {
+      const part = buildTemplatePartBlock({ id: generateBlockId(), templateId });
+      commitBlocks((prev) => appendBlockToPageShell(prev, part));
+      setSelectedBlockId(part.id);
+      setActiveTab('settings');
+    },
+    [commitBlocks, setActiveTab],
+  );
+
+  /** Detach: the part is replaced by copies of its template's blocks, which then belong to the page. */
+  const handleReplaceBlock = useCallback(
+    (blockId: string, replacement: BlockConfig[]) => {
+      commitBlocks((prev) => replaceBlockDeep(prev, blockId, replacement));
+      setEditingBlockId(null);
+      setSelectedBlockId(replacement[0]?.id ?? null);
+    },
+    [commitBlocks],
+  );
+
   const handleApplyTemplateFromDesign = useCallback(
     ({ blocks }: { templateId: string; blocks: BlockConfig[] }) => {
       resetState(blocks);
@@ -807,6 +832,7 @@ export default function PageBuilder({
         <EditorColorMemoryProvider blocks={blocks}>
         <EditorPopupsProvider blocks={blocks}>
         <DeviceViewProvider device={deviceView}>
+        <TemplatePartActionsProvider value={{ insertTemplatePart: handleInsertTemplatePart, replaceBlockWith: handleReplaceBlock }}>
         <BlockActionsProvider
         value={{
           selectedBlockId,
@@ -973,6 +999,7 @@ export default function PageBuilder({
         />
         </div>
       </BlockActionsProvider>
+        </TemplatePartActionsProvider>
         </DeviceViewProvider>
         </EditorPopupsProvider>
         </EditorColorMemoryProvider>

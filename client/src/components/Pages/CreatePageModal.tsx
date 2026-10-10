@@ -28,6 +28,7 @@ import {
 } from "@/lib/sonner-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useActiveSite } from "@/hooks/useActiveSite";
+import { appendSiteIdToUrl } from "@/lib/site-api";
 import { mergePageOtherWithDefaults } from "@shared/page-other";
 import { reIdTemplateBlocks } from "@/lib/re-id-template-blocks";
 import { useContentLists } from "@/hooks/useContentLists";
@@ -134,7 +135,8 @@ export function CreatePageModal({
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch("/api/media", {
+    // The image belongs to the same site as the new page, not the default site.
+    const response = await fetch(appendSiteIdToUrl("/api/media", activeSiteId), {
       method: "POST",
       body: formData,
       credentials: "include",

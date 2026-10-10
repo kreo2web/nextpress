@@ -4,7 +4,8 @@ import { asyncHandler } from './shared/async-handler';
 import { safeTryAsync } from '../utils';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
-import { readRequestSiteId, resolveRequestSite } from './shared/resolve-request-site';
+import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
+import { resolveReadSiteId } from '../lib/content-access';
 import {
   DEFAULT_MEDIA_LIST_SORT,
   MEDIA_LIST_SORT_FIELDS,
@@ -79,10 +80,15 @@ export function createMediaRoutes(deps: Deps): Router {
           CONFIG.PAGINATION.DEFAULT_MEDIA_PER_PAGE
         );
         const { mime_type } = req.query;
-        const siteId =
+        const requestedSiteId =
           typeof req.query.siteId === 'string' && req.query.siteId.trim()
             ? req.query.siteId.trim()
             : undefined;
+        // One site's library: the named site, the API key's site, or the site of this domain.
+        const siteId = await resolveReadSiteId({ req, models, requestedSiteId });
+        if (!siteId) {
+          return { media: [], total: 0, page, per_page: limit, total_pages: 0 };
+        }
 
         const filters = [
           ...(mime_type ? [{ where: 'mimeType', equals: mime_type as string }] : []),
@@ -155,11 +161,7 @@ export function createMediaRoutes(deps: Deps): Router {
           throw new Error('User not authenticated');
         }
 
-        const site = await resolveRequestSite({
-          models,
-          userId,
-          siteId: readRequestSiteId(req),
-        });
+        const site = await resolveRequestSite({ models, req, userId });
 
         const file = req.file;
         if (!file) {
@@ -223,6 +225,16 @@ export function createMediaRoutes(deps: Deps): Router {
         if (isRefusedUpload(err)) {
           return res.status(err.statusCode).json({ message: err.publicMessage });
         }
+        const siteStatus = readErrorStatus(err, 500);
+        if (siteStatus < 500) {
+          // The file was stored before the site was checked; nothing points at it, so remove it.
+          const stored = req.file?.filename;
+          if (stored) {
+            const { err: unlinkErr } = await safeTryAsync(() => fs.unlink(path.join(uploadDir, stored)));
+            if (unlinkErr) console.error('[media] Could not remove an upload with no site', { file: stored, unlinkErr });
+          }
+          return res.status(siteStatus).json({ message: err.message });
+        }
         return res.status(500).json({ message: 'Failed to upload media' });
       }
 
@@ -248,7 +260,7 @@ export function createMediaRoutes(deps: Deps): Router {
       }
 
       const { err, result } = await safeTryAsync(async () => {
-        const site = await resolveRequestSite({ models, userId, siteId: readRequestSiteId(req) });
+        const site = await resolveRequestSite({ models, req, userId });
         // One copy per logo per site: picking the same logo again reuses it.
         const originalName = `svgl-${path.posix.basename(new URL(url).pathname)}`;
         const [existing] = await models.media.findManyWhere(
@@ -292,6 +304,8 @@ export function createMediaRoutes(deps: Deps): Router {
       if (err || !result) {
         console.error('[media] Brand logo save failed', { atFunction: 'POST /api/media/svgl', userId, url, err });
         if (err && isRefusedUpload(err)) return res.status(err.statusCode).json({ message: err.publicMessage });
+        const siteStatus = readErrorStatus(err, 500);
+        if (err && siteStatus < 500) return res.status(siteStatus).json({ message: err.message });
         return res.status(500).json({ message: "That logo couldn't be saved. Try again in a moment." });
       }
       return res.status(result.status).json(result.item);

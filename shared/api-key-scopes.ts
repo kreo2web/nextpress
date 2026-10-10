@@ -383,6 +383,14 @@ const SCOPE_RULES: ScopeRule[] = [
 					: ["pages:read", "media:read"],
 	},
 	{
+		// One-click NextPress updates. The routes take a dashboard session only (an update also needs the
+		// person's password), so a key is refused there anyway; this rule keeps the system scopes in front of
+		// them even if that ever changes.
+		matches: ({ path }) => path === "/api/system/update" || path.startsWith("/api/system/update/"),
+		scopes: ({ method }) =>
+			writeOrReadScope({ method, read: "system:read", write: "system:write" }),
+	},
+	{
 		matches: ({ path }) => path.startsWith("/api/system") || path.startsWith("/api/import"),
 		scopes: ({ method }) =>
 			writeOrReadScope({ method, read: "system:read", write: "system:write" }),

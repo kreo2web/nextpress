@@ -130,11 +130,13 @@ export async function readBlocksFromSystemClipboard(): Promise<ClipboardRead> {
  */
 export async function landPastedPackage({
   pkg,
+  siteId,
 }: {
   pkg: PagePackage;
+  siteId: string;
 }): Promise<{ blocks: BlockConfig[]; missing: StoredPackageFiles['missing'] }> {
   if (pkg.files.length === 0) return { blocks: pkg.blocks, missing: [] };
-  const stored = await storePastedFiles({ pkg });
+  const stored = await storePastedFiles({ pkg, siteId });
   return {
     blocks: rewriteFileRefs({ value: pkg.blocks, refMap: stored.refMap }),
     missing: stored.missing,

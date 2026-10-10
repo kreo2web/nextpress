@@ -10,7 +10,10 @@ import type { BindablePostDocument } from "@shared/bind-post-blocks";
 import { PublicBlockStack } from "@/components/PageBuilder/public-block-stack";
 import { resolveLivePreviewBlocks } from "@shared/preview-session";
 import { useLivePreviewSession } from "@/lib/use-live-preview-session";
-import { useActiveSite } from "@/hooks/useActiveSite";
+import { useTemplatePartBlocks } from "@/hooks/use-template-part-blocks";
+import { spliceTemplateParts } from "@/lib/template-parts/splice-template-parts";
+import { hasTemplatePartBlock } from "@shared/template-parts";
+import { useOptionalActiveSite } from "@/hooks/useActiveSite";
 import { useSiteThemeSettings } from "@/hooks/use-site-theme-settings";
 import { buildVisitorDocumentStyle } from "@/lib/visitor-theme-style";
 import { resolveVisitorDesign } from "@shared/theme-to-page-design";
@@ -32,13 +35,15 @@ type PreviewPost = Post & {
   tags?: string[];
 };
 
+const NO_BLOCKS: BlockConfig[] = [];
+
 export default function PreviewPage({ postId, templateId, type }: PreviewPageProps) {
   const params = useParams();
   
   const contentId = postId || templateId || params.id;
   const contentType = type || params.type || (templateId ? 'template' : 'post');
-  const { activeSiteId } = useActiveSite();
-  const { cssVars: themeCssVars, settings: themeSettings } = useSiteThemeSettings(activeSiteId);
+  // Share links are opened by visitors who aren't signed in, outside the admin's site context.
+  const activeSites = useOptionalActiveSite();
 
   const shareToken = useMemo(() => {
     if (typeof window === 'undefined') {
@@ -62,6 +67,8 @@ export default function PreviewPage({ postId, templateId, type }: PreviewPagePro
     contentId,
     enabled: Boolean(useLiveEditorBlocks && contentId),
   });
+  // The editor's blocks still hold linked template parts; fetch their templates to show them.
+  const liveTemplates = useTemplatePartBlocks(liveSession?.blocks ?? NO_BLOCKS);
 
   const previewPath =
     shareToken && contentId
@@ -87,6 +94,9 @@ export default function PreviewPage({ postId, templateId, type }: PreviewPagePro
   });
 
   const data = previewQuery.data ?? postFallbackQuery.data;
+  // Paint with the previewed page's own site theme; posts carry no site, so they use the admin's site.
+  const contentSiteId = (data as { siteId?: string | null } | undefined)?.siteId || activeSites?.activeSiteId || undefined;
+  const { cssVars: themeCssVars, settings: themeSettings } = useSiteThemeSettings(contentSiteId);
   const isLoading =
     previewQuery.isLoading ||
     Boolean(previewQuery.isError && postFallbackPath && postFallbackQuery.isLoading);
@@ -136,6 +146,10 @@ export default function PreviewPage({ postId, templateId, type }: PreviewPagePro
     apiBlocks,
     apiUpdatedAt,
   });
+  // Server copies arrive with parts already swapped in; the editor's live copy does not.
+  if (hasTemplatePartBlock(blocks)) {
+    blocks = spliceTemplateParts({ blocks, templates: liveTemplates });
+  }
   let title = liveSession?.title ?? "";
   let bindablePost: BindablePostDocument | undefined;
 

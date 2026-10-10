@@ -32,9 +32,15 @@ export type LinkedPagesResult = {
 export function createLinkedPagesFinder({
 	findBySiteAndSlug,
 	readHomepageSlug,
+	resolveShownBlocks,
 }: {
 	findBySiteAndSlug: (siteId: string, slug: string) => Promise<PageRow | undefined>;
 	readHomepageSlug: (siteId: string) => Promise<string | null>;
+	/**
+	 * The page's blocks as visitors see them (linked template parts swapped in). Menu links usually
+	 * live in a linked header, so reading only the stored blocks missed them.
+	 */
+	resolveShownBlocks: (page: PageRow) => Promise<PageRow["blocks"]>;
 }) {
 	const findLinked = async ({ page }: { page: PageRow }): Promise<LinkedPagesResult> => {
 		const siteId = String(page.siteId);
@@ -47,7 +53,7 @@ export function createLinkedPagesFinder({
 		while (frontier.length > 0 && found.length < MAX_LINKED_PAGES) {
 			const next: { row: PageRow; depth: number }[] = [];
 			for (const { row, depth } of frontier) {
-				const links = findPageLinks({ blocks: row.blocks, other: row.other });
+				const links = findPageLinks({ blocks: await resolveShownBlocks(row), other: row.other });
 				for (const link of links) {
 					const slug = link === HOMEPAGE_PATH ? homepageSlug : link;
 					if (!slug || seen.has(slug.toLowerCase()) || found.length >= MAX_LINKED_PAGES) continue;

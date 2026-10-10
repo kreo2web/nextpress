@@ -31,8 +31,11 @@ services:
       SITE_URL: ${SITE_URL:-}
     volumes:
       - uploads:/app/uploads
-      # Same mount as caddy so updateCaddyConfig() persists to the Caddyfile Caddy reads
+      # Same mount as caddy so syncCaddyFromSites() persists to the Caddyfile Caddy reads
       - ./caddy_config:/etc/caddy
+      # Updates from the dashboard: the app only leaves a request file here; the
+      # host's `nextpress update-runner` does the upgrade (nextpress update-helper).
+      - ./update:/app/update
     depends_on:
       postgres:
         condition: service_healthy

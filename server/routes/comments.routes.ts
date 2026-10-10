@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Deps } from './shared/deps';
 import { asyncHandler } from './shared/async-handler';
 import { getSitePostIds } from './shared/site-content';
+import { resolveReadSiteId } from '../lib/content-access';
 
 /**
  * Creates comment routes with CRUD operations and status management.
@@ -35,10 +36,12 @@ export function createCommentsRoutes(deps: Deps): Router {
         (typeof post_id === 'string' && post_id) ||
         (typeof postId === 'string' && postId) ||
         '';
-      const siteId =
+      const requestedSiteId =
         typeof req.query.siteId === 'string' && req.query.siteId.trim()
           ? req.query.siteId.trim()
           : undefined;
+      // One site's comments: the named site, the API key's site, or the site of this domain.
+      const siteId = await resolveReadSiteId({ req, models, requestedSiteId });
       const limit = parseInt(per_page as string);
       const offset = (parseInt(page as string) - 1) * limit;
 
@@ -47,19 +50,17 @@ export function createCommentsRoutes(deps: Deps): Router {
         ...(status && status !== 'all' ? [{ where: 'status', equals: status }] : []),
       ];
 
-      if (siteId) {
-        const postIds = await getSitePostIds({ models, siteId });
-        if (postIds.length === 0) {
-          return res.json({
-            comments: [],
-            total: 0,
-            page: parseInt(page as string),
-            per_page: limit,
-            total_pages: 0,
-          });
-        }
-        filters.push({ where: 'postId', in: postIds });
+      const postIds = siteId ? await getSitePostIds({ models, siteId }) : [];
+      if (postIds.length === 0) {
+        return res.json({
+          comments: [],
+          total: 0,
+          page: parseInt(page as string),
+          per_page: limit,
+          total_pages: 0,
+        });
       }
+      filters.push({ where: 'postId', in: postIds });
 
       const comments = await models.comments.findManyWhere(filters, {
         limit,

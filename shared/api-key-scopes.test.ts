@@ -207,6 +207,18 @@ describe("resolveRequiredApiKeyScopes", () => {
 		).toEqual(["dashboard:read"]);
 	});
 
+	it("keeps system scopes in front of one-click update routes", () => {
+		expect(
+			resolveRequiredApiKeyScopes({ method: "GET", path: "/api/system/update/status" }),
+		).toEqual(["system:read"]);
+		expect(
+			resolveRequiredApiKeyScopes({ method: "POST", path: "/api/system/update/start" }),
+		).toEqual(["system:write"]);
+		expect(
+			resolveRequiredApiKeyScopes({ method: "POST", path: "/api/system/updates-elsewhere" }),
+		).toEqual(["system:write"]);
+	});
+
 	it("requires full access for unmapped api routes", () => {
 		expect(
 			resolveRequiredApiKeyScopes({ method: "GET", path: "/api/future-endpoint" }),

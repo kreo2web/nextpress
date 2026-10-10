@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { blockRegistry } from './blocks';
 import type { BlockDefinition } from './blocks/types';
+import { TEMPLATE_PART_BLOCK_NAME } from '@shared/template-parts';
 import { Box, ChevronDown, ChevronRight, Search, X } from 'lucide-react';
 
 export type BlockLibraryCategory = {
@@ -26,8 +27,11 @@ if (import.meta.env.DEBUG_BUILDER) {
   console.log('blockRegistry:', blockRegistry);
 }
 
+// A template part means nothing until a template is chosen, so it is added from the Templates group,
+// not dragged in from here.
 const allBlocks = Object.values(blockRegistry).filter(
-  (block, index, arr) => arr.findIndex((b) => b.id === block.id) === index
+  (block, index, arr) =>
+    arr.findIndex((b) => b.id === block.id) === index && block.id !== TEMPLATE_PART_BLOCK_NAME
 );
 
 /**

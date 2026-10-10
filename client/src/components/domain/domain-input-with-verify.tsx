@@ -34,12 +34,15 @@ function DnsRows({ data }: { data: DomainReadinessData }) {
 				const row = data.dns[host];
 				if (!row) return null;
 				const ok = row.ok || row.skipped;
+				const optionalMiss = !ok && row.optional;
 				return (
 					<li key={host} className="flex items-start gap-1.5">
 						{ok ? (
 							<CircleCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600 mt-0.5" />
 						) : (
-							<CircleAlert className="h-3.5 w-3.5 shrink-0 text-red-600 mt-0.5" />
+							<CircleAlert
+								className={cn("h-3.5 w-3.5 shrink-0 mt-0.5", optionalMiss ? "text-amber-600" : "text-red-600")}
+							/>
 						)}
 						<span>
 							<span className="font-medium">{host}</span>
@@ -48,6 +51,9 @@ function DnsRows({ data }: { data: DomainReadinessData }) {
 								: null}
 							{row.message ? (
 								<span className="text-muted-foreground"> — {row.message}</span>
+							) : null}
+							{optionalMiss ? (
+								<span className="text-muted-foreground"> (optional; only needed if visitors type www)</span>
 							) : null}
 						</span>
 					</li>

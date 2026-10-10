@@ -214,7 +214,15 @@ export function getNextpressInstallDir(): string | null {
 	return null;
 }
 
-/** Opt-in flag — host must set this to allow POST /api/system/upgrade/run. */
+/**
+ * Legacy flag read only by the old in-container upgrade check. Dashboard updates now go through the host
+ * update helper (`nextpress update-helper`), so nothing starts an upgrade inside the app any more.
+ */
 export function getAutoUpgradeEnabled(): boolean {
 	return process.env.NEXTPRESS_AUTO_UPGRADE?.trim() === "true";
+}
+
+/** Runtime mode (`production` in the Docker image). Dashboard updates only run in production. */
+export function getNodeEnv(): string {
+	return process.env.NODE_ENV?.trim() || "development";
 }

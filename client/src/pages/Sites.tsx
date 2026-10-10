@@ -1,29 +1,15 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { Globe, Loader2, Plus, Star, Trash2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ToastAction } from "@/components/ui/toast";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowRightLeft, ExternalLink, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
+import { RowActionsMenu } from "@/components/admin/content-list";
+import { DeleteSiteDialog, SiteFormDialog, type SiteFormValues } from "@/components/sites";
 import { apiRequest } from "@/lib/queryClient";
 import { useActiveSite, type ActiveSiteItem } from "@/hooks/useActiveSite";
 import { useToast } from "@/hooks/use-toast";
@@ -33,328 +19,232 @@ type SitesResponse = {
 	total: number;
 };
 
-type SiteFormState = {
-	name: string;
-	siteUrl: string;
-	description: string;
-};
+/** Every site write answers with the site and, when the web server needs a word, a plain note. */
+type SiteSaveResponse = { site: ActiveSiteItem; notice?: string | null };
 
-const emptyForm: SiteFormState = {
-	name: "",
-	siteUrl: "",
-	description: "",
-};
+type FormState = { mode: "create" } | { mode: "edit"; site: ActiveSiteItem } | null;
+
+const readError = (error: unknown, fallback: string): string =>
+	error instanceof Error && error.message.trim() ? error.message : fallback;
 
 /**
- * Admin page for creating and managing multi-site installs.
+ * Admin page for the sites of this install: add one, give it an address, pick the one you work on,
+ * make one the default (it answers addresses no other site claims), and delete empty ones.
  */
 export default function Sites() {
-	const { sites, activeSiteId, setActiveSiteId, formatSiteLabel: formatLabel } = useActiveSite();
+	const { sites, activeSiteId, setActiveSiteId, formatSiteLabel } = useActiveSite();
 	const { toast } = useToast();
 	const queryClient = useQueryClient();
+	const [form, setForm] = useState<FormState>(null);
+	const [deleteTarget, setDeleteTarget] = useState<ActiveSiteItem | null>(null);
 
-	const [isCreateOpen, setIsCreateOpen] = useState(false);
-	const [editingSite, setEditingSite] = useState<ActiveSiteItem | null>(null);
-	const [form, setForm] = useState<SiteFormState>(emptyForm);
+	const { isLoading } = useQuery<SitesResponse>({ queryKey: ["/api/sites"] });
 
-	const { isLoading } = useQuery<SitesResponse>({
-		queryKey: ["/api/sites"],
-	});
-
-	const resetForm = () => {
-		setForm(emptyForm);
-		setEditingSite(null);
+	const refreshSites = (): void => {
+		queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+		queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
 	};
 
+	const showError = (title: string) => (error: unknown) =>
+		toast({ title, description: readError(error, "Try again in a moment."), variant: "destructive" });
+
 	const createMutation = useMutation({
-		mutationFn: async (payload: SiteFormState) => {
+		mutationFn: async (values: SiteFormValues) => {
 			const response = await apiRequest("POST", "/api/sites", {
-				name: payload.name.trim(),
-				siteUrl: payload.siteUrl.trim() || null,
-				description: payload.description.trim() || null,
+				name: values.name.trim(),
+				siteUrl: values.siteUrl.trim() || null,
+				description: values.description.trim() || null,
 			});
-			return response.json() as Promise<{ site: ActiveSiteItem }>;
+			return (await response.json()) as SiteSaveResponse;
 		},
-		onSuccess: ({ site }) => {
-			toast({ title: "Site created", description: `"${formatLabel(site)}" is ready` });
-			queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-			setActiveSiteId(site.id);
-			setIsCreateOpen(false);
-			resetForm();
-		},
-		onError: (error) => {
+		onSuccess: ({ site, notice }) => {
+			refreshSites();
+			setForm(null);
+			// Stay on the current site: jumping to the new, empty one made the old pages look gone.
 			toast({
-				title: "Error",
-				description: error instanceof Error ? error.message : "Failed to create site",
-				variant: "destructive",
+				title: "Site created",
+				description: notice || `“${formatSiteLabel(site)}” is ready. Switch to it to add pages.`,
+				action: (
+					<ToastAction altText={`Switch to ${formatSiteLabel(site)}`} onClick={() => setActiveSiteId(site.id)}>
+						Switch to it
+					</ToastAction>
+				),
 			});
 		},
+		onError: showError("Could not create the site"),
 	});
 
 	const updateMutation = useMutation({
-		mutationFn: async (params: { id: string; data: Partial<SiteFormState & { isDefault: boolean }> }) => {
+		mutationFn: async (params: { id: string; data: Partial<SiteFormValues> & { isDefault?: boolean } }) => {
+			const { name, siteUrl, isDefault } = params.data;
 			const response = await apiRequest("PATCH", `/api/sites/${params.id}`, {
-				...(params.data.name !== undefined ? { name: params.data.name.trim() } : {}),
-				...(params.data.siteUrl !== undefined
-					? { siteUrl: params.data.siteUrl.trim() || null }
-					: {}),
-				...(params.data.description !== undefined
-					? { description: params.data.description.trim() || null }
-					: {}),
-				...(params.data.isDefault !== undefined ? { isDefault: params.data.isDefault } : {}),
+				...(name !== undefined ? { name: name.trim() } : {}),
+				...(siteUrl !== undefined ? { siteUrl: siteUrl.trim() || null } : {}),
+				...(isDefault !== undefined ? { isDefault } : {}),
 			});
-			return response.json() as Promise<{ site: ActiveSiteItem }>;
+			return (await response.json()) as SiteSaveResponse;
 		},
-		onSuccess: () => {
-			toast({ title: "Site updated" });
-			queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-			setEditingSite(null);
-			resetForm();
+		onSuccess: ({ notice }) => {
+			refreshSites();
+			setForm(null);
+			toast({ title: "Site updated", ...(notice ? { description: notice } : {}) });
 		},
-		onError: (error) => {
-			toast({
-				title: "Error",
-				description: error instanceof Error ? error.message : "Failed to update site",
-				variant: "destructive",
-			});
-		},
+		onError: showError("Could not save the site"),
 	});
 
 	const deleteMutation = useMutation({
-		mutationFn: async (siteId: string) => apiRequest("DELETE", `/api/sites/${siteId}`),
+		mutationFn: async (siteId: string) => (await apiRequest("DELETE", `/api/sites/${siteId}`)).json(),
 		onSuccess: () => {
+			refreshSites();
+			setDeleteTarget(null);
 			toast({ title: "Site deleted" });
-			queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
 		},
-		onError: (error) => {
-			toast({
-				title: "Error",
-				description: error instanceof Error ? error.message : "Failed to delete site",
-				variant: "destructive",
-			});
+		onError: (error: unknown) => {
+			setDeleteTarget(null);
+			showError("Could not delete the site")(error);
 		},
 	});
 
-	const openCreate = () => {
-		resetForm();
-		setIsCreateOpen(true);
+	const submitForm = (values: SiteFormValues): void => {
+		if (form?.mode === "edit") {
+			updateMutation.mutate({ id: form.site.id, data: { name: values.name, siteUrl: values.siteUrl } });
+			return;
+		}
+		createMutation.mutate(values);
 	};
 
-	const openEdit = (site: ActiveSiteItem) => {
-		setEditingSite(site);
-		setForm({
-			name: site.name ?? "",
-			siteUrl: site.siteUrl ?? "",
-			description: "",
-		});
+	const siteActions = (site: ActiveSiteItem) => {
+		const isActive = site.id === activeSiteId;
+		return [
+			{
+				key: "switch",
+				label: "Work on this site",
+				icon: <ArrowRightLeft />,
+				onSelect: () => setActiveSiteId(site.id),
+				disabled: isActive,
+				disabledReason: "You're already working on this site",
+			},
+			{
+				key: "visit",
+				label: "Visit site",
+				icon: <ExternalLink />,
+				onSelect: () => site.siteUrl && window.open(site.siteUrl, "_blank", "noopener"),
+				disabled: !site.siteUrl,
+				disabledReason: "Give it an address first",
+			},
+			{
+				key: "default",
+				label: "Make default",
+				icon: <Star />,
+				onSelect: () => updateMutation.mutate({ id: site.id, data: { isDefault: true } }),
+				disabled: site.isDefault || updateMutation.isPending,
+				disabledReason: site.isDefault ? "This is already the default site" : undefined,
+			},
+			{
+				key: "delete",
+				label: "Delete",
+				icon: <Trash2 />,
+				onSelect: () => setDeleteTarget(site),
+				destructive: true,
+				disabled: site.isDefault,
+				disabledReason: "Make another site the default first",
+			},
+		];
 	};
-
-	const handleSaveEdit = () => {
-		if (!editingSite || !form.name.trim()) return;
-		updateMutation.mutate({
-			id: editingSite.id,
-			data: form,
-		});
-	};
-
-	const handleSetDefault = (site: ActiveSiteItem) => {
-		updateMutation.mutate({ id: site.id, data: { isDefault: true } });
-	};
-
-	const handleDelete = (site: ActiveSiteItem) => {
-		if (site.isDefault) return;
-		if (!window.confirm(`Delete "${formatLabel(site)}"? This cannot be undone.`)) return;
-		deleteMutation.mutate(site.id);
-	};
-
-	const isSaving = createMutation.isPending || updateMutation.isPending;
 
 	return (
-		<AdminLayout title="Sites">
-			<div className="space-y-6">
-				<div className="flex items-center justify-between">
-					<p className="text-sm text-npb-text-muted">
-						Manage sites in this install. Each site has its own pages, settings, and optional domain.
-					</p>
-					<Button onClick={openCreate}>
-						<Plus className="mr-2 h-4 w-4" />
-						Add Site
-					</Button>
-				</div>
+		<AdminLayout
+			title="Sites"
+			actions={
+				<Button className="npb-btn-accent" onClick={() => setForm({ mode: "create" })}>
+					<Plus className="mr-2 h-4 w-4" />
+					Add site
+				</Button>
+			}
+		>
+			<p className="mb-4 text-sm text-npb-text-muted">
+				Each site has its own address, pages, media, settings and theme. Pick the site you are working on at
+				the top of the admin. The default site answers any address no other site uses.
+			</p>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2 text-base">
-							<Globe className="h-4 w-4" />
-							All Sites
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						{isLoading ? (
-							<div className="flex items-center gap-2 py-8 text-sm text-npb-text-muted">
-								<Loader2 className="h-4 w-4 animate-spin" />
-								Loading sites...
-							</div>
-						) : sites.length === 0 ? (
-							<p className="py-8 text-sm text-npb-text-muted">No sites found.</p>
-						) : (
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>Name</TableHead>
-										<TableHead>Domain</TableHead>
-										<TableHead>Status</TableHead>
-										<TableHead className="text-right">Actions</TableHead>
+			<Card className="admin-surface">
+				<CardContent className="pt-4">
+					{isLoading ? (
+						<div role="status" aria-label="Loading sites" className="space-y-3 py-2">
+							{[0, 1, 2].map((row) => (
+								<Skeleton key={row} className="h-10 w-full" />
+							))}
+						</div>
+					) : (
+						<Table className="admin-list-table">
+							<TableHeader>
+								<TableRow>
+									<TableHead>Site</TableHead>
+									<TableHead>Address</TableHead>
+									<TableHead className="w-28 text-right">Actions</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{sites.map((site) => (
+									<TableRow key={site.id} data-state={site.id === activeSiteId ? "selected" : undefined}>
+										<TableCell>
+											<div className="flex flex-wrap items-center gap-2">
+												<span className="font-medium text-npb-text-primary">{formatSiteLabel(site)}</span>
+												{site.isDefault ? <Badge variant="secondary">Default</Badge> : null}
+												{site.id === activeSiteId ? <Badge variant="outline">Working on</Badge> : null}
+											</div>
+										</TableCell>
+										<TableCell className="text-sm">
+											{site.siteUrl ? (
+												<a
+													href={site.siteUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-npb-text-secondary hover:text-npb-accent"
+												>
+													{site.siteUrl}
+												</a>
+											) : (
+												<span className="text-npb-text-muted">No address yet</span>
+											)}
+										</TableCell>
+										<TableCell className="text-right">
+											<div className="flex items-center justify-end gap-1">
+												<Button
+													variant="ghost"
+													size="sm"
+													aria-label={`Edit ${formatSiteLabel(site)}`}
+													title="Edit"
+													onClick={() => setForm({ mode: "edit", site })}
+												>
+													<Pencil className="h-4 w-4" />
+												</Button>
+												<RowActionsMenu itemTitle={formatSiteLabel(site)} actions={siteActions(site)} />
+											</div>
+										</TableCell>
 									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{sites.map((site) => (
-										<TableRow key={site.id}>
-											<TableCell className="font-medium">{formatLabel(site)}</TableCell>
-											<TableCell className="text-npb-text-muted">
-												{site.siteUrl || "—"}
-											</TableCell>
-											<TableCell>
-												<div className="flex flex-wrap gap-2">
-													{site.isDefault && <Badge variant="secondary">Default</Badge>}
-													{site.id === activeSiteId && (
-														<Badge variant="outline">Active in admin</Badge>
-													)}
-												</div>
-											</TableCell>
-											<TableCell className="text-right">
-												<div className="flex justify-end gap-2">
-													<Button
-														variant="outline"
-														size="sm"
-														onClick={() => setActiveSiteId(site.id)}
-													>
-														Switch
-													</Button>
-													<Button variant="outline" size="sm" onClick={() => openEdit(site)}>
-														Edit
-													</Button>
-													{!site.isDefault && (
-														<Button
-															variant="outline"
-															size="sm"
-															onClick={() => handleSetDefault(site)}
-															disabled={updateMutation.isPending}
-														>
-															<Star className="mr-1 h-3 w-3" />
-															Default
-														</Button>
-													)}
-													{!site.isDefault && (
-														<Button
-															variant="outline"
-															size="sm"
-															onClick={() => handleDelete(site)}
-															disabled={deleteMutation.isPending}
-														>
-															<Trash2 className="h-3 w-3 text-destructive" />
-														</Button>
-													)}
-												</div>
-											</TableCell>
-										</TableRow>
-									))}
-								</TableBody>
-							</Table>
-						)}
-					</CardContent>
-				</Card>
-			</div>
+								))}
+							</TableBody>
+						</Table>
+					)}
+				</CardContent>
+			</Card>
 
-			<Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Create Site</DialogTitle>
-						<DialogDescription>
-							Add a new site. You can assign a domain later in Settings.
-						</DialogDescription>
-					</DialogHeader>
-					<div className="grid gap-4 py-2">
-						<div className="grid gap-2">
-							<Label htmlFor="create-site-name">Name</Label>
-							<Input
-								id="create-site-name"
-								value={form.name}
-								onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-								placeholder="Marketing Site"
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="create-site-url">Domain (optional)</Label>
-							<Input
-								id="create-site-url"
-								value={form.siteUrl}
-								onChange={(event) => setForm((current) => ({ ...current, siteUrl: event.target.value }))}
-								placeholder="https://marketing.example.com"
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="create-site-desc">Description (optional)</Label>
-							<Textarea
-								id="create-site-desc"
-								value={form.description}
-								onChange={(event) =>
-									setForm((current) => ({ ...current, description: event.target.value }))
-								}
-								rows={3}
-							/>
-						</div>
-					</div>
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-							Cancel
-						</Button>
-						<Button
-							onClick={() => createMutation.mutate(form)}
-							disabled={!form.name.trim() || isSaving}
-						>
-							{createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-							Create Site
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			<SiteFormDialog
+				open={form !== null}
+				onOpenChange={(open) => !open && setForm(null)}
+				mode={form?.mode ?? "create"}
+				initial={form?.mode === "edit" ? { name: form.site.name ?? "", siteUrl: form.site.siteUrl ?? "" } : undefined}
+				isSaving={createMutation.isPending || updateMutation.isPending}
+				onSubmit={submitForm}
+			/>
 
-			<Dialog open={Boolean(editingSite)} onOpenChange={(open) => !open && setEditingSite(null)}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Edit Site</DialogTitle>
-					</DialogHeader>
-					<div className="grid gap-4 py-2">
-						<div className="grid gap-2">
-							<Label htmlFor="edit-site-name">Name</Label>
-							<Input
-								id="edit-site-name"
-								value={form.name}
-								onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="edit-site-url">Domain</Label>
-							<Input
-								id="edit-site-url"
-								value={form.siteUrl}
-								onChange={(event) => setForm((current) => ({ ...current, siteUrl: event.target.value }))}
-								placeholder="https://example.com"
-							/>
-						</div>
-					</div>
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setEditingSite(null)}>
-							Cancel
-						</Button>
-						<Button onClick={handleSaveEdit} disabled={!form.name.trim() || isSaving}>
-							{updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-							Save Changes
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			<DeleteSiteDialog
+				siteLabel={deleteTarget ? formatSiteLabel(deleteTarget) : null}
+				isDeleting={deleteMutation.isPending}
+				onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+				onCancel={() => setDeleteTarget(null)}
+			/>
 		</AdminLayout>
 	);
 }

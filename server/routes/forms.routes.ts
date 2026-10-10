@@ -4,7 +4,10 @@ import { asyncHandler } from './shared/async-handler';
 import { safeTryAsync } from '../utils';
 import { createRateLimiter } from '../utils/rate-limit';
 import { clientAddress } from '../utils/client-address';
-import { readRequestSiteId, resolveRequestSite } from './shared/resolve-request-site';
+import { resolveRequestSite } from './shared/resolve-request-site';
+import { readRequestSiteId } from './shared/read-request-site-id';
+import { resolvePageTemplateParts } from '../lib/template-parts';
+import type { BlockConfig } from '@shared/schema-types';
 import { resolveAccessibleSites } from './shared/resolve-accessible-sites';
 import { renderStatusHtml } from '../../renderer/templates/status-page';
 import {
@@ -40,6 +43,16 @@ export function createFormsRoutes(deps: Deps): Router {
   const service = createFormSubmissionService({
     findPublishedPagesWithBlock: (blockId) =>
       models.pages.findManyWhere(publishedPagesWithBlockQuery(blockId), { limit: 2 }),
+    // A form can sit in a linked template part (e.g. a footer sign-up); check it as visitors see it.
+    resolveTemplateParts: async (page) =>
+      (
+        await resolvePageTemplateParts({
+          models,
+          siteId: String(page.siteId),
+          pageId: page.id,
+          blocks: Array.isArray(page.blocks) ? (page.blocks as BlockConfig[]) : [],
+        })
+      ).blocks,
     submissions: models.formSubmissions,
   });
 
@@ -104,7 +117,13 @@ export function createFormsRoutes(deps: Deps): Router {
     const statusCode = (err as { statusCode?: number }).statusCode ?? 500;
     console.error('[forms] Admin request failed', { atFunction, ...ids, error: err });
     const message =
-      statusCode === 404 ? 'That submission no longer exists.' : statusCode === 401 ? 'Please sign in again.' : 'Something went wrong. Please try again.';
+      statusCode === 404
+        ? 'That submission no longer exists.'
+        : statusCode === 401
+          ? 'Please sign in again.'
+          : statusCode === 400 || statusCode === 403
+            ? err.message
+            : 'Something went wrong. Please try again.';
     return res.status(statusCode).json({ message });
   };
 
@@ -114,7 +133,7 @@ export function createFormsRoutes(deps: Deps): Router {
     asyncHandler(async (req, res) => {
       const { err, result } = await safeTryAsync(async () => {
         const userId = requireUserId(req);
-        const site = await resolveRequestSite({ models, userId, siteId: readRequestSiteId(req) });
+        const site = await resolveRequestSite({ models, req, userId });
         const page = Math.max(1, Number(req.query.page) || 1);
         const perPage = Math.min(MAX_PER_PAGE, Math.max(1, Number(req.query.per_page) || 20));
         const listed = await service.list({
@@ -140,7 +159,7 @@ export function createFormsRoutes(deps: Deps): Router {
     asyncHandler(async (req, res) => {
       const { err, result } = await safeTryAsync(async () => {
         const userId = requireUserId(req);
-        const site = await resolveRequestSite({ models, userId, siteId: readRequestSiteId(req) });
+        const site = await resolveRequestSite({ models, req, userId });
         const formName = typeof req.query.form === 'string' && req.query.form ? req.query.form : undefined;
         const items = await service.all({ siteId: String(site.id), formName });
         const pageIds = [...new Set(items.map((item) => item.pageId).filter((id): id is string => Boolean(id)))];

@@ -30,6 +30,7 @@ import {
 } from '@/components/motion/motion-primitives';
 import type { Theme } from '@shared/schema-types';
 import { resolveThemeDisplayCopy } from '@shared/theme-display';
+import { CoreUpdateDashboardNotice } from '@/components/core-update';
 
 type ContentRow = {
   id: string;
@@ -181,6 +182,7 @@ export default function Dashboard() {
 
   return (
     <AdminLayout title="Dashboard" actions={headerActions}>
+      <CoreUpdateDashboardNotice />
       <div className="mb-6">
         <p className="text-lg font-medium text-npb-text-primary">
           {displayName ? `Welcome back, ${displayName}` : 'Welcome back'}

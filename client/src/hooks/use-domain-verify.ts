@@ -5,6 +5,8 @@ export type DnsHostResult = {
 	addresses: string[];
 	skipped?: boolean;
 	message?: string;
+	/** The `www.` twin: nice to have, never required to save the address. */
+	optional?: boolean;
 };
 
 export type DomainReadinessData = {
@@ -117,7 +119,7 @@ export function useDomainVerify(): UseDomainVerifyResult {
 }
 
 export function hasBlockingDomainIssues(data: DomainReadinessData): boolean {
-	const dnsBad = Object.values(data.dns).some((r) => !r.ok && !r.skipped);
+	const dnsBad = Object.values(data.dns).some((r) => !r.ok && !r.skipped && !r.optional);
 	const ipBad = !data.ipMatch.skipped && !data.ipMatch.ok;
 	const caddyBad = !data.caddy.skipped && !data.caddy.ok;
 	return dnsBad || ipBad || caddyBad;

@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { QueryClient } from '@tanstack/react-query';
 import {
   listEditorEntityQueryKeys,
   readEditorSaveVersion,
@@ -17,17 +18,17 @@ describe('editor entity cache', () => {
     ).toEqual([['/api/pages/page-id'], ['/api/pages/walkableca']]);
   });
 
-  it('writes the entity under every key', () => {
-    const setQueryData = vi.fn();
+  it('writes the entity under every key, including the site-scoped key of a page opened by name', () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(['/api/pages/walkableca', { siteId: 'site-b' }], { version: 3 });
     writeEditorEntityCache({
-      queryClient: { setQueryData } as never,
+      queryClient,
       keys: [['/api/pages/page-id'], ['/api/pages/walkableca']],
       entity: { version: 4 },
     });
-    expect(setQueryData).toHaveBeenCalledTimes(2);
-    expect(setQueryData).toHaveBeenCalledWith(['/api/pages/walkableca'], {
-      version: 4,
-    });
+    expect(queryClient.getQueryData(['/api/pages/page-id'])).toEqual({ version: 4 });
+    expect(queryClient.getQueryData(['/api/pages/walkableca'])).toEqual({ version: 4 });
+    expect(queryClient.getQueryData(['/api/pages/walkableca', { siteId: 'site-b' }])).toEqual({ version: 4 });
   });
 
   it('saves with the editor version, not a leftover query row', () => {

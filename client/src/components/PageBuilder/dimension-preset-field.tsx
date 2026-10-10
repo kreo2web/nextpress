@@ -9,7 +9,10 @@ const UNSET_WORDS = ["auto", "none"];
 const SCREEN_UNIT_VALUE = /(?:vh|vw|dvh|dvw|svh)$/i;
 
 type DimensionPresetFieldProps = {
-	label: string;
+	/** Label above the chips. Leave it out when a heading above already names the field. */
+	label?: string;
+	/** Accessible name, for when `label` is left out. Defaults to `label`. */
+	ariaLabel?: string;
 	value: string | undefined;
 	presets: readonly DimensionPreset[];
 	/** `undefined` means "clear it" — callers that write through a deep merge should send `null`. */
@@ -26,6 +29,10 @@ type DimensionPresetFieldProps = {
 	unsetValues?: readonly string[];
 	/** The value Reset returns to. Reset is hidden while the field already holds it. */
 	defaultValue?: string;
+	/** Set to false when the caller puts its own Reset in a heading above (spacing does this). */
+	showReset?: boolean;
+	/** False refuses a minus sign in the custom box. Padding cannot be negative; margins can. */
+	allowNegative?: boolean;
 	className?: string;
 };
 
@@ -36,6 +43,7 @@ type DimensionPresetFieldProps = {
  */
 export function DimensionPresetField({
 	label,
+	ariaLabel,
 	value,
 	presets,
 	onChange,
@@ -44,8 +52,11 @@ export function DimensionPresetField({
 	customPlaceholder,
 	unsetValues = ["__auto__", "__none__"],
 	defaultValue,
+	showReset = true,
+	allowNegative = true,
 	className,
 }: DimensionPresetFieldProps) {
+	const name = ariaLabel ?? label ?? "Value";
 	const normalized = value?.trim() ?? "";
 	const matchedPreset = findPreset(normalized, presets);
 	const unsetPreset = presets.find((preset) => unsetValues.includes(preset.value));
@@ -54,7 +65,7 @@ export function DimensionPresetField({
 	const isCustom = !isUnset && !matchedPreset;
 
 	const chipValue = matchedPreset?.value ?? (isUnset ? (unsetPreset?.value ?? "") : "");
-	const canReset = !unsetPreset && normalized !== "" && normalized !== (defaultValue ?? "");
+	const canReset = showReset && !unsetPreset && normalized !== "" && normalized !== (defaultValue ?? "");
 
 	const fieldUnits =
 		kind === "length"
@@ -64,7 +75,8 @@ export function DimensionPresetField({
 	return (
 		<div className={className}>
 			<SettingsChipGroup
-				label={label}
+				label={label ?? ""}
+				ariaLabel={name}
 				options={presets.map((preset) => ({ value: preset.value, label: preset.label }))}
 				value={chipValue}
 				onChange={(next) => onChange(unsetValues.includes(next) ? undefined : next)}
@@ -75,7 +87,7 @@ export function DimensionPresetField({
 							variant="ghost"
 							size="sm"
 							className="-my-0.5 h-6 px-2 text-xs"
-							aria-label={`Reset ${label}`}
+							aria-label={`Reset ${name}`}
 							onClick={() => onChange(defaultValue)}
 						>
 							Reset
@@ -85,12 +97,13 @@ export function DimensionPresetField({
 			/>
 			<UnitValueField
 				className="mt-2"
-				ariaLabel={label}
+				ariaLabel={name}
 				value={isUnset ? undefined : normalized}
 				onChange={onChange}
 				units={fieldUnits}
 				placeholder={customPlaceholder}
 				active={isCustom}
+				allowNegative={allowNegative}
 			/>
 		</div>
 	);

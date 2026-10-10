@@ -9,6 +9,8 @@ import {
 	type HeaderSpacing,
 } from "@shared/header-spacing";
 import { DimensionPresetField } from "../../dimension-preset-field";
+import { SpacingField } from "../../spacing-field";
+import { spacingPairsPatch, type SpacingSideQuad } from "../../spacing-styles";
 
 type HeaderSpacingSettingsProps = {
 	value: HeaderSpacing;
@@ -16,8 +18,16 @@ type HeaderSpacingSettingsProps = {
 	onChange: (patch: HeaderSpacing) => void;
 };
 
+/** The header's padding as four sides: top and bottom from one key, left and right from the other. */
+function headerSides(spacing: HeaderSpacing): SpacingSideQuad {
+	const block = spacing.paddingBlock ?? DEFAULT_HEADER_PADDING_BLOCK;
+	const inline = spacing.paddingInline ?? DEFAULT_HEADER_PADDING_INLINE;
+	return { top: block, bottom: block, left: inline, right: inline };
+}
+
 /** Header padding and how wide its row of logo, links and buttons may get. */
 export function HeaderSpacingSettings({ value, onChange }: HeaderSpacingSettingsProps): JSX.Element {
+	const sides = headerSides(value);
 	return (
 		<div className="space-y-4">
 			<DimensionPresetField
@@ -31,21 +41,14 @@ export function HeaderSpacingSettings({ value, onChange }: HeaderSpacingSettings
 			<p className="npb-settings-hint-muted -mt-2 text-xs">
 				The background stays edge to edge. The logo, links and buttons sit within this width, centred.
 			</p>
-			<DimensionPresetField
-				label="Side padding"
-				presets={HEADER_SIDE_PADDING_PRESETS}
-				value={value.paddingInline ?? DEFAULT_HEADER_PADDING_INLINE}
-				defaultValue={DEFAULT_HEADER_PADDING_INLINE}
-				customPlaceholder="e.g. 1.5rem"
-				onChange={(next) => onChange({ paddingInline: next })}
-			/>
-			<DimensionPresetField
-				label="Top and bottom padding"
-				presets={HEADER_TOP_BOTTOM_PADDING_PRESETS}
-				value={value.paddingBlock ?? DEFAULT_HEADER_PADDING_BLOCK}
-				defaultValue={DEFAULT_HEADER_PADDING_BLOCK}
-				customPlaceholder="e.g. 1rem"
-				onChange={(next) => onChange({ paddingBlock: next })}
+			<SpacingField
+				ariaLabel="Header padding"
+				title=""
+				sideModes={["pairs"]}
+				pairLabels={{ horizontal: "Side padding", vertical: "Top and bottom padding" }}
+				pairPresets={{ horizontal: HEADER_SIDE_PADDING_PRESETS, vertical: HEADER_TOP_BOTTOM_PADDING_PRESETS }}
+				targets={[{ kind: "padding", sides, defaultSides: headerSides({}) }]}
+				onCommit={(patch) => onChange(spacingPairsPatch({ sides, patch }))}
 			/>
 		</div>
 	);

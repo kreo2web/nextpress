@@ -64,6 +64,8 @@ export function useFormSubmissions({
   const list = useQuery<FormSubmissionList>({
     queryKey: ['/api/forms/submissions', { siteId, page, formName, status }],
     queryFn: async () => (await apiRequest('GET', url)).json() as Promise<FormSubmissionList>,
+    // Wait for the site: asking with none is refused ("Pick a site first").
+    enabled: Boolean(siteId),
   });
 
   const setStatus = useMutation({

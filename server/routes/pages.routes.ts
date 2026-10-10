@@ -8,7 +8,10 @@ import {
   ensureNonPublicContentAccess,
   listQueryRequiresAuth,
   resolveNonPublicListSiteId,
+  resolveReadSiteId,
 } from '../lib/content-access';
+import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
+import { readRequestSiteId } from './shared/read-request-site-id';
 import { validateContentForSave } from '@shared/validate-content-save';
 import { ensureRootPageShell } from '@shared/page-shell-model';
 import { randomUUID } from 'node:crypto';
@@ -108,7 +111,10 @@ export function createPagesRoutes(deps: Deps): Router {
               models,
               requestedSiteId,
             })
-          : requestedSiteId;
+          : await resolveReadSiteId({ req, models, requestedSiteId });
+        if (!siteId) {
+          return { pages: [], total: 0, page: 1, per_page: 0, total_pages: 0 };
+        }
 
         const { page, limit, offset } = parsePaginationParams(
           req.query,
@@ -229,9 +235,16 @@ export function createPagesRoutes(deps: Deps): Router {
         // Check if id is a UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
         
-        const page = isUUID 
+        // A page name only means something inside one site ("contact" exists on most sites):
+        // look in the site the request names, its API key's site, or the site of its domain.
+        const slugSiteId = isUUID
+          ? undefined
+          : await resolveReadSiteId({ req, models, requestedSiteId: readRequestSiteId(req) });
+        const page = isUUID
           ? await models.pages.findById(id)
-          : await models.pages.findBySlug(id);
+          : slugSiteId
+            ? await models.pages.findBySiteAndSlug(slugSiteId, id)
+            : undefined;
         
         if (!page) {
           return res.status(404).json({ message: 'Page not found' });
@@ -358,17 +371,9 @@ export function createPagesRoutes(deps: Deps): Router {
           throw new Error('User not authenticated');
         }
 
-        // Get siteId from request or use default site (before validation)
-        let siteId = req.body?.siteId;
-        if (!siteId) {
-          const defaultSite = await models.sites.findDefaultSite();
-          if (!defaultSite || !defaultSite.id) {
-            throw new Error('No site found. Please create a site first.');
-          }
-          siteId = String(defaultSite.id);
-        } else {
-          siteId = String(siteId);
-        }
+        // The site the request names (query or body) or its API key's site, with an access check.
+        // Falling back to the default site sent pages made for another site (e.g. via MCP) there.
+        const siteId = String((await resolveRequestSite({ models, req, userId })).id);
 
         // Prepare data object with required fields before validation
         const dataToValidate = {
@@ -454,6 +459,10 @@ export function createPagesRoutes(deps: Deps): Router {
         }
         if (message.includes('not authenticated')) {
           return res.status(401).json({ message: 'You must be signed in to create pages.' });
+        }
+        const siteStatus = readErrorStatus(err, 500);
+        if (siteStatus === 403 || siteStatus === 404) {
+          return res.status(siteStatus).json({ message: err.message });
         }
         return res.status(500).json({ message: 'Failed to create page. Please try again.' });
       }
@@ -623,7 +632,8 @@ export function createPagesRoutes(deps: Deps): Router {
           });
         }
 
-        const parsed = pageSchemas.update.parse(
+        // A page stays on its site; moving between sites is done with page export and import.
+        const { siteId: _ignoredSiteId, ...parsed } = pageSchemas.update.parse(
           coerceDates(stripVersionControlFields(req.body as Record<string, unknown>), ['publishedAt']),
         ) as any;
 

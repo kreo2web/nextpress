@@ -1,6 +1,7 @@
 import { getAuthBaseUrl } from "../config";
 import { models } from "../storage";
 import { expandSiteUrlOrigins, getRequestSelfOrigin } from "./origin-utils";
+import { readSiteAddress } from "../utils/site-address";
 
 /** Origins from deployment env (BETTER_AUTH_URL, SITE_URL). */
 const getEnvTrustedOrigins = (): string[] => {
@@ -30,7 +31,7 @@ const getSiteTrustedOrigins = async (): Promise<string[]> => {
 	const origins = new Set<string>();
 	const sites = await models.sites.findMany();
 	for (const site of sites) {
-		const siteUrl = site.siteUrl?.trim();
+		const siteUrl = readSiteAddress(site);
 		if (!siteUrl) continue;
 		for (const origin of expandSiteUrlOrigins(siteUrl)) {
 			origins.add(origin);

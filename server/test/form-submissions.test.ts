@@ -3,6 +3,7 @@ import type { BlockConfig, FormSubmission } from '@shared/schema-types';
 import type { pages } from '@shared/schema';
 import { createFormSubmissionService, submissionsToCsv } from '../lib/form-submissions';
 import { renderBlocksToHtml } from '../../renderer/to-html';
+import { resolveTemplateParts } from '../lib/template-parts';
 
 type PageRow = typeof pages.$inferSelect;
 
@@ -34,10 +35,14 @@ const formBlock: BlockConfig = {
 
 const livePage = { id: 'page-1', siteId: 'site-1', status: 'publish', blocks: [formBlock] } as unknown as PageRow;
 
-const makeService = (found: PageRow[]) => {
+const makeService = (
+  found: PageRow[],
+  resolveTemplateParts: (page: PageRow) => Promise<BlockConfig[]> = async (page) => page.blocks as BlockConfig[],
+) => {
   const create = vi.fn(async (data: Partial<FormSubmission>) => ({ ...data, id: 's1' }) as FormSubmission);
   const service = createFormSubmissionService({
     findPublishedPagesWithBlock: async () => found,
+    resolveTemplateParts,
     submissions: {
       create,
       findManyWhere: async () => [],
@@ -119,5 +124,58 @@ describe('published form markup', () => {
     expect(html).toContain(`name="np_form" value="${FORM_ID}"`);
     expect(html).toContain('name="np_website"');
     expect(html).toContain('class="wp-block-form__status"');
+  });
+});
+
+describe('a form inside a linked template part (e.g. a footer sign-up)', () => {
+  const PART_ID = '0d6c1f8e-3b7a-4e2f-9c1d-7a5b3e2f1c0d';
+  const SITE_ID = 'site-1';
+  const TEMPLATE_ID = 'tpl-footer';
+  const pageWithPart = {
+    id: 'page-2',
+    siteId: SITE_ID,
+    status: 'publish',
+    blocks: [
+      {
+        id: PART_ID,
+        name: 'core/template-part',
+        type: 'block',
+        parentId: null,
+        content: { kind: 'structured', data: { templateId: TEMPLATE_ID } },
+      },
+    ],
+  } as unknown as PageRow;
+
+  // The page as visitors get it: the real resolver, with the template loaded from memory.
+  const resolveLikeThePublishedPage = async (page: PageRow) =>
+    (
+      await resolveTemplateParts({
+        blocks: page.blocks as BlockConfig[],
+        siteId: String(page.siteId),
+        pageId: page.id,
+        loadTemplate: async () => ({
+          id: TEMPLATE_ID,
+          other: { usage: 'part', siteId: SITE_ID },
+          blocks: [formBlock],
+          updatedAt: '2026-10-10T00:00:00Z',
+        }),
+      })
+    ).blocks;
+
+  it('accepts the send by the id the published page gave the form, and files it under that page', async () => {
+    const shown = await resolveLikeThePublishedPage(pageWithPart);
+    const shownFormId = shown.find((block) => block.name === 'core/form')?.id ?? '';
+    expect(shownFormId.startsWith(`${PART_ID}-`)).toBe(true);
+
+    const { service, create } = makeService([pageWithPart], resolveLikeThePublishedPage);
+    const result = await service.submit({ formId: shownFormId, values: { email: 'ada@example.com' } });
+    expect(result).toEqual({ ok: true, message: "You're on the list.", stored: true });
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ siteId: SITE_ID, pageId: 'page-2', formName: 'Waitlist' }));
+  });
+
+  it('still refuses ids that only look similar', async () => {
+    const { service } = makeService([pageWithPart], resolveLikeThePublishedPage);
+    expect(await service.submit({ formId: `${PART_ID}-99`, values: { email: 'a@b.co' } })).toMatchObject({ ok: false, status: 404 });
+    expect(await service.submit({ formId: `${PART_ID}-x`, values: { email: 'a@b.co' } })).toMatchObject({ ok: false, status: 404 });
   });
 });

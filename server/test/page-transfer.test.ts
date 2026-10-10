@@ -121,6 +121,7 @@ describe('page transfer between two sites', () => {
     createPagePackageBuilder({
       listSiteMedia: async () => site.media.rows,
       readActiveTheme: async () => ({ name: 'Walk theme', description: null, settings: {} }),
+      resolvePageParts: async ({ blocks }) => blocks,
       uploadDir: site.uploadDir,
       uploadLimit: UPLOAD_LIMIT,
       appVersion: 'test',
@@ -399,6 +400,23 @@ describe('linked pages', () => {
   const finder = createLinkedPagesFinder({
     findBySiteAndSlug: async (_siteId, slug) => site.find((row) => row.slug === slug),
     readHomepageSlug: async () => 'work',
+    resolveShownBlocks: async (row) => row.blocks,
+  });
+
+  it('follows links that live in a linked template part (e.g. the menu in a shared header)', async () => {
+    const withHeaderPart = {
+      ...page('landing', []),
+      blocks: [{ id: 'part-1', name: 'core/template-part', type: 'block', parentId: null, content: { kind: 'structured', data: { templateId: 'header' } } }],
+    } as unknown as PageRow;
+    const headerLinks = page('header-copy', ['/about']).blocks;
+    const partFinder = createLinkedPagesFinder({
+      findBySiteAndSlug: async (_siteId, slug) => site.find((row) => row.slug === slug),
+      readHomepageSlug: async () => null,
+      // The page as visitors see it: the part swapped for the header template's blocks.
+      resolveShownBlocks: async (row) => (row.id === withHeaderPart.id ? headerLinks : row.blocks),
+    });
+    const result = await partFinder.findLinked({ page: withHeaderPart });
+    expect(result.pages.map((p) => p.slug)).toEqual(['about']);
   });
 
   it('lists direct and deeper links, marks the homepage, never follows it, and names missing pages', async () => {

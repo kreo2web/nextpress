@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import type { Deps } from "../routes/shared/deps";
 import { resolveAccessibleSites } from "../routes/shared/resolve-accessible-sites";
+import { resolvePublicSite } from "../routes/shared/resolve-public-site";
+import { isSiteIdShape } from "../routes/shared/read-request-site-id";
 import {
 	attachRequestAuth,
 	getRequestAuthSiteId,
@@ -222,4 +224,25 @@ export async function assertAuthenticatedSiteAccess({
 		siteId,
 		apiKeySiteId: getRequestAuthSiteId(req),
 	});
+}
+
+/**
+ * The site a public read is about when the request names none: the API key's site, else the site
+ * of the domain it was sent to (the default site on an unknown host). Never "every site": lists
+ * and "open page by name" used to mix sites and could hand back the other site's page.
+ */
+export async function resolveReadSiteId({
+	req,
+	models,
+	requestedSiteId,
+}: {
+	req: Request;
+	models: Deps["models"];
+	requestedSiteId?: string;
+}): Promise<string | undefined> {
+	if (requestedSiteId && isSiteIdShape(requestedSiteId)) return requestedSiteId;
+	const keySiteId = getRequestAuthSiteId(req);
+	if (keySiteId) return keySiteId;
+	const site = await resolvePublicSite({ models, req });
+	return site?.id;
 }

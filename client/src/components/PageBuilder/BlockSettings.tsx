@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { isTemplatePartBlock } from "@shared/template-parts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import {
@@ -52,13 +53,13 @@ import TokenColorPicker from "./TokenColorPicker"
 import AnimationPicker from "./AnimationPicker"
 import type { TokenEntry, BlockAnimation } from "@shared/schema-types"
 import { DimensionPresetField } from "./dimension-preset-field";
-import { SpacingSidesField } from "./spacing-sides-field";
+import { SpacingField } from "./spacing-field";
 import { SettingsDisclosure } from "./shared/settings-disclosure";
 import {
   buildSpacingStyles,
   readSpacingSides,
   spacingSideKeys,
-  type SpacingSideKey,
+  type SpacingPatch,
 } from "./spacing-styles";
 import { anyStyleSet, anyTokenSet } from "./style-set";
 import { AutoLayoutPanel } from "./auto-layout-panel";
@@ -319,24 +320,17 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
   const getResolvedPlacementStyles = (): Record<string, unknown> =>
     getResolvedStylesForSpacing();
 
-  /** Writes one value (or `null` to clear) to the listed padding/margin sides in a single update. */
-  const commitSpacingSides = (cssKeys: readonly SpacingSideKey[], fullValue: string | null) => {
-    purgeTokenMapKeys([...cssKeys]);
+  /** Saves the sides an edit changed (a `null` clears one) in a single update. */
+  const commitSpacing = (patch: SpacingPatch) => {
+    purgeTokenMapKeys(Object.keys(patch));
     const resolved = getResolvedStylesForSpacing();
     if (accessor) {
       const prev = (accessor.getStyles() || {}) as Record<string, unknown>;
-      accessor.setStyles(
-        buildSpacingStyles({ resolved, previous: prev, cssKeys, value: fullValue }) as CSSProperties,
-      );
+      accessor.setStyles(buildSpacingStyles({ resolved, previous: prev, patch }) as CSSProperties);
     } else {
       const prev = (block.styles || {}) as Record<string, unknown>;
       onUpdate({
-        styles: buildSpacingStyles({
-          resolved,
-          previous: prev,
-          cssKeys,
-          value: fullValue,
-        }) as BlockConfig["styles"],
+        styles: buildSpacingStyles({ resolved, previous: prev, patch }) as BlockConfig["styles"],
       });
     }
   };
@@ -414,11 +408,11 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
       anyTokenSet({ tokenMap, properties: colorProps }) ||
       anyStyleSet({ styles: styleNow, keys: colorProps }) ||
       Object.keys(readBlockFills(block.other?.fills)).length > 0;
-    const marginKeys = spacingSideKeys("margin");
-    const hasMargin = anyStyleSet({ styles: styleNow, keys: ["margin", ...marginKeys], keepAuto: true });
-    const hasSpacing =
-      hasMargin ||
-      anyStyleSet({ styles: styleNow, keys: ["padding", ...spacingSideKeys("padding")], keepAuto: true });
+    const hasSpacing = anyStyleSet({
+      styles: styleNow,
+      keys: ["padding", "margin", ...spacingSideKeys("padding"), ...spacingSideKeys("margin")],
+      keepAuto: true,
+    });
     const hasDimensions = anyStyleSet({
       styles: styleNow,
       keys: ["width", "maxWidth", "minHeight", "height", "objectFit"],
@@ -582,25 +576,18 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
         </CollapsibleCard>
         )}
 
-        {/* Spacing — padding first; margin folds away until asked for or already set */}
+        {/* Spacing — one control for padding and margin; it opens on whichever one is already set */}
         {!ownsOwnLook && (
         <CollapsibleCard title="Spacing" icon={Move} defaultOpen={hasSpacing}>
-          <SpacingSidesField
-            label="Padding"
-            kind="padding"
-            sides={readSpacingSides({ styles: styleNow, kind: "padding" })}
+          <SpacingField
+            targets={[
+              { kind: "padding", sides: readSpacingSides({ styles: styleNow, kind: "padding" }) },
+              { kind: "margin", sides: readSpacingSides({ styles: styleNow, kind: "margin" }) },
+            ]}
+            allowAuto
             onHoverArea={onHoverArea}
-            onCommit={commitSpacingSides}
+            onCommit={commitSpacing}
           />
-          <SettingsDisclosure title="Margin" defaultOpen={hasMargin}>
-            <SpacingSidesField
-              label="Margin"
-              kind="margin"
-              sides={readSpacingSides({ styles: styleNow, kind: "margin" })}
-              onHoverArea={onHoverArea}
-              onCommit={commitSpacingSides}
-            />
-          </SettingsDisclosure>
         </CollapsibleCard>
         )}
 
@@ -844,9 +831,14 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
   const tabTriggerClass =
     "flex min-h-9 items-center justify-center rounded-md border border-transparent px-3 py-2 text-xs font-medium text-npb-text-muted transition-colors hover:bg-npb-interactive-bg-hover hover:text-npb-text-primary data-[state=active]:bg-npb-interactive-bg-active data-[state=active]:text-npb-interactive-text-active";
 
+  // A linked template part shows its template's blocks: style and screen settings set on the part
+  // itself never reach the page, so only its Content tab (which template, edit, detach) is offered.
+  const contentOnly = isTemplatePartBlock(block);
+
   return (
     <div className="npb-block-settings">
-      <Tabs defaultValue="content" className="w-full">
+      {/* Keyed so moving between a part and another block starts on Content, never on a hidden tab. */}
+      <Tabs key={contentOnly ? "content-only" : "all-tabs"} defaultValue="content" className="w-full">
         {/* One header: which block, then the tabs. Stays put while the sections scroll. */}
         <div className="sticky top-0 z-10 border-b border-npb-divider bg-npb-surface-base">
           <div className="flex items-center gap-2 px-4 pb-3 pt-4">
@@ -857,17 +849,19 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
               {blockDef?.label || block.name}
             </h3>
           </div>
-          <TabsList className="mx-4 mb-3 grid h-auto min-h-10 w-[calc(100%-2rem)] grid-cols-3 gap-1 rounded-[var(--npb-radius-surface)] bg-npb-surface-inset p-1">
-            <TabsTrigger value="content" className={tabTriggerClass}>
-              Content
-            </TabsTrigger>
-            <TabsTrigger value="style" className={tabTriggerClass}>
-              Style
-            </TabsTrigger>
-            <TabsTrigger value="advanced" className={tabTriggerClass}>
-              Advanced
-            </TabsTrigger>
-          </TabsList>
+          {contentOnly ? null : (
+            <TabsList className="mx-4 mb-3 grid h-auto min-h-10 w-[calc(100%-2rem)] grid-cols-3 gap-1 rounded-[var(--npb-radius-surface)] bg-npb-surface-inset p-1">
+              <TabsTrigger value="content" className={tabTriggerClass}>
+                Content
+              </TabsTrigger>
+              <TabsTrigger value="style" className={tabTriggerClass}>
+                Style
+              </TabsTrigger>
+              <TabsTrigger value="advanced" className={tabTriggerClass}>
+                Advanced
+              </TabsTrigger>
+            </TabsList>
+          )}
         </div>
 
         <TabsContent value="content" className="mt-0">
@@ -888,10 +882,13 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
           </div>
         </TabsContent>
 
-        <TabsContent value="style" className="mt-0">
-          <div key={block.id}>{renderStyleSettings()}</div>
-        </TabsContent>
+        {contentOnly ? null : (
+          <TabsContent value="style" className="mt-0">
+            <div key={block.id}>{renderStyleSettings()}</div>
+          </TabsContent>
+        )}
 
+        {contentOnly ? null : (
         <TabsContent value="advanced" className="mt-0">
           <div key={block.id}>
             {block.name !== "core/page-shell" ? (
@@ -1026,6 +1023,7 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
             </div>
           </div>
         </TabsContent>
+        )}
       </Tabs>
     </div>
   );

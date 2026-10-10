@@ -19,6 +19,7 @@ import { renderBlocksToHtml } from '../../renderer/to-html';
 import { sanitizeHtml } from '@shared/sanitize-html';
 import type { BlockConfig, Site } from '@shared/schema-types';
 import { publicSiteDescription, publicSiteName } from '@shared/published-document-meta';
+import { resolvePageTemplateParts } from '../lib/template-parts';
 
 /**
  * Public API routes — resolve site from Host header or ?siteId= hint.
@@ -64,7 +65,13 @@ export function createPublicRoutes(deps: Deps): Router {
           return;
         }
 
-        res.json({ ...page, site: await siteIdentity(site) });
+        const parts = await resolvePageTemplateParts({
+          models,
+          siteId: site.id,
+          pageId: page.id,
+          blocks: (Array.isArray(page.blocks) ? page.blocks : []) as BlockConfig[],
+        });
+        res.json({ ...page, blocks: parts.blocks, site: await siteIdentity(site) });
       });
 
       if (err) {
@@ -174,13 +181,19 @@ export function createPublicRoutes(deps: Deps): Router {
         }
 
         const payload = await attachPostAuthor({ models, post: enrichPostForApi(post) });
-        const rawBlocks = (Array.isArray(post.blocks) ? post.blocks : []) as BlockConfig[];
+        const parts = await resolvePageTemplateParts({
+          models,
+          siteId: site.id,
+          pageId: post.id,
+          blocks: (Array.isArray(post.blocks) ? post.blocks : []) as BlockConfig[],
+        });
         const boundBlocks = bindPostBlocks({
-          blocks: rawBlocks,
+          blocks: parts.blocks,
           post: bindablePostFromRecord(payload),
         });
         res.json({
           ...payload,
+          blocks: parts.blocks,
           site: await siteIdentity(site),
           renderedHtml:
             boundBlocks.length > 0
@@ -218,7 +231,13 @@ export function createPublicRoutes(deps: Deps): Router {
           return;
         }
 
-        res.json({ ...page, site: await siteIdentity(site) });
+        const parts = await resolvePageTemplateParts({
+          models,
+          siteId: site.id,
+          pageId: page.id,
+          blocks: (Array.isArray(page.blocks) ? page.blocks : []) as BlockConfig[],
+        });
+        res.json({ ...page, blocks: parts.blocks, site: await siteIdentity(site) });
       });
 
       if (err) {

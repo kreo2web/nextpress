@@ -2,12 +2,9 @@ import { Router } from 'express';
 import type { Deps } from './shared/deps';
 import { asyncHandler } from './shared/async-handler';
 import { auth } from '../lib/better-auth';
-import { updateCaddyConfig } from '../utils/caddy';
-import {
-  getCaddyTlsHostnames,
-  validateDomain,
-} from '../utils/validate-domain';
-import { normalizeSetupSiteUrl } from '../utils/normalize-setup-site-url';
+import { syncCaddyFromSites } from '../utils/caddy';
+import { validateDomain } from '../utils/validate-domain';
+import { parseSiteAddress } from '../utils/site-address';
 import { collectErrorText } from '../utils';
 import { verifyDomainReadiness } from '../utils/verify-domain-readiness';
 import { seedDefaultContent } from '../seed-default-content';
@@ -102,15 +99,15 @@ export function createSetupRoutes(deps: Deps): Router {
       });
     }
 
-    // Validate every hostname Caddy will serve (apex + www for public DNS names)
-    const tlsHosts = getCaddyTlsHostnames(domain);
-    for (const host of tlsHosts) {
-      const domainCheck = await validateDomain(host);
+    // Same cleaning as every other site address. Only the main domain must point here; its www twin is optional.
+    const address = parseSiteAddress(String(domain));
+    if (!address.ok) {
+      return res.status(400).json({ error: 'Invalid domain', message: address.message });
+    }
+    if (!address.isLocal) {
+      const domainCheck = await validateDomain(address.host);
       if (!domainCheck.valid) {
-        return res.status(400).json({
-          error: 'Domain validation failed',
-          message: `${domainCheck.message} (host: ${host})`,
-        });
+        return res.status(400).json({ error: 'Domain validation failed', message: domainCheck.message });
       }
     }
 
@@ -178,9 +175,8 @@ export function createSetupRoutes(deps: Deps): Router {
     // Get admin role
     const adminRole = await deps.models.roles.findByName('admin');
 
-    const siteUrl = normalizeSetupSiteUrl(domain);
-    const siteBase = siteUrl.replace(/\/+$/, '');
-    const loginUrl = `${siteBase}/admin/login`;
+    const siteUrl = address.url;
+    const loginUrl = `${siteUrl}/admin/login`;
 
     // Create site (marked as default)
     const site = await deps.models.sites.create({
@@ -209,17 +205,17 @@ export function createSetupRoutes(deps: Deps): Router {
 
     await seedDefaultContent();
 
-    // Update Caddyfile
-    const caddyResult = await updateCaddyConfig(domain, { acmeEmail: email });
-    console.log('Caddy update:', caddyResult.message);
+    // Same web server sync as every later address change (the admin email above is the ACME contact).
+    const webServer = await syncCaddyFromSites({ models: deps.models });
+    console.log('Caddy update:', webServer);
 
     res.json({
       success: true,
       message: 'Setup complete! You can now log in.',
       redirect: '/admin/login',
       loginUrl,
-      caddySuccess: caddyResult.success,
-      caddyStatus: caddyResult.message,
+      caddySuccess: webServer.status !== 'refused',
+      caddyStatus: webServer.status,
     });
     } catch (error: unknown) {
       console.error('Setup failed:', collectErrorText(error));

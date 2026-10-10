@@ -17,6 +17,7 @@ import {
 import { PostListSettings } from './post-list-settings';
 import { openOverlayHash, PostListOverlay } from './post-list-overlay';
 import { appendSiteIdToUrl, readVisitorSiteIdHint } from '@/lib/site-api';
+import { useOptionalActiveSite } from '@/hooks/useActiveSite';
 import { isSafePublicMediaUrl } from '@shared/bind-post-list';
 
 // ============================================================================
@@ -49,7 +50,10 @@ function PostListRenderer({
   const cfg = { ...DEFAULT_CONTENT, ...content } as Required<PostListContent>;
   const shouldFetchReal = isPreview || !!cfg.blogId;
 
-  const siteIdHint = readVisitorSiteIdHint();
+  // In the editor the list must name the site being edited (drafts are listed per site); visitors
+  // are matched by the page's address instead.
+  const editorSiteId = useOptionalActiveSite()?.activeSiteId ?? '';
+  const siteIdHint = isPreview ? readVisitorSiteIdHint() : editorSiteId;
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['posts', isPreview ? 'public' : 'admin', siteIdHint, cfg.blogId, cfg.postsPerPage, cfg.orderBy, cfg.order],
     queryFn: async () => {
@@ -77,7 +81,7 @@ function PostListRenderer({
             ),
             { credentials: 'same-origin' },
           )
-        : await fetch(`/api/posts?${params.toString()}`, { credentials: 'include' });
+        : await fetch(appendSiteIdToUrl(`/api/posts?${params.toString()}`, editorSiteId), { credentials: 'include' });
       if (!res.ok) throw new Error(`Failed to fetch posts (${res.status})`);
       const json = await res.json();
       const items: PostItem[] = (
@@ -93,7 +97,7 @@ function PostListRenderer({
       }));
       return items;
     },
-    enabled: shouldFetchReal,
+    enabled: shouldFetchReal && (isPreview || !!editorSiteId),
     staleTime: 5 * 60 * 1000,
   });
 

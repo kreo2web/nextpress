@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { models } from "./storage.js";
 import { ensureRootPageShell } from "@shared/page-shell-model";
 import type { BlockConfig, BlockContent } from "@shared/schema-types";
+import { isTemplatePart } from "@shared/template-usage";
 
 /** Builds a minimal starter layout editors can extend. */
 function buildStarterBlocks({ kind }: { kind: "page" | "post" }): BlockConfig[] {
@@ -90,7 +91,8 @@ export async function initializeDefaultTemplates({
 }: {
 	authorId: string;
 }): Promise<void> {
-	const existing = await models.templates.findMany();
+	// Linked template parts do not count: a site that only has parts still gets the starter blocks.
+	const existing = (await models.templates.findMany()).filter((row) => !isTemplatePart(row.other));
 	if (existing.length > 0) {
 		return;
 	}

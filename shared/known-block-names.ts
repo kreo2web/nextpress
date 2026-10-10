@@ -39,6 +39,7 @@ export const KNOWN_BLOCK_NAMES = [
 	"core/input",
 	"core/textarea",
 	"core/select",
+	"core/template-part",
 	"post/title",
 	"post/excerpt",
 	"post/featured-image",

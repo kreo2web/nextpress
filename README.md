@@ -130,9 +130,19 @@ Nextpress ships **39 blocks** for pages, posts, and templates.
 
 Run more than one site from a single install:
 
-- [x] Separate pages, posts, media, and settings per site
+- [x] Separate pages, posts, media, settings, and theme per site
 - [x] Switch sites from the admin
+- [x] Give each site its own domain, with HTTPS set up for you
 - [x] Scope API keys to one site at a time
+
+**Two sites, two domains**
+
+1. Point each domain at your server: an A record with the server's IP. For a main domain like `example.com`, add `www` too if you want it.
+2. In the admin, open **Sites → Add site**. Give it a name and its address, for example `shop.example.com`. The address check shows when the domain points at your server.
+3. NextPress adds the address to the web server, which gets a certificate for it, usually within a minute.
+4. Pick the site you are working on at the top of the admin. Pages, posts, media, settings and the theme all belong to that site.
+
+Visitors see the site whose address they typed. An address that no site uses shows the default site. To try this on your own computer, give a second site an address like `http://site2.localhost:5000`; browsers send `*.localhost` to your own machine with no setup.
 
 ### WordPress import
 

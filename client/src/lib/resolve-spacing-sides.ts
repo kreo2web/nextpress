@@ -1,3 +1,5 @@
+import { splitCssValueList } from '@shared/page-shell-padding';
+
 export type SpacingSideQuad = {
   top: string;
   right: string;
@@ -13,10 +15,8 @@ export const expandSpacingShorthand = (raw: unknown): SpacingSideQuad => {
     return { top: '', right: '', bottom: '', left: '' };
   }
   const str = typeof raw === 'string' ? raw : String(raw);
-  const values = str
-    .split(/\s+/)
-    .map((v) => v.trim())
-    .filter((v) => v.length > 0);
+  // Keeps `calc(1rem + 2px)` and `var(--x, 1rem)` as one value; a plain space split tears them apart.
+  const values = splitCssValueList(str);
   if (values.length === 0) return { top: '', right: '', bottom: '', left: '' };
   if (values.length === 1) {
     const v = values[0]!;

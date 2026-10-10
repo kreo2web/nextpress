@@ -1,3 +1,4 @@
+import { appendSiteIdToUrl } from '@/lib/site-api';
 import type { Page } from '@shared/schema-types';
 import type { PagePackage, StoredPackageFiles } from '@shared/page-transfer';
 
@@ -113,9 +114,12 @@ export async function importPageFile({
   return (await response.json()) as PageImportResult;
 }
 
-/** Stores the files that came with pasted blocks; returns where each old path now points. */
-export async function storePastedFiles({ pkg }: { pkg: PagePackage }): Promise<StoredPackageFiles> {
-  const response = await fetch('/api/page-transfer/files', {
+/**
+ * Stores the files that came with pasted blocks in the site being edited (not the default site);
+ * returns where each old path now points.
+ */
+export async function storePastedFiles({ pkg, siteId }: { pkg: PagePackage; siteId: string }): Promise<StoredPackageFiles> {
+  const response = await fetch(appendSiteIdToUrl('/api/page-transfer/files', siteId), {
     method: 'POST',
     credentials: 'include',
     body: packageForm({ pkg }),

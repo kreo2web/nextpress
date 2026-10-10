@@ -35,6 +35,7 @@ export const BLOCK_NAMES = [
 	"core/input",
 	"core/textarea",
 	"core/select",
+	"core/template-part",
 	"post/title",
 	"post/excerpt",
 	"post/featured-image",
@@ -533,6 +534,13 @@ export const BLOCK_DEFINITIONS: Record<BlockName, BlockDefinitionMeta> = {
 			color: "#111827",
 			boxSizing: "border-box",
 		},
+	},
+	"core/template-part": {
+		name: "core/template-part",
+		label: "Template",
+		type: "block",
+		category: "layout",
+		defaultContent: () => structured({ templateId: "" }),
 	},
 	"post/title": {
 		name: "post/title",

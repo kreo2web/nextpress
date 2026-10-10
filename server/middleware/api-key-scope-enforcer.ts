@@ -8,7 +8,7 @@ import {
 	getRequestAuthUserId,
 	resolveRequestAuth,
 } from "../auth";
-import { readRequestSiteId } from "../routes/shared/resolve-request-site";
+import { readRequestSiteId } from "../routes/shared/read-request-site-id";
 
 const API_KEY_PREFIX = "npk_live_";
 

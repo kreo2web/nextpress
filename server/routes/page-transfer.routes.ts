@@ -6,7 +6,10 @@ import { asyncHandler } from './shared/async-handler';
 import { safeTryAsync } from '../utils';
 import { createRateLimiter } from '../utils/rate-limit';
 import { assertAuthenticatedSiteAccess, ContentAccessError } from '../lib/content-access';
-import { readRequestSiteId, resolveRequestSite } from './shared/resolve-request-site';
+import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
+import { readRequestSiteId } from './shared/read-request-site-id';
+import { resolvePageTemplateParts } from '../lib/template-parts';
+import type { BlockConfig } from '@shared/schema-types';
 import { resolveSiteThemeSettings } from './shared/resolve-site-theme-settings';
 import { enrichPageForApi } from '@shared/page-other';
 import { PAGE_PACKAGE_MAX_BYTES, readPagePackage, type PagePackage } from '@shared/page-transfer';
@@ -74,6 +77,9 @@ export function createPageTransferRoutes(deps: Deps): Router {
         settings: resolved.settings as unknown as Record<string, unknown>,
       };
     },
+    // A page file stands on its own: linked template parts are swapped for the template's current blocks.
+    resolvePageParts: async ({ siteId, pageId, blocks }) =>
+      (await resolvePageTemplateParts({ models, siteId, pageId, blocks })).blocks,
     uploadDir,
     uploadLimit: CONFIG.UPLOAD.LIMIT,
     appVersion: NEXTPRESS_CONFIG.version,
@@ -81,6 +87,15 @@ export function createPageTransferRoutes(deps: Deps): Router {
 
   const linkedPages = createLinkedPagesFinder({
     findBySiteAndSlug: (siteId, slug) => models.pages.findBySiteAndSlug(siteId, slug),
+    resolveShownBlocks: async (page) =>
+      (
+        await resolvePageTemplateParts({
+          models,
+          siteId: String(page.siteId),
+          pageId: page.id,
+          blocks: Array.isArray(page.blocks) ? (page.blocks as BlockConfig[]) : [],
+        })
+      ).blocks,
     readHomepageSlug: async (siteId) => {
       const option = await models.options.getOption('homepage_page_slug', siteId);
       return typeof option?.value === 'string' && option.value ? option.value : null;
@@ -104,9 +119,9 @@ export function createPageTransferRoutes(deps: Deps): Router {
         status: 'inactive',
         renderer: null,
       }),
+    // A theme belongs to the site it is used on; other sites keep theirs.
     activateTheme: async ({ siteId, themeId }) => {
-      await models.themes.setActiveTheme(themeId);
-      await models.sites.update(siteId, { activeThemeId: themeId });
+      await models.sites.update(siteId, { activeThemeId: themeId, updatedAt: new Date() });
     },
     draftStatus: CONFIG.STATUS.DRAFT,
   });
@@ -161,6 +176,8 @@ export function createPageTransferRoutes(deps: Deps): Router {
     if (err instanceof ContentAccessError) return res.status(err.statusCode).json({ message: err.message });
     if (isPublicError(err)) return res.status(err.statusCode).json({ message: err.publicMessage });
     if (isPageImportRefusal(err)) return res.status(400).json({ message: err.publicMessage });
+    const siteStatus = readErrorStatus(err, 500);
+    if (siteStatus < 500) return res.status(siteStatus).json({ message: err.message });
     return res.status(500).json({ message: fallback });
   };
 
@@ -240,7 +257,7 @@ export function createPageTransferRoutes(deps: Deps): Router {
       const { err, result } = await safeTryAsync(async () => {
         const userId = requireUserId(req);
         assertWithinRate({ userId, action: 'import', limit: IMPORT_LIMIT_PER_MINUTE });
-        const site = await resolveRequestSite({ models, userId, siteId: readRequestSiteId(req) });
+        const site = await resolveRequestSite({ models, req, userId });
         const pkg = readUploadedPackage(req);
         const imported = await importer.importPage({
           pkg,
@@ -278,7 +295,7 @@ export function createPageTransferRoutes(deps: Deps): Router {
       const { err, result } = await safeTryAsync(async () => {
         const userId = requireUserId(req);
         assertWithinRate({ userId, action: 'files', limit: IMPORT_LIMIT_PER_MINUTE });
-        const site = await resolveRequestSite({ models, userId, siteId: readRequestSiteId(req) });
+        const site = await resolveRequestSite({ models, req, userId });
         const pkg = readUploadedPackage(req);
         return store.storeFiles({ files: pkg.files, siteId: String(site.id), authorId: userId });
       });

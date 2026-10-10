@@ -1,5 +1,6 @@
 import type { Deps } from "./deps";
 import type { Site } from "@shared/schema-types";
+import { readSiteAddress } from "../../utils/site-address";
 
 export type SiteListItem = {
 	id: string;
@@ -48,7 +49,7 @@ export const resolveAccessibleSites = async (params: {
 		.map((site) => ({
 			id: site.id,
 			name: site.name ?? null,
-			siteUrl: site.siteUrl ?? null,
+			siteUrl: readSiteAddress(site) || null,
 			isDefault: site.isDefault ?? false,
 		}))
 		.sort((a, b) => {

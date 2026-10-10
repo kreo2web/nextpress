@@ -18,6 +18,9 @@ import { previewShareRateLimit } from '../middleware/preview-share-rate-limit';
 import { attachPostAuthor } from '../lib/attach-post-author';
 import { isPreviewableContentStatus } from '@shared/read-block-content';
 import { enrichPostForApi } from '@shared/posts/post-other';
+import type { BlockConfig } from '@shared/schema-types';
+import { readTemplatePartSiteId } from '@shared/template-usage';
+import { resolvePageTemplateParts } from '../lib/template-parts';
 
 const DEFAULT_PREVIEW_TTL_SECONDS = 300;
 const MAX_PREVIEW_TTL_SECONDS = 3600;
@@ -166,7 +169,16 @@ export function createPreviewRoutes(deps: Deps): Router {
           });
         }
 
-        res.json(await attachPostAuthor({ models, post: enrichPostForApi(post) }));
+        const payload = await attachPostAuthor({ models, post: enrichPostForApi(post) });
+        res.json({
+          ...payload,
+          blocks: await resolvePreviewBlocks({
+            models,
+            siteId: await readPostSiteId({ models, blogId: post.blogId }),
+            id: post.id,
+            blocks: post.blocks,
+          }),
+        });
       });
 
       if (err) {
@@ -208,7 +220,10 @@ export function createPreviewRoutes(deps: Deps): Router {
           });
         }
 
-        res.json(page);
+        res.json({
+          ...page,
+          blocks: await resolvePreviewBlocks({ models, siteId: page.siteId, id: page.id, blocks: page.blocks }),
+        });
       });
 
       if (err) {
@@ -241,7 +256,7 @@ export function createPreviewRoutes(deps: Deps): Router {
           });
         }
 
-        res.json(template);
+        res.json(await withResolvedTemplateBlocks({ models, template }));
       });
 
       if (err) {
@@ -255,6 +270,64 @@ export function createPreviewRoutes(deps: Deps): Router {
   );
 
   return router;
+}
+
+/**
+ * Previews show a page the way it publishes: each linked template part is swapped for the template's
+ * current blocks. The editor loads its own copy through the page and template routes and keeps the
+ * part, so only these preview answers are resolved.
+ */
+async function resolvePreviewBlocks({
+  models,
+  siteId,
+  id,
+  blocks,
+}: {
+  models: Deps['models'];
+  siteId: string | null;
+  id: string;
+  blocks: unknown;
+}): Promise<BlockConfig[]> {
+  const parts = await resolvePageTemplateParts({
+    models,
+    siteId,
+    pageId: id,
+    blocks: Array.isArray(blocks) ? (blocks as BlockConfig[]) : [],
+  });
+  return parts.blocks;
+}
+
+/** A post belongs to a site through its blog. */
+async function readPostSiteId({
+  models,
+  blogId,
+}: {
+  models: Deps['models'];
+  blogId: string | null | undefined;
+}): Promise<string | null> {
+  if (!blogId) return null;
+  const blog = await models.blogs.findById(blogId);
+  return blog?.siteId ?? null;
+}
+
+/**
+ * A linked part is previewed in its own site. A pre-designed block has no site, so its parts are
+ * left out of the preview, the same as any other part that cannot be shown.
+ */
+async function withResolvedTemplateBlocks<T extends { id: string; blocks: unknown; other: unknown }>({
+  models,
+  template,
+}: {
+  models: Deps['models'];
+  template: T;
+}): Promise<T & { blocks: BlockConfig[] }> {
+  const blocks = await resolvePreviewBlocks({
+    models,
+    siteId: readTemplatePartSiteId(template.other),
+    id: template.id,
+    blocks: template.blocks,
+  });
+  return { ...template, blocks };
 }
 
 async function loadPreviewContent({
@@ -271,7 +344,16 @@ async function loadPreviewContent({
     if (!post || !isPreviewableContentStatus(post.status)) {
       return null;
     }
-    return attachPostAuthor({ models, post: enrichPostForApi(post) });
+    const payload = await attachPostAuthor({ models, post: enrichPostForApi(post) });
+    return {
+      ...payload,
+      blocks: await resolvePreviewBlocks({
+        models,
+        siteId: await readPostSiteId({ models, blogId: post.blogId }),
+        id: post.id,
+        blocks: post.blocks,
+      }),
+    };
   }
 
   if (contentType === 'page') {
@@ -284,9 +366,12 @@ async function loadPreviewContent({
     if (!isPreviewableContentStatus(status)) {
       return null;
     }
-    return page;
+    return {
+      ...page,
+      blocks: await resolvePreviewBlocks({ models, siteId: page.siteId, id: page.id, blocks: page.blocks }),
+    };
   }
 
   const template = await models.templates.findById(contentId);
-  return template ?? null;
+  return template ? withResolvedTemplateBlocks({ models, template }) : null;
 }

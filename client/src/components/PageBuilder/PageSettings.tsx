@@ -91,19 +91,22 @@ export default function PageSettingsModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { activeSiteId } = useActiveSite();
+  // The homepage setting belongs to the page's own site, which may not be the one picked in the admin.
+  const pageSiteId = contentType === 'page' ? (page as Partial<Page> | undefined)?.siteId : undefined;
+  const optionSiteId = pageSiteId || activeSiteId;
   const editablePage = page as (Page | Post | Template) & EditablePageFields;
 
   const { data: homepageOption } = useQuery<OptionApiResponse | null>({
-    queryKey: ['/api/options/homepage_page_slug', { siteId: activeSiteId }],
+    queryKey: ['/api/options/homepage_page_slug', { siteId: optionSiteId }],
     queryFn: async () => {
       const response = await fetch(
-        buildSiteOptionUrl({ name: 'homepage_page_slug', siteId: activeSiteId }),
+        buildSiteOptionUrl({ name: 'homepage_page_slug', siteId: optionSiteId }),
       );
       if (response.status === 404) return null;
       if (!response.ok) throw new Error('Failed to load homepage setting');
       return response.json() as Promise<OptionApiResponse>;
     },
-    enabled: open && contentType === 'page' && !isTemplate && Boolean(activeSiteId),
+    enabled: open && contentType === 'page' && !isTemplate && Boolean(optionSiteId),
   });
 
   // Extract current other field data
@@ -182,7 +185,7 @@ export default function PageSettingsModal({
       const updatedPage = (await response.json()) as Page | Post | Template;
 
       if (contentType === 'page' && (setAsHomepage || isCurrentHomepage) && slug) {
-        await apiRequest('POST', appendSiteIdToUrl('/api/options', activeSiteId), {
+        await apiRequest('POST', appendSiteIdToUrl('/api/options', optionSiteId), {
           name: 'homepage_page_slug',
           value: slug,
         });
@@ -218,7 +221,7 @@ export default function PageSettingsModal({
           : ['/api/pages'];
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({
-        queryKey: ['/api/options/homepage_page_slug', { siteId: activeSiteId }],
+        queryKey: ['/api/options/homepage_page_slug', { siteId: optionSiteId }],
       });
       queryClient.invalidateQueries({ queryKey: ['/api/public/homepage'] });
 

@@ -3,10 +3,8 @@ import type { Deps } from './shared/deps';
 import { asyncHandler } from './shared/async-handler';
 import { safeTryAsync } from '../utils';
 import { partialSettingsSchema } from '@shared/settings-schema';
-import { getOptionalCaddyAcmeEmail } from '../config';
-import { updateCaddyConfig, syncCaddyFromSites } from '../utils/caddy';
-import { getCaddyTlsHostnames, validateDomain } from '../utils/validate-domain';
-import { readRequestSiteId, resolveRequestSite } from './shared/resolve-request-site';
+import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
+import { changeSiteAddress } from '../lib/site-address';
 import { setResponseCompressionEnabled } from '../lib/response-compression';
 
 /**
@@ -41,11 +39,7 @@ export function createSettingsRoutes(deps: Deps): Router {
       }
 
       const { err, result } = await safeTryAsync(async () => {
-        const site = await resolveRequestSite({
-          models,
-          userId,
-          siteId: readRequestSiteId(req),
-        });
+        const site = await resolveRequestSite({ models, req, userId });
         const settings = await models.sites.getSettings(site.id);
         return { status: true, data: settings, siteId: site.id };
       });
@@ -53,7 +47,7 @@ export function createSettingsRoutes(deps: Deps): Router {
       if (err) {
         console.error('Error fetching settings:', err);
         const message = err instanceof Error ? err.message : 'Failed to fetch settings';
-        const status = message === 'Site not accessible' ? 403 : 500;
+        const status = readErrorStatus(err);
         return res.status(status).json({
           status: false,
           message,
@@ -96,67 +90,39 @@ export function createSettingsRoutes(deps: Deps): Router {
       }
 
       const { err, result } = await safeTryAsync(async () => {
-        const site = await resolveRequestSite({
-          models,
-          userId,
-          siteId: readRequestSiteId(req),
-        });
+        const site = await resolveRequestSite({ models, req, userId });
 
-        // If updating siteUrl, validate domain resolves then update Caddyfile
-        if (validationResult.data.general?.siteUrl) {
-          const oldSettings = await models.sites.getSettings(site.id);
-          const oldUrl = oldSettings.general?.siteUrl;
-          const newUrl = validationResult.data.general.siteUrl;
-          
-          if (oldUrl !== newUrl && newUrl) {
-            const tlsHosts = getCaddyTlsHostnames(newUrl);
-            for (const host of tlsHosts) {
-              const domainCheck = await validateDomain(host);
-              if (!domainCheck.valid) {
-                return { status: false, message: `${domainCheck.message} (host: ${host})` };
-              }
-            }
-
-            const patchGeneral = validationResult.data.general;
-            const acmeFromPatch = patchGeneral?.adminEmail?.trim();
-            const acmeStored = oldSettings.general?.adminEmail?.trim();
-            const acmeEmail =
-              (acmeFromPatch && acmeFromPatch.length > 0 ? acmeFromPatch : undefined) ??
-              (acmeStored && acmeStored.length > 0 ? acmeStored : undefined) ??
-              getOptionalCaddyAcmeEmail();
-
-            const caddyResult = await updateCaddyConfig(newUrl, { acmeEmail });
-            console.log('Settings Caddy update:', caddyResult.message);
-
-            if (!caddyResult.success) {
-              return { status: false, message: `Domain saved but Caddy configuration failed: ${caddyResult.message}` };
-            }
-
-            await syncCaddyFromSites({ models });
+        // The address goes through the one path that also checks it and updates the web server.
+        const addressInput = validationResult.data.general?.siteUrl;
+        let notice: string | null = null;
+        if (addressInput !== undefined) {
+          const addressChange = await changeSiteAddress({ models, userId, siteId: site.id, input: addressInput });
+          if (!addressChange.ok) {
+            return { status: false, message: addressChange.message, statusCode: addressChange.statusCode };
           }
+          notice = addressChange.notice;
         }
 
-        const updatedSettings = await models.sites.updateSettings(
-          validationResult.data,
-          site.id,
-        );
+        await models.sites.updateSettings(validationResult.data, site.id);
+        const updatedSettings = await models.sites.getSettings(site.id);
 
-        return { status: true, data: updatedSettings, siteId: site.id };
+        return { status: true, data: updatedSettings, siteId: site.id, notice };
       });
 
       if (err) {
         console.error('Error updating settings:', err);
         const message = err instanceof Error ? err.message : 'Failed to update settings';
-        const status = message === 'Site not accessible' ? 403 : 500;
+        const status = readErrorStatus(err);
         return res.status(status).json({
           status: false,
           message,
         });
       }
 
-      // Domain validation or Caddy config failures are returned as { status: false }
+      // Address problems (bad address, used by another site, DNS not ready) come back as { status: false }
       if (result && !result.status) {
-        return res.status(400).json(result);
+        const { statusCode, ...body } = result;
+        return res.status(statusCode ?? 400).json(body);
       }
 
       const compressionEnabled = result?.data?.system?.compressionEnabled;

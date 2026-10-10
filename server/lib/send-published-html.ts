@@ -6,6 +6,7 @@ import type { Deps } from "../routes/shared/deps";
 import { buildPublishedPageHtml } from "../routes/shared/build-published-page-html";
 import { resolveSiteThemeSettings } from "../routes/shared/resolve-site-theme-settings";
 import { bindPublishedPostLists } from "./bind-published-post-lists";
+import { resolvePageTemplateParts, templatePartsStamp } from "./template-parts";
 import { canonicalUrlWithoutQuery, publishedPageCache, publishedPageCacheKey } from "./published-page-cache";
 import {
 	preparePublishedPost,
@@ -90,7 +91,6 @@ export async function sendPublishedHtml({
 }): Promise<void> {
 	const storedBlocks = (Array.isArray(document.blocks) ? document.blocks : []) as BlockConfig[];
 	const version = typeof document.version === "number" ? document.version : 0;
-	const cacheable = canCacheBlocks(storedBlocks);
 	const stableCanonical = canonicalUrlWithoutQuery(canonicalUrl);
 
 	let siteId = siteIdHint ?? document.siteId ?? undefined;
@@ -98,6 +98,16 @@ export async function sendPublishedHtml({
 		const blog = await models.blogs.findById(document.blogId);
 		siteId = blog?.siteId ?? undefined;
 	}
+
+	// Linked template parts show their template's current blocks, so the live-block check and the
+	// cache key must see the resolved tree, not the stored one.
+	const parts = await resolvePageTemplateParts({
+		models,
+		siteId: siteId ?? null,
+		pageId: document.id,
+		blocks: storedBlocks,
+	});
+	const cacheable = canCacheBlocks(parts.blocks);
 
 	const theme = siteId
 		? await resolveSiteThemeSettings({ models, siteId })
@@ -138,6 +148,7 @@ export async function sendPublishedHtml({
 			theme: theme?.rawSettings ?? null,
 			site,
 		}),
+		templatePartsStamp: templatePartsStamp(parts.usedTemplates),
 	});
 	if (cacheable) {
 		const cached = publishedPageCache.read(cacheKey);
@@ -147,7 +158,10 @@ export async function sendPublishedHtml({
 		}
 	}
 
-	const prepared = await preparePublishedPost({ models, post: document });
+	const prepared = await preparePublishedPost({
+		models,
+		post: { ...document, blocks: parts.blocks },
+	});
 
 	const blocks = siteId
 		? await bindPublishedPostLists({

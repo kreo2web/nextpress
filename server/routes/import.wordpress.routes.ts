@@ -12,7 +12,10 @@ import {
 } from "@shared/import/wordpress/create-wordpress-importer";
 import { buildImportedWpMap } from "@shared/import/wordpress/build-imported-wp-map";
 import type { FeaturedImageMode } from "@shared/import/wordpress/types";
-import { resolveRequestSite } from "./shared/resolve-request-site";
+import { readErrorStatus, resolveRequestSite } from "./shared/resolve-request-site";
+import { getSiteBlogIds } from "./shared/site-content";
+import { assertSiteContentAccess, ContentAccessError } from "../lib/content-access";
+import { getRequestAuthSiteId } from "../auth";
 import { contentVersionAfterRewrite } from "../lib/content-version-after-rewrite";
 
 const importer = createWordPressImporter();
@@ -157,7 +160,25 @@ export function createWordPressImportRoutes(deps: Deps): Router {
 				return res.status(400).json({ message: "Blog not found" });
 			}
 
-			const existingPosts = await models.posts.findMany({ limit: 5000 });
+			const { err: accessErr } = await safeTryAsync(() =>
+				assertSiteContentAccess({
+					models,
+					userId,
+					siteId: String(blog.siteId),
+					apiKeySiteId: getRequestAuthSiteId(req),
+				}),
+			);
+			if (accessErr) {
+				const status = accessErr instanceof ContentAccessError ? accessErr.statusCode : 500;
+				return res.status(status).json({ message: status >= 500 ? "Import failed" : accessErr.message });
+			}
+
+			// "Already imported" means already in THIS site; other sites' copies are left alone.
+			const siteBlogIds = await getSiteBlogIds({ models, siteId: String(blog.siteId) });
+			const existingPosts =
+				siteBlogIds.length > 0
+					? await models.posts.findManyWhere([{ where: "blogId", in: siteBlogIds }], { limit: 5000 })
+					: [];
 
 			/** Downloads a remote image into uploads + records it as media. */
 			const sideloadAndRecord = async (
@@ -179,7 +200,7 @@ export function createWordPressImportRoutes(deps: Deps): Router {
 					size: sideloaded.size,
 					url: sideloaded.url,
 					authorId: userId,
-					siteId: blog.siteId ? String(blog.siteId) : String((await models.sites.findDefaultSite())?.id ?? ""),
+					siteId: String(blog.siteId),
 				});
 
 				await models.media.create({
@@ -315,10 +336,21 @@ export function createWordPressImportRoutes(deps: Deps): Router {
 			const pathname = validated.url.pathname.replace(/\/+$/, "");
 			const normalizedBaseUrl = `${validated.url.origin}${pathname}`;
 
+			const userId = authService.getCurrentUserId(req);
+			if (!userId) return res.status(401).json({ message: "Unauthorized" });
+			const { err: siteErr, result: site } = await safeTryAsync(() => resolveRequestSite({ models, req, userId }));
+			if (siteErr || !site) {
+				return res.status(readErrorStatus(siteErr)).json({ message: siteErr?.message ?? "Pick a site first." });
+			}
+
+			// Only this site's items count as "already imported".
+			const siteBlogIds = entity === "posts" ? await getSiteBlogIds({ models, siteId: site.id }) : [];
 			const items =
 				entity === "posts"
-					? await models.posts.findMany({ limit: 5000 })
-					: await models.pages.findMany({ limit: 5000 });
+					? siteBlogIds.length > 0
+						? await models.posts.findManyWhere([{ where: "blogId", in: siteBlogIds }], { limit: 5000 })
+						: []
+					: await models.pages.findManyWhere([{ where: "siteId", equals: site.id }], { limit: 5000 });
 
 			const importedMap = buildImportedWpMap({
 				items,
@@ -391,7 +423,7 @@ export function createWordPressImportRoutes(deps: Deps): Router {
 				return res.status(429).json({ message: "Import rate limit exceeded. Try again shortly." });
 			}
 
-			const { baseUrl, siteId: siteIdInput, wpIds, featuredImageMode: modeInput } = req.body ?? {};
+			const { baseUrl, wpIds, featuredImageMode: modeInput } = req.body ?? {};
 
 			if (!baseUrl || typeof baseUrl !== "string") {
 				return res.status(400).json({ message: "baseUrl is required" });
@@ -412,27 +444,14 @@ export function createWordPressImportRoutes(deps: Deps): Router {
 			const normalizedBaseUrl = `${validated.url.origin}${pathname}`;
 			const featuredImageMode = parseFeaturedImageMode(modeInput);
 
-			let siteId = typeof siteIdInput === "string" ? siteIdInput : "";
-			if (!siteId) {
-				const defaultSite = await models.sites.findDefaultSite();
-				if (!defaultSite?.id) {
-					return res.status(400).json({ message: "No site found" });
-				}
-				siteId = String(defaultSite.id);
+			const { err: siteErr, result: site } = await safeTryAsync(() => resolveRequestSite({ models, req, userId }));
+			if (siteErr || !site) {
+				return res.status(readErrorStatus(siteErr)).json({ message: siteErr?.message ?? "Pick a site first." });
 			}
+			const siteId = String(site.id);
 
-			try {
-				await resolveRequestSite({ models, userId, siteId });
-			} catch {
-				return res.status(403).json({ message: "Site not accessible" });
-			}
-
-			const site = await models.sites.findById(siteId);
-			if (!site) {
-				return res.status(400).json({ message: "Site not found" });
-			}
-
-			const existingPages = await models.pages.findMany({ limit: 5000 });
+			// "Already imported" means already in THIS site; other sites' copies are left alone.
+			const existingPages = await models.pages.findManyWhere([{ where: "siteId", equals: siteId }], { limit: 5000 });
 
 			const sideloadAndRecord = async (remoteUrl: string): Promise<string> => {
 				const sideloaded = await sideloadRemoteImage({

@@ -23,6 +23,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { postEditorPath, pageEditorPath } from "@/lib/admin-content-routes";
 import { buildPostBlogLookup, resolvePostBlogDisplay, type PostBlogLookup } from "@/lib/post-blog-display";
 import { useActiveSite } from "@/hooks/useActiveSite";
+import { buildPublicContentUrl } from "@/lib/site-api";
 import { useAdminListPagination } from "@/hooks/use-admin-list-pagination";
 import { useAdminListViewMode } from "@/hooks/use-admin-list-view-mode";
 import { useReorderList } from "@/hooks/use-reorder-list";
@@ -101,6 +102,7 @@ function PostsList({
   activeSiteLoading = false,
   activeSiteError = null,
 }: PostsListProps) {
+  const { activeSite } = useActiveSite();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState(DEFAULT_POST_LIST_SORT.sort);
   const [order, setOrder] = useState<ContentListSortOrder>(DEFAULT_POST_LIST_SORT.order);
@@ -261,8 +263,14 @@ function PostsList({
     }
   };
 
-  const viewPost = (post: EnrichedPost) =>
-    window.open(post.status === 'publish' && post.slug ? `/post/${post.slug}` : `/preview/post/${post.id}`, '_blank');
+  // Published posts open on their own site's address; drafts (or a site with no public link) open the preview.
+  const viewPost = (post: EnrichedPost) => {
+    const href =
+      post.status === 'publish' && post.slug
+        ? buildPublicContentUrl({ site: activeSite, slug: post.slug, kind: 'post' })
+        : null;
+    window.open(href ?? `/preview/post/${post.id}`, '_blank');
+  };
 
   const renderRowActions = (post: EnrichedPost) => (
     <>

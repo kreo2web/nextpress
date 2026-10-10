@@ -2,6 +2,8 @@ import React from "react";
 import type { BlockConfig, BlockContent, TokenEntry } from "@shared/schema-types";
 import { Label } from "@/components/ui/label";
 import { DimensionPresetField } from "../../dimension-preset-field";
+import { SpacingField } from "../../spacing-field";
+import { buildSpacingStyles, readSpacingSides, type SpacingPatch } from "../../spacing-styles";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Layout, Palette, Ruler } from "lucide-react";
 import { useSettingsState } from "../useSettingsState";
@@ -14,7 +16,7 @@ import {
   WIDTH_PRESETS,
   MIN_HEIGHT_PRESETS,
 } from "./container-model";
-import { BORDER_RADIUS_PRESETS, SPACING_PRESETS } from "@shared/dimension-presets";
+import { BORDER_RADIUS_PRESETS } from "@shared/dimension-presets";
 
 export interface ContainerSettingsProps {
   block: BlockConfig;
@@ -59,6 +61,19 @@ export function ContainerSettings({ block, onUpdate }: ContainerSettingsProps) {
         styles: { ...block.styles, ...styleUpdates },
       });
     }
+  };
+
+  const savedStyles = (styles ?? {}) as Record<string, unknown>;
+
+  /**
+   * Padding goes through the same style patch as the Style tab, so an older one-box value is split into
+   * sides and never left to fight a longhand.
+   */
+  const commitPadding = (patch: SpacingPatch) => {
+    const live = (accessor?.getStyles() ?? {}) as Record<string, unknown>;
+    const resolved = { ...(block.styles as Record<string, unknown> | undefined), ...live };
+    const previous = ((accessor ? accessor.getStyles() : block.styles) ?? {}) as Record<string, unknown>;
+    updateStyles(buildSpacingStyles({ resolved, previous, patch }) as React.CSSProperties);
   };
 
   /** A token beats the plain style of the same name, so drop the style when a token is set. */
@@ -195,12 +210,9 @@ export function ContainerSettings({ block, onUpdate }: ContainerSettingsProps) {
               onTheme={followTheme}
             />
           </div>
-          <DimensionPresetField
-            label="Padding"
-            presets={SPACING_PRESETS}
-            value={(styles?.padding as string) || undefined}
-            onChange={(next) => updateStyles({ padding: next })}
-            customPlaceholder="e.g. 24"
+          <SpacingField
+            targets={[{ kind: "padding", sides: readSpacingSides({ styles: savedStyles, kind: "padding" }) }]}
+            onCommit={commitPadding}
           />
           <DimensionPresetField
             label="Border radius"

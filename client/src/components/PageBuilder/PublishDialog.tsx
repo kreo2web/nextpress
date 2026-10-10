@@ -21,6 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { VERSION_STALE } from "@shared/content-version";
 import type { Post, Page, BlockConfig } from "@shared/schema-types";
 import { buildPublishPayload } from "@/lib/publish-payload";
+import { useOptionalActiveSite } from "@/hooks/useActiveSite";
+import { buildPublicContentUrl } from "@/lib/site-api";
 
 interface PublishDialogProps {
   post?: Post | Page;
@@ -43,6 +45,7 @@ export default function PublishDialog({
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const activeSites = useOptionalActiveSite();
 
   // Generate slug from title if empty
   const generateSlug = (title: string) => {
@@ -187,7 +190,15 @@ export default function PublishDialog({
 
   const isPublished = post?.status === 'publish';
   const hasSlugChanged = slug !== originalSlug;
-  const postType = contentType;
+  // A page's own site (it may not be the one picked in the admin); posts belong to the picked site.
+  const pageSiteId = contentType === 'page' ? (post as Page | undefined)?.siteId : undefined;
+  const contentSite = pageSiteId
+    ? activeSites?.sites.find((site) => site.id === pageSiteId)
+    : activeSites?.activeSite;
+  const liveUrl = post?.slug
+    ? buildPublicContentUrl({ site: contentSite, slug: post.slug, kind: contentType })
+    : null;
+  const addressPrefix = contentType === 'post' ? '/post/' : '/';
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -239,29 +250,29 @@ export default function PublishDialog({
               <Globe className="w-4 h-4 text-green-600" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-green-800">Currently Published</p>
-                <p className="text-xs text-green-600">
-                  Live at: /{postType}/{post?.slug}
+                <p className="text-xs text-green-600 break-all">
+                  {liveUrl ? `Live at: ${liveUrl}` : 'Live, but this site has no address yet. Add one under Sites.'}
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const url = `/${postType}/${post?.slug}`;
-                  window.open(url, '_blank');
-                }}
-                className="h-auto p-1 text-green-600"
-                data-testid="button-view-published"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </Button>
+              {liveUrl ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => window.open(liveUrl, '_blank')}
+                  className="h-auto p-1 text-green-600"
+                  aria-label="Open the live page"
+                  data-testid="button-view-published"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              ) : null}
             </div>
           )}
 
           <div className="space-y-2">
             <Label htmlFor="slug">{contentType === 'page' ? 'Page URL' : 'Post URL'}</Label>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-npb-text-muted">/{postType}/</span>
+              <span className="text-sm text-npb-text-muted">{addressPrefix}</span>
               <Input
                 id="slug"
                 value={slug}

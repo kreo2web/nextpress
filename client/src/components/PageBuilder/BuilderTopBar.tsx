@@ -1,4 +1,5 @@
 import React from "react";
+import { countPageBlocks } from "@shared/page-transfer";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -93,6 +94,8 @@ export function BuilderTopBar({
   );
   const blockOptions = topLevelBlockOptions(blocks, blockNames);
   const shownBlockId = topLevelSelectionId(blocks, selectedBlockId);
+  const pageBlockCount = countPageBlocks(blocks);
+
   return (
     <div className="bg-npb-surface-base p-4">
       <div className="flex items-center justify-between">
@@ -222,7 +225,10 @@ export function BuilderTopBar({
             )}
           </Button>
 
-          <div className="text-sm text-npb-text-muted">{blocks.length} blocks</div>
+          {/* Counts what is on the page, not the page shell that wraps it (always one). */}
+          <div className="text-sm text-npb-text-muted">
+            {pageBlockCount} {pageBlockCount === 1 ? "block" : "blocks"}
+          </div>
 
           <BlogMenu
             currentPostId={data?.id}

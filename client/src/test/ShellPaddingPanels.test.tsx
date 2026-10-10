@@ -5,7 +5,7 @@ import type { BlockConfig } from '@shared/schema-types';
 import { readPageShellContent } from '@shared/page-shell-model';
 import { updateBlockDeep } from '@/lib/handlers/treeUtils';
 import { PageShellSettings } from '@/components/PageBuilder/blocks/page-shell/page-shell-settings';
-import { SpacingSidesField } from '@/components/PageBuilder/spacing-sides-field';
+import { SpacingField } from '@/components/PageBuilder/spacing-field';
 
 vi.setConfig({ testTimeout: 20000 });
 
@@ -61,32 +61,32 @@ describe('page shell padding panel', () => {
 describe('spacing field sides modes', () => {
   const sides = { top: '2rem', right: '1rem', bottom: '2rem', left: '1rem' };
 
-  it('opens as horizontal and vertical when the sides pair up, and writes both keys of an axis', async () => {
+  it('opens in pairs when the sides pair up, and an edit writes both sides of that pair', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();
-    render(<SpacingSidesField label="Padding" kind="padding" sides={sides} onCommit={onCommit} />);
-    expect(within(screen.getByRole('radiogroup', { name: 'Padding sides' })).getByRole('radio', { name: 'Horiz. & vert.' })).toHaveAttribute('aria-checked', 'true');
-    await user.click(within(screen.getByRole('radiogroup', { name: 'Padding left and right' })).getByRole('radio', { name: 'XL' }));
-    expect(onCommit).toHaveBeenCalledWith(['paddingLeft', 'paddingRight'], '2rem');
-    await user.click(within(screen.getByRole('radiogroup', { name: 'Padding top and bottom' })).getByRole('radio', { name: 'SM' }));
-    expect(onCommit).toHaveBeenLastCalledWith(['paddingTop', 'paddingBottom'], '0.5rem');
+    render(<SpacingField targets={[{ kind: 'padding', sides }]} onCommit={onCommit} />);
+    expect(within(screen.getByRole('radiogroup', { name: 'Padding sides' })).getByRole('radio', { name: 'In pairs' })).toHaveAttribute('aria-checked', 'true');
+    await user.click(within(screen.getByRole('radiogroup', { name: 'Left and right' })).getByRole('radio', { name: 'XL' }));
+    expect(onCommit).toHaveBeenCalledWith({ paddingLeft: '2rem', paddingRight: '2rem' });
+    await user.click(within(screen.getByRole('radiogroup', { name: 'Top and bottom' })).getByRole('radio', { name: 'SM' }));
+    expect(onCommit).toHaveBeenLastCalledWith({ paddingTop: '0.5rem', paddingBottom: '0.5rem' });
   });
 
   it('opens on each side when nothing pairs up, and on all sides when they match', () => {
     const mixed = render(
-      <SpacingSidesField label="Margin" kind="margin" sides={{ top: '1rem', right: '2rem', bottom: '3rem', left: '4rem' }} onCommit={vi.fn()} />,
+      <SpacingField targets={[{ kind: 'margin', sides: { top: '1rem', right: '2rem', bottom: '3rem', left: '4rem' } }]} onCommit={vi.fn()} />,
     );
     expect(within(screen.getByRole('radiogroup', { name: 'Margin sides' })).getByRole('radio', { name: 'Each side' })).toHaveAttribute('aria-checked', 'true');
     mixed.unmount();
-    render(<SpacingSidesField label="Margin" kind="margin" sides={{ top: '1rem', right: '1rem', bottom: '1rem', left: '1rem' }} onCommit={vi.fn()} />);
+    render(<SpacingField targets={[{ kind: 'margin', sides: { top: '1rem', right: '1rem', bottom: '1rem', left: '1rem' } }]} onCommit={vi.fn()} />);
     expect(within(screen.getByRole('radiogroup', { name: 'Margin sides' })).getByRole('radio', { name: 'All sides' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('can switch between modes without losing values', async () => {
     const user = userEvent.setup();
-    render(<SpacingSidesField label="Padding" kind="padding" sides={sides} onCommit={vi.fn()} />);
+    render(<SpacingField targets={[{ kind: 'padding', sides }]} onCommit={vi.fn()} />);
     await user.click(within(screen.getByRole('radiogroup', { name: 'Padding sides' })).getByRole('radio', { name: 'Each side' }));
-    expect(screen.getByText('Top')).toBeInTheDocument();
+    expect(within(screen.getByRole('radiogroup', { name: 'Padding side' })).getByRole('radio', { name: 'Top' })).toBeInTheDocument();
     await user.click(within(screen.getByRole('radiogroup', { name: 'Padding sides' })).getByRole('radio', { name: 'All sides' }));
     expect(screen.getByRole('radiogroup', { name: 'Padding' })).toBeInTheDocument();
   });

@@ -27,8 +27,9 @@ interface TemplateLibraryProps {
 }
 
 /**
- * TemplateLibrary — shows available templates in the block library sidebar.
- * Clicking a template inserts all its blocks at the end of the current canvas.
+ * TemplateLibrary — shows the pre-designed blocks in the block library sidebar.
+ * Clicking one copies its blocks to the end of the current canvas; the copy does not follow the
+ * original. Linked template parts are listed by TemplatePartLibrary instead.
  * Only shown when editing pages or posts (not when editing a template itself).
  */
 export function TemplateLibrary({ onInsertTemplate }: TemplateLibraryProps) {
@@ -56,7 +57,7 @@ export function TemplateLibrary({ onInsertTemplate }: TemplateLibraryProps) {
         >
           <span className="flex items-center gap-2">
             <LayoutTemplate className="w-4 h-4" />
-            Templates
+            Pre-designed blocks
           </span>
           {isOpen ? (
             <ChevronDown className="w-4 h-4 text-npb-text-muted" />
@@ -69,19 +70,19 @@ export function TemplateLibrary({ onInsertTemplate }: TemplateLibraryProps) {
         <div className="px-4 pb-4">
           {isLoading ? (
             <p className="text-xs text-npb-text-muted text-center py-4">
-              Loading templates...
+              Loading pre-designed blocks...
             </p>
           ) : templates.length === 0 ? (
             <div className="space-y-2 px-1 py-4 text-center">
               <p className="text-xs text-npb-text-muted">
-                No templates yet.
+                No pre-designed blocks yet.
               </p>
               <Link
-                href="/admin/templates"
+                href="/admin/pre-designed-blocks"
                 className="inline-flex items-center gap-1 text-xs font-medium text-npb-accent hover:underline"
               >
                 <Plus className="h-3 w-3" />
-                Create a template
+                Create one
               </Link>
             </div>
           ) : (

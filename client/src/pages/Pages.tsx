@@ -26,8 +26,8 @@ import { PageSiteMenuDialog } from "@/components/Pages/PageSiteMenuDialog";
 import { apiRequest } from "@/lib/queryClient";
 import { pageEditorPath } from "@/lib/admin-content-routes";
 import { formatMenuPosition } from "@/lib/page-menu-order";
-import { appendSiteIdToUrl, buildSiteOptionUrl } from "@/lib/site-api";
-import { useActiveSite } from "@/hooks/useActiveSite";
+import { appendSiteIdToUrl, buildPublicContentUrl, buildSiteOptionUrl } from "@/lib/site-api";
+import { useActiveSite, type ActiveSiteItem } from "@/hooks/useActiveSite";
 import { useAdminListPagination } from "@/hooks/use-admin-list-pagination";
 import { useAdminListViewMode } from "@/hooks/use-admin-list-view-mode";
 import type { ContentListSortOrder } from "@shared/content-list-query";
@@ -60,7 +60,7 @@ export default function Pages() {
     <PagesList
       key={activeSiteId || "no-active-site"}
       activeSiteId={activeSiteId}
-      activeSiteIsDefault={activeSite?.isDefault === true}
+      activeSite={activeSite}
       activeSiteLoading={activeSiteLoading}
       activeSiteError={activeSiteError}
     />
@@ -69,14 +69,14 @@ export default function Pages() {
 
 type PagesListProps = {
   activeSiteId: string;
-  activeSiteIsDefault?: boolean;
+  activeSite?: ActiveSiteItem;
   activeSiteLoading?: boolean;
   activeSiteError?: Error | null;
 };
 
 function PagesList({
   activeSiteId,
-  activeSiteIsDefault = false,
+  activeSite,
   activeSiteLoading = false,
   activeSiteError = null,
 }: PagesListProps) {
@@ -270,16 +270,12 @@ function PagesList({
   };
 
   const handleView = (page: Page) => {
-    // Published pages: open public URL. Draft/preview: open preview by ID so content is visible.
-    if (page.status === 'publish' && page.siteId && page.slug) {
-      const href =
-        activeSiteIsDefault && page.siteId === activeSiteId
-          ? `/${page.slug}`
-          : `/sites/${page.siteId}/${page.slug}`;
-      window.open(href, '_blank');
-    } else {
-      window.open(`/preview/page/${page.id}`, '_blank');
-    }
+    // Published pages open on their own site's address; drafts (or a site with no public link) open the preview.
+    const href =
+      page.status === 'publish' && page.slug && page.siteId === activeSite?.id
+        ? buildPublicContentUrl({ site: activeSite, slug: page.slug, kind: 'page' })
+        : null;
+    window.open(href ?? `/preview/page/${page.id}`, '_blank');
   };
 
   const handlePageBuilder = (pageId: string) => {

@@ -3,7 +3,8 @@ import type { Deps } from './shared/deps';
 import { asyncHandler } from './shared/async-handler';
 import { safeTryAsync } from '../utils';
 import { generateSlug } from './shared/slug';
-import { readRequestSiteId, resolveRequestSite } from './shared/resolve-request-site';
+import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
+import { resolveReadSiteId } from '../lib/content-access';
 import { resolveSiteThemeSettings } from './shared/resolve-site-theme-settings';
 import { mergePageOtherWithThemeDefaults } from '@shared/theme-to-page-design';
 
@@ -63,10 +64,15 @@ export function createBlogsRoutes(deps: Deps): Router {
       const { err, result } = await safeTryAsync(async () => {
         const { page, limit, offset } = parsePaginationParams(req.query, 20);
         const { status } = req.query;
-        const siteId =
+        const requestedSiteId =
           typeof req.query.siteId === 'string' && req.query.siteId.trim()
             ? req.query.siteId.trim()
             : undefined;
+        // One site's blogs: the named site, the API key's site, or the site of this domain.
+        const siteId = await resolveReadSiteId({ req, models, requestedSiteId });
+        if (!siteId) {
+          return { blogs: [], total: 0, page, per_page: limit, total_pages: 0 };
+        }
 
         const actualStatus = status ? parseStatusParam(status as string) : null;
 
@@ -143,11 +149,7 @@ export function createBlogsRoutes(deps: Deps): Router {
         }
 
         // Generate slug before validation so the required field is present
-        const site = await resolveRequestSite({
-          models,
-          userId,
-          siteId: readRequestSiteId(req) ?? req.body?.siteId,
-        });
+        const site = await resolveRequestSite({ models, req, userId });
 
         const slugValue = req.body.slug
           ? String(req.body.slug)
@@ -201,7 +203,8 @@ export function createBlogsRoutes(deps: Deps): Router {
 
       if (err) {
         console.error('Error creating blog:', err);
-        return res.status(500).json({ message: 'Failed to create blog' });
+        const status = readErrorStatus(err);
+        return res.status(status).json({ message: status >= 500 ? 'Failed to create blog' : err.message });
       }
 
       res.status(201).json(result);

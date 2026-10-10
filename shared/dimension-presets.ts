@@ -40,7 +40,7 @@ export const HEIGHT_PRESETS: readonly DimensionPreset[] = [
 ] as const;
 
 export const SPACING_PRESETS: readonly DimensionPreset[] = [
-	{ value: "0", label: "0" },
+	{ value: "0", label: "None" },
 	{ value: "0.25rem", label: "XS" },
 	{ value: "0.5rem", label: "SM" },
 	{ value: "1rem", label: "MD" },

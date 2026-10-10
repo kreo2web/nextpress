@@ -17,6 +17,15 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
+// The editor works inside one site; a theme switch must name it.
+vi.mock('@/hooks/useActiveSite', () => ({
+  useOptionalActiveSite: () => ({
+    activeSiteId: 'site-shop',
+    activeSite: { id: 'site-shop', name: 'Shop', siteUrl: null, isDefault: false },
+    formatSiteLabel: (site: { name: string }) => site.name,
+  }),
+}));
+
 // Mock apiRequest
 vi.spyOn(queryClient, 'apiRequest');
 
@@ -69,7 +78,7 @@ describe('DesignMenu', () => {
     const trigger = screen.getByText('Design');
     await user.click(trigger);
 
-    expect(await screen.findByText('Templates')).toBeInTheDocument();
+    expect(await screen.findByText('Pre-designed blocks')).toBeInTheDocument();
     expect(screen.getByText('Themes')).toBeInTheDocument();
   });
 
@@ -89,7 +98,7 @@ describe('DesignMenu', () => {
     expect(screen.getByText('Modern Theme')).toBeInTheDocument();
   });
 
-  test('links to template admin when templates array is empty', async () => {
+  test('links to the pre-designed blocks admin when there are none', async () => {
     mockUseContentLists.mockReturnValue({
       templates: [],
       themes: mockThemes,
@@ -99,7 +108,8 @@ describe('DesignMenu', () => {
     const trigger = screen.getByText('Design');
     await user.click(trigger);
 
-    expect(await screen.findByText('Create a template')).toBeInTheDocument();
+    const link = await screen.findByText('Create a pre-designed block');
+    expect(link.closest('a')).toHaveAttribute('href', '/admin/pre-designed-blocks');
   });
 
   test('links to themes admin when themes array is empty', async () => {
@@ -205,7 +215,7 @@ describe('DesignMenu', () => {
     await waitFor(() => {
       expect(queryClient.apiRequest).toHaveBeenCalledWith(
         'POST',
-        '/api/themes/theme-2/activate',
+        '/api/themes/theme-2/activate?siteId=site-shop',
         {}
       );
     });
@@ -213,7 +223,7 @@ describe('DesignMenu', () => {
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Theme activated',
-        description: '"Dark Theme" is now active site-wide.',
+        description: 'Shop now uses "Dark Theme".',
       });
     });
   });

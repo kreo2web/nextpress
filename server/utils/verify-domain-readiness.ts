@@ -11,6 +11,8 @@ export type DnsHostResult = {
 	addresses: string[];
 	skipped?: boolean;
 	message?: string;
+	/** The `www.` twin: nice to have, never required to save the address. */
+	optional?: boolean;
 };
 
 export type DomainReadinessData = {
@@ -138,7 +140,8 @@ function evaluateIpMatch(
 		};
 	}
 
-	const publicHosts = hostnames.filter((h) => !shouldSkipPublicDnsCheck(h));
+	// Only the main host must point here; the `www.` twin is optional (see DnsHostResult.optional).
+	const publicHosts = hostnames.filter((h) => !shouldSkipPublicDnsCheck(h) && !dns[h]?.optional);
 	if (publicHosts.length === 0) {
 		return {
 			ok: true,
@@ -192,8 +195,9 @@ export async function verifyDomainReadiness(
 	const checkedHostnames = getCaddyTlsHostnames(domainOrUrl);
 	const dns: Record<string, DnsHostResult> = {};
 
-	for (const h of checkedHostnames) {
-		dns[h] = await resolveHostA(h);
+	for (const [index, h] of checkedHostnames.entries()) {
+		const row = await resolveHostA(h);
+		dns[h] = index === 0 ? row : { ...row, optional: true };
 	}
 
 	const expectedIp = getOptionalPublicIpv4() ?? null;

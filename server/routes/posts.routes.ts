@@ -15,6 +15,7 @@ import {
   listQueryRequiresAuth,
   resolveContentSiteId,
   resolveNonPublicListSiteId,
+  resolveReadSiteId,
 } from '../lib/content-access';
 import { validateContentForSave } from '@shared/validate-content-save';
 import {
@@ -71,7 +72,10 @@ export function createPostsRoutes(deps: Deps): Router {
               models,
               requestedSiteId,
             })
-          : requestedSiteId;
+          : await resolveReadSiteId({ req, models, requestedSiteId });
+        if (!siteId) {
+          return { posts: [], total: 0, page: 1, per_page: 0, total_pages: 0 };
+        }
 
         const { page, limit, offset } = parsePaginationParams(
           req.query,

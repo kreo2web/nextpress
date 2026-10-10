@@ -192,7 +192,7 @@ describe('blocks clipboard', () => {
     expect(pkg.files.find((file) => file.name === 'clip.mp4')?.data).toBeUndefined();
   });
 
-  it('points pasted blocks at the files stored on this site', async () => {
+  it('stores pasted files in the site being edited and points the blocks at them', async () => {
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({ refMap: { '/uploads/hero.png': '/uploads/hero-77.png' }, added: ['hero.png'], reused: [], missing: [] }),
@@ -209,8 +209,12 @@ describe('blocks clipboard', () => {
         blocks: [image('a', '/uploads/hero.png')],
         files: [{ ref: '/uploads/hero.png', name: 'hero.png', mimeType: 'image/png', size: 3, data: 'AQID' }],
       },
+      siteId: 'site-shop',
     });
-    expect(fetchMock).toHaveBeenCalledWith('/api/page-transfer/files', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/page-transfer/files?siteId=site-shop',
+      expect.objectContaining({ method: 'POST' }),
+    );
     expect(JSON.stringify(landed.blocks)).toContain('/uploads/hero-77.png');
     expect(JSON.stringify(landed.blocks)).not.toContain('"/uploads/hero.png"');
   });

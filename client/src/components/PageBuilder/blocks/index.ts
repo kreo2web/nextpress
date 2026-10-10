@@ -37,6 +37,7 @@ import IconBlock from './icon/IconBlock';
 import InputBlock from './input/InputBlock';
 import TextareaBlock from './textarea/TextareaBlock';
 import SelectBlock from './select/SelectBlock';
+import TemplatePartBlock from './template-part/TemplatePartBlock';
 
 // Post blocks
 import PostTitleBlock from './post-title/PostTitleBlock';
@@ -139,6 +140,7 @@ export const blockRegistry: Record<string, BlockDefinition> = {
   'core/input': InputBlock,
   'core/textarea': TextareaBlock,
   'core/select': SelectBlock,
+  'core/template-part': TemplatePartBlock,
 
   // Post blocks
   'post/title': PostTitleBlock,

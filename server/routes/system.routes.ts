@@ -1,24 +1,29 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
 import { Router, type Request, type Response } from "express";
 import type { Deps } from "./shared/deps";
 import { asyncHandler } from "./shared/async-handler";
-import { safeTryAsync } from "../utils";
 import { evaluateUpgrade } from "@shared/release/evaluate-upgrade";
-import {
-	fetchLatestReleaseVersion,
-	isUpdateAvailable,
-	type LatestVersionLookup,
-} from "@shared/release/fetch-latest-version";
+import { isUpdateAvailable } from "@shared/release/fetch-latest-version";
 import { RELEASE_MANIFEST } from "@shared/release/release-manifest";
 import { parseNextpressConfig } from "@shared/release/nextpress-config";
 import {
 	getAutoUpgradeEnabled,
 	getNextpressInstallDir,
+	getNodeEnv,
 	readInstalledAppVersion,
 } from "../config";
+import { requireSessionAuth } from "../auth";
+import {
+	canManageCoreUpdates,
+	createCoreUpdateService,
+	createLatestReleaseLookup,
+	createUpdateFolder,
+	defaultUpdateFolderDir,
+} from "../lib/core-update";
+import { verifySessionPassword } from "../lib/core-update/verify-session-password";
+import { createCoreUpdateRoutes } from "./core-update.routes";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -61,59 +66,19 @@ const resolveNextpressCliPath = (installDir: string | null): string | null => {
 	return null;
 };
 
-const runUpgradeCommand = (params: {
-	cliPath: string;
-	installDir: string;
-	version: string;
-}): Promise<{ ok: boolean; output: string; code: number | null }> =>
-	new Promise((resolve) => {
-		const child = spawn(
-			params.cliPath,
-			["upgrade", "--version", params.version],
-			{
-				cwd: params.installDir,
-				env: process.env,
-			},
-		);
-
-		let output = "";
-		child.stdout.on("data", (chunk: Buffer) => {
-			output += chunk.toString();
-		});
-		child.stderr.on("data", (chunk: Buffer) => {
-			output += chunk.toString();
-		});
-		child.on("close", (code) => {
-			resolve({ ok: code === 0, output, code });
-		});
-	});
-
-const CACHE_TTL_MS = 15 * 60 * 1000;
-let cachedLatest: { expiresAt: number; value: LatestVersionLookup } | null = null;
-
-const resolveLatestVersion = async (): Promise<LatestVersionLookup> => {
-	const now = Date.now();
-	if (cachedLatest && cachedLatest.expiresAt > now) {
-		return cachedLatest.value;
-	}
-
-	const value = await fetchLatestReleaseVersion({
-		fallbackVersion: RELEASE_MANIFEST.version,
-	});
-	cachedLatest = { expiresAt: now + CACHE_TTL_MS, value };
-	return value;
-};
-
 /**
- * Release info and upgrade assessment for the admin UI.
+ * Release info, the legacy upgrade check, and one-click updates for the admin UI.
  *
- * GET  /api/system/release
- * POST /api/system/upgrade/check
- * POST /api/system/upgrade/run
+ * GET  /api/system/release          What's New for everyone signed in
+ * POST /api/system/upgrade/check    legacy assessment (SDK `checkUpgrade`), main-site admins
+ * POST /api/system/upgrade/run      legacy (SDK `runUpgrade`): no longer starts anything; points to the dashboard
+ * GET  /api/system/update/status    one-click update status (core-update.routes.ts)
+ * POST /api/system/update/start     one-click update start (core-update.routes.ts)
  */
 export function createSystemRoutes(deps: Deps): Router {
 	const router = Router();
-	const { requireAuth, authService } = deps;
+	const { requireAuth, authService, models } = deps;
+	const latest = createLatestReleaseLookup({ fallbackVersion: RELEASE_MANIFEST.version });
 
 	const requireAdmin = async (req: Request, res: Response): Promise<string | null> => {
 		const userId = authService.getCurrentUserId(req);
@@ -121,7 +86,28 @@ export function createSystemRoutes(deps: Deps): Router {
 			res.status(401).json({ message: "Unauthorized" });
 			return null;
 		}
+		if (!(await canManageCoreUpdates({ models, userId }))) {
+			res.status(403).json({ message: "Only the main site's admins can update NextPress." });
+			return null;
+		}
 		return userId;
+	};
+
+	const buildLegacyAssessment = async () => {
+		const installedVersion = readInstalledAppVersion();
+		const { latestVersion } = await latest.get();
+		const installDir = getNextpressInstallDir();
+		return evaluateUpgrade({
+			nodeEnv: getNodeEnv(),
+			installDir,
+			installConfig: readInstallConfig(installDir),
+			targetConfig: readTargetConfig(),
+			installedVersion,
+			latestVersion,
+			autoUpgradeEnabled: getAutoUpgradeEnabled(),
+			dockerSocketAccessible: fs.existsSync("/var/run/docker.sock"),
+			nextpressCliPath: resolveNextpressCliPath(installDir),
+		});
 	};
 
 	router.get(
@@ -129,20 +115,20 @@ export function createSystemRoutes(deps: Deps): Router {
 		requireAuth,
 		asyncHandler(async (_req, res) => {
 			const installedVersion = readInstalledAppVersion();
-			const latest = await resolveLatestVersion();
+			const release = await latest.get();
 
 			res.json({
 				installedVersion,
-				latestVersion: latest.latestVersion,
+				latestVersion: release.latestVersion,
 				updateAvailable: isUpdateAvailable({
 					installedVersion,
-					latestVersion: latest.latestVersion,
+					latestVersion: release.latestVersion,
 				}),
 				updateCheck: {
-					source: latest.source,
-					ok: latest.checkOk,
-					note: latest.checkNote,
-					checkedAt: latest.checkedAt,
+					source: release.source,
+					ok: release.checkOk,
+					note: release.checkNote,
+					checkedAt: release.checkedAt,
 				},
 				releaseDate: RELEASE_MANIFEST.releaseDate,
 				highlights: RELEASE_MANIFEST.highlights,
@@ -156,87 +142,39 @@ export function createSystemRoutes(deps: Deps): Router {
 		requireAuth,
 		asyncHandler(async (req, res) => {
 			if (!(await requireAdmin(req, res))) return;
-
-			const installedVersion = readInstalledAppVersion();
-			const latest = await resolveLatestVersion();
-			const latestVersion = latest.latestVersion;
-			const installDir = getNextpressInstallDir();
-			const assessment = evaluateUpgrade({
-				nodeEnv: process.env.NODE_ENV ?? "development",
-				installDir,
-				installConfig: readInstallConfig(installDir),
-				targetConfig: readTargetConfig(),
-				installedVersion,
-				latestVersion,
-				autoUpgradeEnabled: getAutoUpgradeEnabled(),
-				dockerSocketAccessible: fs.existsSync("/var/run/docker.sock"),
-				nextpressCliPath: resolveNextpressCliPath(installDir),
-			});
-
-			res.json(assessment);
+			res.json(await buildLegacyAssessment());
 		}),
 	);
 
+	// The app used to run the CLI itself from here, which needs the Docker socket inside the container and stops
+	// the container running it. Updates now go through the host update helper: started from the dashboard with a
+	// password, or with `nextpress upgrade` on the server.
 	router.post(
 		"/upgrade/run",
 		requireAuth,
 		asyncHandler(async (req, res) => {
 			if (!(await requireAdmin(req, res))) return;
-
-			const installDir = getNextpressInstallDir();
-			const installedVersion = readInstalledAppVersion();
-			const latest = await resolveLatestVersion();
-			const latestVersion = latest.latestVersion;
-			const assessment = evaluateUpgrade({
-				nodeEnv: process.env.NODE_ENV ?? "development",
-				installDir,
-				installConfig: readInstallConfig(installDir),
-				targetConfig: readTargetConfig(),
-				installedVersion,
-				latestVersion,
-				autoUpgradeEnabled: getAutoUpgradeEnabled(),
-				dockerSocketAccessible: fs.existsSync("/var/run/docker.sock"),
-				nextpressCliPath: resolveNextpressCliPath(installDir),
+			res.status(409).json({
+				message:
+					"Updates start from the dashboard now: open the update notice and choose Update now, or run nextpress upgrade on the server.",
+				assessment: await buildLegacyAssessment(),
 			});
+		}),
+	);
 
-			if (!assessment.canAutoUpgrade) {
-				return res.status(409).json({
-					message: "Automatic upgrade is not available for this instance.",
-					assessment,
-				});
-			}
-
-			const cliPath = resolveNextpressCliPath(installDir);
-			if (!cliPath || !installDir) {
-				return res.status(500).json({ message: "Upgrade CLI path could not be resolved." });
-			}
-
-			const { err, result } = await safeTryAsync(async () =>
-				runUpgradeCommand({
-					cliPath,
-					installDir,
-					version: latestVersion,
-				}),
-			);
-
-			if (err || !result) {
-				return res.status(500).json({ message: "Upgrade command failed to start." });
-			}
-
-			if (!result.ok) {
-				return res.status(500).json({
-					message: "Upgrade command failed.",
-					output: result.output,
-					code: result.code,
-					assessment,
-				});
-			}
-
-			res.json({
-				message: `Upgrade to ${latestVersion} completed.`,
-				output: result.output,
-				assessment,
-			});
+	router.use(
+		"/update",
+		createCoreUpdateRoutes({
+			models,
+			requireSession: requireSessionAuth,
+			getUserId: (req) => authService.getCurrentUserId(req),
+			verifyPassword: verifySessionPassword,
+			service: createCoreUpdateService({
+				folder: createUpdateFolder({ dir: defaultUpdateFolderDir() }),
+				latest,
+				nodeEnv: getNodeEnv(),
+				readInstalledVersion: readInstalledAppVersion,
+			}),
 		}),
 	);
 

@@ -13,8 +13,10 @@ import { SettingsDisclosure, SettingsLabel, SettingsSection } from "../../shared
 import { FillField } from "../../fill/fill-field";
 import { PAGE_FONT_CATALOG } from "@shared/font-catalog";
 import { PAGE_SIDE_PADDING_PRESETS, PAGE_TOP_BOTTOM_PADDING_PRESETS } from "@shared/dimension-presets";
-import { readShellPaddingAxes } from "@shared/page-shell-padding";
+import { resolveShellPadding } from "@shared/page-shell-padding";
 import { SettingsChipGroup } from "../../settings-chip-group";
+import { SpacingField } from "../../spacing-field";
+import { spacingPairsPatch } from "../../spacing-styles";
 import { PageShellScrollbarField } from "./page-shell-scrollbar-field";
 import {
 	DEFAULT_PAGE_SHELL_CONTENT,
@@ -43,8 +45,7 @@ export function PageShellSettings({
 		parseContent: readPageShellContent,
 	});
 
-	const axes = readShellPaddingAxes(content);
-	const defaultAxes = readShellPaddingAxes(DEFAULT_PAGE_SHELL_CONTENT);
+	const pageSides = resolveShellPadding(content);
 
 	return (
 		<SettingsSection>
@@ -87,25 +88,18 @@ export function PageShellSettings({
 					onChange={(next) => updateContent({ contentAlign: readContentAlign(next) })}
 				/>
 			) : null}
-			<DimensionPresetField
-				label="Side padding"
-				presets={PAGE_SIDE_PADDING_PRESETS}
-				value={axes.inline}
-				defaultValue={defaultAxes.inline}
-				customPlaceholder="e.g. 1.25rem or 20px"
-				onChange={(next) => updateContent({ paddingInline: next })}
+			<SpacingField
+				ariaLabel="Page padding"
+				title=""
+				sideModes={["pairs"]}
+				pairLabels={{ horizontal: "Side padding", vertical: "Top and bottom padding" }}
+				pairPresets={{ horizontal: PAGE_SIDE_PADDING_PRESETS, vertical: PAGE_TOP_BOTTOM_PADDING_PRESETS }}
+				targets={[{ kind: "padding", sides: pageSides, defaultSides: resolveShellPadding(DEFAULT_PAGE_SHELL_CONTENT) }]}
+				onCommit={(patch) => updateContent(spacingPairsPatch({ sides: pageSides, patch }))}
 			/>
 			<p className="npb-settings-hint -mt-1 text-xs">
 				Space from the page edge. The column fills the rest of the page.
 			</p>
-			<DimensionPresetField
-				label="Top and bottom padding"
-				presets={PAGE_TOP_BOTTOM_PADDING_PRESETS}
-				value={axes.block}
-				defaultValue={defaultAxes.block}
-				customPlaceholder="e.g. 3rem"
-				onChange={(next) => updateContent({ paddingBlock: next })}
-			/>
 			<div className="space-y-2">
 				<SettingsLabel>Colors</SettingsLabel>
 				<FillField

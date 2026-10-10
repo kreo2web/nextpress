@@ -23,6 +23,8 @@ import {
 import { cn } from "@/lib/utils";
 import ColorField, { type ColorTarget } from "../../ColorField";
 import { UnitValueField } from "../../unit-value-field";
+import { SpacingField } from "../../spacing-field";
+import { buildSpacingStyles, readSpacingSides, type SpacingPatch } from "../../spacing-styles";
 import { SIZE_UNITS, parseUnitValue } from "@shared/unit-value";
 import {
   type IconContent,
@@ -44,26 +46,6 @@ function settingsChipClass(selected: boolean): string {
     "npb-settings-chip flex min-h-10 w-full min-w-0 items-center justify-center px-2 text-xs font-medium focus:outline-none",
     selected && "npb-settings-chip--active",
   );
-}
-
-function paddingStyleToField(padding: unknown): {
-  value: string | undefined;
-  asymmetric: boolean;
-} {
-  const raw = String(padding ?? "").trim();
-  if (!raw) {
-    return { value: undefined, asymmetric: false };
-  }
-  const parts = raw.split(/\s+/).filter(Boolean);
-  if (parts.length === 0) {
-    return { value: undefined, asymmetric: false };
-  }
-  const first = parts[0]!;
-  const asymmetric = parts.some((p) => p !== first);
-  return {
-    value: first,
-    asymmetric,
-  };
 }
 
 export type IconBlockSettingsProps = {
@@ -119,20 +101,15 @@ export function IconBlockSettings({ block, onUpdate }: IconBlockSettingsProps) {
     }
   };
 
-  /** WHY: Shallow merge cannot drop keys; omitting padding clears uniform inner padding in saved styles. */
-  const removeUniformPadding = (): void => {
-    if (accessor) {
-      const current = accessor.getStyles() || {};
-      if (!("padding" in current)) return;
-      const { padding: _removed, ...rest } = current;
-      accessor.setStyles(rest);
-      rerender();
-    } else if (onUpdate) {
-      const prev = block.styles || {};
-      if (!("padding" in prev)) return;
-      const { padding: _removed, ...rest } = prev;
-      onUpdate({ styles: rest });
-    }
+  /**
+   * Inner padding goes through the same style patch as the Style tab, so an older one-box value is split
+   * into sides and never left to fight a longhand.
+   */
+  const commitPadding = (patch: SpacingPatch): void => {
+    const live = (accessor?.getStyles() ?? {}) as Record<string, unknown>;
+    const resolved = { ...(block.styles as Record<string, unknown> | undefined), ...live };
+    const previous = ((accessor ? accessor.getStyles() : block.styles) ?? {}) as Record<string, unknown>;
+    updateStyles(buildSpacingStyles({ resolved, previous, patch }) as React.CSSProperties);
   };
 
   const mergeTokenEntry = (entry: TokenEntry) => {
@@ -200,8 +177,7 @@ export function IconBlockSettings({ block, onUpdate }: IconBlockSettingsProps) {
   // Older icons store only a number, so fall back to the same defaults the field always showed.
   const sizeValue = `${currentIcon.size ?? 24}${currentIcon.sizeUnit ?? "px"}`;
   const strokeValue = `${currentIcon.strokeWidth ?? 2}${currentIcon.strokeWidthUnit ?? "px"}`;
-  const padState = paddingStyleToField(styles?.padding);
-  const paddingValue = padState.value;
+  const savedStyles = (styles ?? {}) as Record<string, unknown>;
 
   return (
     <div className="space-y-4">
@@ -326,29 +302,16 @@ export function IconBlockSettings({ block, onUpdate }: IconBlockSettingsProps) {
             />
           )}
 
-          <div>
-            <UnitValueField
-              id="icon-padding-uniform"
-              label="Inner padding (uniform)"
-              value={paddingValue}
-              segmentLabel={null}
-              onChange={(next) => {
-                if (next === undefined) {
-                  removeUniformPadding();
-                  return;
-                }
-                const parsed = parseUnitValue({ value: next, units: SIZE_UNITS });
-                if (parsed.kind !== "amount") return;
-                updateStyles({ padding: `${Number(parsed.amount)}${parsed.unit || "px"}` });
-              }}
-            />
-            {padState.asymmetric ? (
-              <p className="npb-settings-hint-muted mt-1 text-xs">
-                Shorthand uses different sides; first side value is shown. Saving
-                overwrites with uniform padding.
-              </p>
-            ) : null}
-          </div>
+          <SpacingField
+            targets={[
+              {
+                kind: "padding",
+                label: "Inner padding",
+                sides: readSpacingSides({ styles: savedStyles, kind: "padding" }),
+              },
+            ]}
+            onCommit={commitPadding}
+          />
         </div>
       </CollapsibleCard>
 

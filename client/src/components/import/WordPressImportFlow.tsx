@@ -176,8 +176,11 @@ export function WordPressImportFlow({ onComplete, compact = false }: WordPressIm
 		enabled: !!discoverResult?.ok && !!baseUrl && isEntityImportable(discoverResult, entityType),
 	});
 
+	// Posts land in the picked site's blog; pages land in the chosen target site.
+	const statusSiteId = entityType === "pages" ? targetSiteId : activeSiteId;
 	const { data: importStatus } = useQuery<WpImportStatusResponse>({
-		queryKey: ["/api/import/wordpress/status", baseUrl, entityType],
+		// "Already imported" is counted in the site the items will land in.
+		queryKey: ["/api/import/wordpress/status", baseUrl, entityType, statusSiteId],
 		queryFn: async () => {
 			const params = new URLSearchParams({
 				baseUrl,
@@ -185,11 +188,12 @@ export function WordPressImportFlow({ onComplete, compact = false }: WordPressIm
 			});
 			const res = await apiRequest(
 				"GET",
-				`/api/import/wordpress/status?${params.toString()}`,
+				appendSiteIdToUrl(`/api/import/wordpress/status?${params.toString()}`, statusSiteId),
 			);
 			return res.json();
 		},
-		enabled: !!discoverResult?.ok && !!baseUrl && isEntityImportable(discoverResult, entityType),
+		enabled:
+			!!discoverResult?.ok && !!baseUrl && !!statusSiteId && isEntityImportable(discoverResult, entityType),
 	});
 
 	const getImportedEntry = useCallback(

@@ -14,6 +14,8 @@ import {
 import { useContentLists } from '@/hooks/useContentLists';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { appendSiteIdToUrl } from '@/lib/site-api';
+import { useOptionalActiveSite } from '@/hooks/useActiveSite';
 import { reIdTemplateBlocks } from '@/lib/re-id-template-blocks';
 import type { BlockConfig } from '@shared/schema-types';
 
@@ -89,18 +91,24 @@ export function DesignMenu({
     },
   });
 
+  // A theme belongs to one site: always say which one, or the server can't tell.
+  const activeSites = useOptionalActiveSite();
+  const siteId = activeSites?.activeSiteId ?? '';
+  const siteLabel = activeSites?.activeSite ? activeSites.formatSiteLabel(activeSites.activeSite) : 'this site';
+
   const activateThemeMutation = useMutation({
     mutationFn: async ({ themeId }: { themeId: string }) => {
-      return await apiRequest('POST', `/api/themes/${themeId}/activate`, {});
+      return await apiRequest('POST', appendSiteIdToUrl(`/api/themes/${themeId}/activate`, siteId), {});
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/themes'] });
       queryClient.invalidateQueries({ queryKey: ['/api/themes/active'] });
       queryClient.invalidateQueries({ queryKey: ['/api/site'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/site-theme'] });
       const theme = themes.find((t) => t.id === variables.themeId);
       toast({
         title: 'Theme activated',
-        description: `"${theme?.name ?? 'Theme'}" is now active site-wide.`,
+        description: `${siteLabel} now uses "${theme?.name ?? 'this theme'}".`,
       });
       setIsApplying(false);
     },
@@ -140,7 +148,7 @@ export function DesignMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuLabel>Templates</DropdownMenuLabel>
+        <DropdownMenuLabel>Pre-designed blocks</DropdownMenuLabel>
         <DropdownMenuGroup>
           {templates.length > 0 ? (
             templates.slice(0, 5).map((template) => (
@@ -158,9 +166,9 @@ export function DesignMenu({
             ))
           ) : (
             <DropdownMenuItem asChild>
-              <Link href="/admin/templates" className="flex items-center gap-2">
+              <Link href="/admin/pre-designed-blocks" className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
-                Create a template
+                Create a pre-designed block
               </Link>
             </DropdownMenuItem>
           )}

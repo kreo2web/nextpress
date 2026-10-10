@@ -1,10 +1,35 @@
 import { promises as fs } from 'node:fs';
-import {
-  getCaddyTlsHostnames,
-  normalizeSiteHostname,
-  shouldSkipPublicDnsCheck,
-} from './validate-domain';
+import type { Site } from '@shared/schema-types';
+import { getCaddyTlsHostnames, shouldSkipPublicDnsCheck } from './validate-domain';
+import { compareSitePreference, isPublicHostname, readSiteAddress } from './site-address';
 import { getOptionalCaddyAcmeEmail } from '../config';
+import { collectErrorText, safeTryAsync } from '../utils';
+
+const CADDYFILE_PATH = '/etc/caddy/Caddyfile';
+const CADDY_LOAD_URL = 'http://caddy:2019/load';
+const CADDY_LOAD_TIMEOUT_MS = 10_000;
+
+/** What happened to the web server setup after a site address changed. */
+export type WebServerUpdate =
+  | { status: 'applied'; warning?: string }
+  | { status: 'saved-for-restart'; reason: string }
+  | { status: 'skipped'; reason: string }
+  | { status: 'refused'; reason: string };
+
+type CaddyLoadOutcome =
+  | { outcome: 'accepted' }
+  | { outcome: 'refused'; reason: string }
+  | { outcome: 'unreachable'; reason: string };
+
+type CaddyWriteOutcome = { outcome: 'written' } | { outcome: 'unwritable'; reason: string };
+
+/** The two ways we reach Caddy: its admin API and the Caddyfile on the shared volume. Swapped in tests. */
+export type CaddyIo = {
+  load: (caddyfile: string) => Promise<CaddyLoadOutcome>;
+  write: (caddyfile: string) => Promise<CaddyWriteOutcome>;
+};
+
+type CaddySyncModels = { sites: { findMany: () => Promise<Site[]> } };
 
 /**
  * Caddyfile-safe ACME contact line (no braces / newlines).
@@ -15,148 +40,141 @@ function sanitizeAcmeEmail(raw: string): string | null {
   return t.replace(/[\r\n{}]/g, '');
 }
 
-/**
- * Builds the on-disk Caddyfile body: global admin (+ optional email), then site block
- * with apex + www for public hostnames (matches common production Caddy patterns).
- */
-export function buildCaddyfileContent(
-  domainOrUrl: string,
-  options?: { acmeEmail?: string | null },
-): string {
-  const hosts = getCaddyTlsHostnames(domainOrUrl);
-  const primary = hosts[0] ?? normalizeSiteHostname(domainOrUrl);
-  const siteAddresses = shouldSkipPublicDnsCheck(primary)
-    ? ':80'
-    : hosts.join(', ');
+const siteBlock = (siteAddresses: string): string => `${siteAddresses} {\n  reverse_proxy app:5000\n}`;
 
-  const acme = options?.acmeEmail ? sanitizeAcmeEmail(options.acmeEmail) : null;
+/**
+ * Builds the Caddyfile for every site address. Domains share one HTTPS block. IP addresses and
+ * localhost get a plain `:80` block instead: listed with the domains, Caddy forces HTTPS on them with
+ * a certificate browsers reject, which took IP-based sites (and their admin) offline.
+ */
+export function buildMultiSiteCaddyfile({
+  addresses,
+  acmeEmail,
+}: {
+  addresses: readonly string[];
+  acmeEmail?: string | null;
+}): string {
+  const domains = new Set<string>();
+  let servesLocalAddress = false;
+
+  for (const address of addresses) {
+    for (const host of getCaddyTlsHostnames(address)) {
+      if (shouldSkipPublicDnsCheck(host)) {
+        servesLocalAddress = true;
+      } else if (isPublicHostname(host)) {
+        domains.add(host);
+      }
+    }
+  }
+
+  const blocks: string[] = [];
+  if (domains.size > 0) blocks.push(siteBlock([...domains].join(', ')));
+  if (servesLocalAddress || domains.size === 0) blocks.push(siteBlock(':80'));
+
+  const acme = acmeEmail ? sanitizeAcmeEmail(acmeEmail) : null;
   const emailLine = acme ? `  email ${acme}\n` : '';
 
   return `{
   admin 0.0.0.0:2019
 ${emailLine}}
 
-${siteAddresses} {
-  reverse_proxy app:5000
-}
+${blocks.join('\n\n')}
 `;
 }
 
-/**
- * Builds a Caddyfile with one reverse-proxy block per site hostname.
- * Falls back to :80 when no public hostnames are configured.
- */
-export function buildMultiSiteCaddyfile(
-  sites: Array<{ siteUrl?: string | null }>,
-  options?: { acmeEmail?: string | null },
-): string {
-  const acme = options?.acmeEmail ? sanitizeAcmeEmail(options.acmeEmail) : null;
-  const emailLine = acme ? `  email ${acme}\n` : '';
-
-  const hostSet = new Set<string>();
-  for (const site of sites) {
-    if (!site.siteUrl) continue;
-    for (const host of getCaddyTlsHostnames(site.siteUrl)) {
-      hostSet.add(host);
-    }
-  }
-
-  const hosts = [...hostSet];
-  const siteAddresses =
-    hosts.length === 0 || hosts.every((host) => shouldSkipPublicDnsCheck(host))
-      ? ':80'
-      : hosts.join(', ');
-
-  return `{
-  admin 0.0.0.0:2019
-${emailLine}}
-
-${siteAddresses} {
-  reverse_proxy app:5000
-}
-`;
-}
-
-/** Rebuilds Caddy config from all sites with a siteUrl. */
-export async function syncCaddyFromSites(params: {
-  models: { sites: { findMany: () => Promise<Array<{ siteUrl?: string | null }>> } };
-}): Promise<{ success: boolean; message: string }> {
-  const sites = await params.models.sites.findMany();
-  const sitesWithUrls = sites.filter((site) => site.siteUrl && site.siteUrl.trim().length > 0);
-
-  if (sitesWithUrls.length === 0) {
-    return { success: true, message: 'No site URLs configured; Caddy sync skipped' };
-  }
-
-  const acmeEmail = getOptionalCaddyAcmeEmail();
-  const caddyConfig = buildMultiSiteCaddyfile(sitesWithUrls, { acmeEmail });
-  const caddyfilePath = '/etc/caddy/Caddyfile';
-
-  try {
-    await fs.writeFile(caddyfilePath, caddyConfig);
-    try {
-      const response = await fetch('http://caddy:2019/load', {
+const defaultCaddyIo: CaddyIo = {
+  load: async (caddyfile) => {
+    const { err, result: response } = await safeTryAsync(() =>
+      fetch(CADDY_LOAD_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/caddyfile' },
-        body: caddyConfig,
-      });
-      if (response.ok) {
-        return { success: true, message: 'Multi-site Caddy configuration updated and reloaded' };
-      }
-    } catch {
-      return {
-        success: true,
-        message: 'Multi-site Caddy configuration saved (reload via admin API skipped)',
-      };
-    }
-  } catch {
-    return { success: true, message: 'Skipped Caddy update (non-Docker environment)' };
-  }
+        body: caddyfile,
+        signal: AbortSignal.timeout(CADDY_LOAD_TIMEOUT_MS),
+      }),
+    );
+    if (err || !response) return { outcome: 'unreachable', reason: collectErrorText(err) };
+    if (response.ok) return { outcome: 'accepted' };
 
-  return { success: true, message: 'Multi-site Caddy configuration updated' };
-}
+    const { err: bodyErr, result: body } = await safeTryAsync(() => response.text());
+    const detail = bodyErr ? `(could not read reply: ${collectErrorText(bodyErr)})` : (body ?? '').slice(0, 500);
+    return { outcome: 'refused', reason: `HTTP ${response.status}: ${detail}` };
+  },
+  write: async (caddyfile) => {
+    const { err } = await safeTryAsync(() => fs.writeFile(CADDYFILE_PATH, caddyfile));
+    return err ? { outcome: 'unwritable', reason: collectErrorText(err) } : { outcome: 'written' };
+  },
+};
 
 /**
- * Updates Caddyfile with new domain and attempts to reload Caddy.
- * Falls back gracefully if Caddy API is unavailable (config applies on restart).
- *
- * Handles both domains (e.g. domain.com -> Auto-HTTPS for apex + www)
- * and IP addresses (e.g. 1.2.3.4 -> HTTP-only binding).
+ * Hands a Caddyfile to Caddy first and writes the shared file only when Caddy accepted it, so a
+ * refused setup never sits on disk waiting to break the next restart. When Caddy can't be reached
+ * the file is still written, so a restart (or Caddy's file watch) picks it up.
  */
-export async function updateCaddyConfig(
-  domain: string,
-  options?: { acmeEmail?: string | null },
-): Promise<{ success: boolean; message: string }> {
-  const caddyfilePath = '/etc/caddy/Caddyfile';
-  const caddyConfig = buildCaddyfileContent(domain, options);
+export async function applyCaddyfile({
+  caddyfile,
+  io = defaultCaddyIo,
+}: {
+  caddyfile: string;
+  io?: CaddyIo;
+}): Promise<WebServerUpdate> {
+  const loaded = await io.load(caddyfile);
+  if (loaded.outcome === 'refused') return { status: 'refused', reason: loaded.reason };
 
-  try {
-    await fs.writeFile(caddyfilePath, caddyConfig);
-
-    // Try to reload Caddy via Admin API
-    try {
-      const response = await fetch('http://caddy:2019/load', {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/caddyfile' },
-        body: caddyConfig,
-      });
-
-      if (response.ok) {
-        return { success: true, message: 'Caddy configuration updated and reloaded' };
-      }
-
-      const errorBody = await response.text().catch(() => 'unknown error');
-      return { success: false, message: `Caddy reload failed (${response.status}): ${errorBody}` };
-    } catch {
-      // Admin /load often fails (wrong adapter, network); file on shared volume is the source of truth when Caddy runs with --watch
-      return {
-        success: true,
-        message: 'Caddy configuration saved (reload via admin API skipped; Caddy picks up file changes when run with --watch)',
-      };
-    }
-  } catch {
-    // In non-Docker environments, skip Caddyfile updates
-    console.log('Caddyfile update skipped (not in Docker environment or no write access)');
-    return { success: true, message: 'Skipped Caddy update (non-Docker environment)' };
+  const written = await io.write(caddyfile);
+  if (loaded.outcome === 'accepted') {
+    return written.outcome === 'written'
+      ? { status: 'applied' }
+      : { status: 'applied', warning: `Caddyfile not saved; a restart goes back to the old one: ${written.reason}` };
   }
+
+  return written.outcome === 'written'
+    ? { status: 'saved-for-restart', reason: loaded.reason }
+    : { status: 'skipped', reason: `No web server here. ${loaded.reason}; ${written.reason}` };
+}
+
+const readAdminEmail = (sites: readonly Site[]): string | null => {
+  const site = sites.find((candidate) => candidate.isDefault) ?? sites[0];
+  const settings = site?.settings;
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return null;
+  const email = (settings as { general?: { adminEmail?: string | null } }).general?.adminEmail;
+  return typeof email === 'string' && email.trim() ? email.trim() : null;
+};
+
+async function rebuildCaddy({ models, io }: { models: CaddySyncModels; io?: CaddyIo }): Promise<WebServerUpdate> {
+  const { err, result: sites } = await safeTryAsync(() => models.sites.findMany());
+  if (err || !sites) {
+    return { status: 'skipped', reason: `Could not read sites: ${collectErrorText(err)}` };
+  }
+
+  // Fixed order (default site first, then oldest) so the file only changes when an address does.
+  const addresses = [...sites]
+    .sort(compareSitePreference)
+    .map((site) => readSiteAddress(site))
+    .filter((address) => address.length > 0);
+  if (addresses.length === 0) {
+    return { status: 'skipped', reason: 'No site has an address yet' };
+  }
+
+  const acmeEmail = getOptionalCaddyAcmeEmail() ?? readAdminEmail(sites);
+  return applyCaddyfile({ caddyfile: buildMultiSiteCaddyfile({ addresses, acmeEmail }), io });
+}
+
+let syncQueue: Promise<WebServerUpdate | void> = Promise.resolve();
+
+/**
+ * Rebuilds the web server setup from every site's address. Runs one at a time: two saves landing
+ * together would otherwise race, and the older list of addresses could win.
+ */
+export function syncCaddyFromSites({
+  models,
+  io,
+}: {
+  models: CaddySyncModels;
+  io?: CaddyIo;
+}): Promise<WebServerUpdate> {
+  const next = (): Promise<WebServerUpdate> => rebuildCaddy({ models, io });
+  // Runs after the previous sync whether it worked or not, so one failure never stalls the queue.
+  const run = syncQueue.then(next, next);
+  syncQueue = run;
+  return run;
 }

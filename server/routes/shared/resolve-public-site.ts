@@ -1,21 +1,12 @@
 import type { Request } from "express";
 import type { Site } from "@shared/schema-types";
 import type { Deps } from "./deps";
-
-const normalizeHostname = (value: string): string => {
-	const trimmed = value.trim().toLowerCase();
-	if (!trimmed) return "";
-	try {
-		const withProtocol = trimmed.includes("://") ? trimmed : `https://${trimmed}`;
-		return new URL(withProtocol).hostname.toLowerCase();
-	} catch {
-		return trimmed.replace(/^https?:\/\//, "").split("/")[0]?.split(":")[0] ?? trimmed;
-	}
-};
+import { normalizeSiteHostname } from "../../utils/validate-domain";
+import { isSiteIdShape } from "./read-request-site-id";
 
 /**
  * Resolves which site a public request belongs to.
- * Order: explicit siteId hint → Host header match on sites.siteUrl → default site.
+ * Order: explicit siteId hint → Host header match on the site address (`www.` twin included) → default site.
  */
 export const resolvePublicSite = async (params: {
 	models: Deps["models"];
@@ -29,7 +20,7 @@ export const resolvePublicSite = async (params: {
 		if (hinted) return hinted;
 	}
 
-	const requestHost = normalizeHostname(req.get("host") ?? "");
+	const requestHost = normalizeSiteHostname(req.get("host") ?? "");
 	if (requestHost) {
 		const matched = await models.sites.findByHostname(requestHost);
 		if (matched) return matched;
@@ -38,8 +29,8 @@ export const resolvePublicSite = async (params: {
 	return models.sites.findDefaultSite();
 };
 
-/** Reads optional public site hint from query string. */
+/** Reads optional public site hint from query string (ignored unless it looks like a site id). */
 export const readPublicSiteIdHint = (req: Request): string | undefined => {
 	const raw = req.query.siteId;
-	return typeof raw === "string" && raw.trim() ? raw.trim() : undefined;
+	return typeof raw === "string" && isSiteIdShape(raw.trim()) ? raw.trim() : undefined;
 };

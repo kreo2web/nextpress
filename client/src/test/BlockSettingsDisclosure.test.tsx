@@ -381,10 +381,17 @@ describe('Style tab progressive disclosure', () => {
     expect(screen.getByLabelText('Font weight custom value')).toHaveValue('700');
   });
 
-  it('keeps Margin folded unless a margin is saved', async () => {
+  it('shows one Padding / Margin control, opened on padding when padding is saved', async () => {
     await openStyleTab(headingWith({ styles: { padding: '1rem' } }));
     const spacing = screen.getByText('Spacing', { selector: '.npb-settings-collapsible-title' }).closest('[data-npb-collapsible-card]') as HTMLElement;
-    expect(within(spacing).getByRole('button', { name: 'Margin' })).toHaveAttribute('aria-expanded', 'false');
+    expect(within(spacing).getByRole('button', { name: 'Padding' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(spacing).getByRole('button', { name: 'Margin' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('opens the same control on Margin when only a margin is saved', async () => {
+    await openStyleTab(headingWith({ styles: { marginTop: '2rem' } }));
+    const spacing = screen.getByText('Spacing', { selector: '.npb-settings-collapsible-title' }).closest('[data-npb-collapsible-card]') as HTMLElement;
+    expect(within(spacing).getByRole('button', { name: 'Margin' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('shows a saved custom font size as Custom, never as a bare box under lit chips', async () => {

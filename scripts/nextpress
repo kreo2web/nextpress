@@ -14,6 +14,18 @@ readonly MIN_FREE_MB_DOCKER=2048
 readonly BACKUP_KEEP_COUNT=3
 readonly SETUP_URL="http://nextpress.localhost"
 readonly TRANSFER_RUNNER="dist/transfer-cli.js"
+# Updates from the admin dashboard (see "Updates from the admin dashboard" below).
+readonly UPDATE_DIR_NAME="update"
+readonly UPDATE_LOG_DIR_NAME="update-logs"
+# Same as CORE_UPDATE_PROTOCOL in shared/core-update/types.ts.
+readonly UPDATE_PROTOCOL=1
+# Same as CORE_UPDATE_TIMING.requestMaxAgeMs in shared/core-update/derive-status.ts.
+readonly UPDATE_REQUEST_MAX_AGE_SECONDS=300
+readonly UPDATE_REQUEST_MAX_BYTES=4096
+readonly UPDATE_LOG_KEEP_COUNT=10
+readonly UPDATE_HELPER_OFF_FILE=".update-helper-off"
+readonly UPGRADE_LOCK_FILE=".upgrade.lock"
+readonly RELEASE_LATEST_API_URL="https://api.github.com/repos/nextpress-ai/nextpress/releases/latest"
 
 INSTALL_DIR="${NEXTPRESS_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
 INSTALL_VERSION="$DEFAULT_VERSION"
@@ -71,6 +83,8 @@ Commands:
   export                     Export site data to a file.
   import <file>              Import data from an export file.
   reset [--yes]              Reset the instance to a fresh install (backs up first).
+  update-helper on|off|status
+                             Turn updates from the admin dashboard on or off.
   uninstall --yes            Stop services and remove this install.
   version, -v, --version     Print command version.
 
@@ -104,6 +118,15 @@ Reset:
   then nextpress import ~/data.json.
 
 Entities: users, sites, pages, blogs, posts, comments, media, templates, options
+
+Updates from the admin dashboard:
+  nextpress update-helper on|off|status
+
+  Install and upgrade turn this on when the server runs systemd and the
+  command runs as root. The dashboard then offers "Update now" to the main
+  site's admins: it backs up the database, installs the newest official
+  release, and goes back to the running version if anything fails.
+  off removes the background service; updates then work only from here.
 
 Examples:
   nextpress install
@@ -877,7 +900,8 @@ try_self_update_for_upgrade() {
 	if [ "$updated" = "true" ]; then
 		info "Updated nextpress command from $url"
 		export NEXTPRESS_UPGRADE_REEXEC=true
-		exec "$bin_path" upgrade "${upgrade_args[@]}"
+		# Pass the install dir on: without it the new command would upgrade the default install instead.
+		exec "$bin_path" --install-dir "$INSTALL_DIR" upgrade "${upgrade_args[@]}"
 	fi
 }
 
@@ -1301,6 +1325,7 @@ run_install() {
 	info ""
 	info "Starting services..."
 	(cd "$INSTALL_DIR" && compose up -d)
+	ensure_update_helper
 
 	sleep 3
 	print_post_install_hints "$INSTALL_VERSION"
@@ -1317,6 +1342,7 @@ run_upgrade() {
 	local target_schema_version
 
 	assert_install_dir_exists
+	acquire_upgrade_lock
 	assert_docker_available
 	load_install_env
 	write_legacy_installed_config
@@ -1351,6 +1377,7 @@ run_upgrade() {
 		(cd "$INSTALL_DIR" && run_default_content_seed)
 		(cd "$INSTALL_DIR" && start_upgrade_stack)
 		info "Upgrade complete. Schema is now $target_schema_version."
+		ensure_update_helper
 		return
 	fi
 
@@ -1374,6 +1401,7 @@ run_upgrade() {
 		trap - RETURN
 		(cd "$INSTALL_DIR" && start_upgrade_stack)
 		info "Override upgrade complete. Schema is now $target_schema_version."
+		ensure_update_helper
 		return
 	fi
 
@@ -1397,6 +1425,692 @@ run_upgrade() {
 	trap - RETURN
 	(cd "$INSTALL_DIR" && start_upgrade_stack)
 	info "Upgrade complete. Schema is now $target_schema_version."
+	ensure_update_helper
+}
+
+# One upgrade at a time on an install, whether started by hand or from the
+# dashboard. Needs flock (util-linux); without it nothing changes.
+acquire_upgrade_lock() {
+	local lock_path="$INSTALL_DIR/$UPGRADE_LOCK_FILE"
+
+	if ! command_exists flock; then
+		return 0
+	fi
+	if ! { exec 8>>"$lock_path"; } 2>/dev/null; then
+		warn "Could not open $lock_path; continuing without the upgrade lock."
+		return 0
+	fi
+	if ! flock -n 8; then
+		fail "Another NextPress update is already running on this server. Wait for it to finish, then try again."
+	fi
+}
+
+# True while another upgrade holds the lock (flock exits 1 only for "busy").
+upgrade_lock_busy() {
+	local lock_path="$INSTALL_DIR/$UPGRADE_LOCK_FILE"
+	local status=0
+
+	if ! command_exists flock || [ ! -f "$lock_path" ]; then
+		return 1
+	fi
+	flock -n "$lock_path" true 2>/dev/null || status=$?
+	[ "$status" -eq 1 ]
+}
+
+# ---------------------------------------------------------------------------
+# Updates from the admin dashboard (the "update helper")
+#
+# The app never gets Docker or host access. When a main-site admin confirms an
+# update, the app only writes request.json into $INSTALL_DIR/update, which
+# compose mounts at /app/update. A systemd path unit on this host notices the
+# file and runs `nextpress update-runner`. The runner checks the request on its
+# own (only the newest official release is ever installed), downloads it while
+# the sites stay online, then runs the normal `nextpress upgrade`, and puts the
+# previous version back if that fails. It writes update/status.json for the
+# dashboard. Its log, lock and scratch files live in $INSTALL_DIR/update-logs,
+# which the app cannot see. Files written into update/ are always fresh files
+# renamed into place, so a link planted there is replaced, never written
+# through.
+#
+# Switch: nextpress update-helper on|off|status
+# ---------------------------------------------------------------------------
+
+UPDATE_RUN_REQUEST_ID=""
+UPDATE_RUN_VERSION=""
+UPDATE_RUN_FROM_TAG=""
+UPDATE_RUN_STARTED_AT=""
+UPDATE_RUN_LOG_PATH=""
+UPDATE_RUN_FINISHED="false"
+UPDATE_CLI_SELF=""
+
+update_dir() {
+	printf '%s\n' "$INSTALL_DIR/$UPDATE_DIR_NAME"
+}
+
+update_log_dir() {
+	printf '%s\n' "$INSTALL_DIR/$UPDATE_LOG_DIR_NAME"
+}
+
+utc_now() {
+	date -u +%Y-%m-%dT%H:%M:%SZ
+}
+
+running_as_root() {
+	[ "$(id -u)" -eq 0 ]
+}
+
+systemd_available() {
+	command_exists systemctl && [ -d /run/systemd/system ]
+}
+
+systemd_unit_dir() {
+	printf '%s\n' "/etc/systemd/system"
+}
+
+# Releases are vX.Y.Z on GitHub and beta-vX.Y.Z on Docker Hub (deploy.sh
+# VERSION_TAG). Same mapping as releaseImageTag in shared/core-update.
+release_image_tag() {
+	printf 'beta-v%s\n' "$1"
+}
+
+# Same image repository as app_image.
+release_image_ref() {
+	printf 'husseinkizz/nextpress:%s\n' "$(release_image_tag "$1")"
+}
+
+is_release_version() {
+	[[ "$1" =~ ^[0-9]{1,6}\.[0-9]{1,6}\.[0-9]{1,6}$ ]]
+}
+
+# Request and user ids (UUIDs, or the app's own ids in tests).
+is_update_id() {
+	[[ "$1" =~ ^[A-Za-z0-9-]{8,64}$ ]]
+}
+
+# Paths written into systemd units: no spaces, quotes, % or other specials.
+is_safe_unit_path() {
+	[[ "$1" =~ ^/[A-Za-z0-9._/-]+$ ]]
+}
+
+# Quotes a value for the small JSON files below. Values are checked before they
+# get here; this only keeps a stray quote or control character from breaking
+# the file.
+json_string() {
+	local value="$1"
+
+	value="${value//\\/\\\\}"
+	value="${value//\"/\\\"}"
+	value="$(printf '%s' "$value" | tr -d '\000-\037')"
+	printf '"%s"' "$value"
+}
+
+# First string value of a key in a small JSON text. Never evaluated: callers
+# check the value against a strict pattern before using it.
+json_text_field() {
+	local text="$1"
+	local key="$2"
+
+	printf '%s' "$text" \
+		| grep -o "\"$key\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" \
+		| head -n1 \
+		| sed 's/^.*:[[:space:]]*"\(.*\)"$/\1/' || true
+}
+
+# Image tag this install runs now: NEXTPRESS_VERSION in .env (compose falls
+# back to latest). Fails for anything that is not a plain tag.
+read_installed_image_tag() {
+	local env_path="$INSTALL_DIR/.env"
+	local tag=""
+
+	if [ -f "$env_path" ]; then
+		tag="$(awk -F= '/^NEXTPRESS_VERSION=/{print substr($0, index($0, "=") + 1); exit}' "$env_path" 2>/dev/null || true)"
+	fi
+	if [ "$tag" = "" ]; then
+		tag="latest"
+	fi
+	if [[ ! "$tag" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+		return 1
+	fi
+	printf '%s\n' "$tag"
+}
+
+# Newest official release, asked of GitHub directly: the runner never takes the
+# app's word for which version is current.
+fetch_latest_release_version() {
+	local body tag version
+
+	body="$(curl -fsSL --max-time 20 -H 'Accept: application/vnd.github+json' "$RELEASE_LATEST_API_URL")" || return 1
+	tag="$(json_text_field "$body" "tag_name")"
+	version="$(printf '%s' "$tag" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)"
+	is_release_version "$version" || return 1
+	printf '%s\n' "$version"
+}
+
+# The shared folder the app writes requests into, and the private folder for
+# logs, the lock and scratch files.
+prepare_update_dirs() {
+	local shared private
+
+	shared="$(update_dir)"
+	private="$(update_log_dir)"
+	mkdir -p "$shared" "$private" || return 1
+	chmod 0755 "$shared" || return 1
+	chmod 0700 "$private" || return 1
+}
+
+# Moves a finished temp file from the private folder into update/. A rename,
+# so the app sees the whole file at once and a planted link is replaced.
+publish_update_file() {
+	local tmp="$1"
+	local name="$2"
+
+	chmod 0644 "$tmp" && mv -f "$tmp" "$(update_dir)/$name"
+}
+
+# runner.json: tells the app whether anything on this host acts on requests.
+write_update_helper_marker() {
+	local enabled="$1"
+	local tmp
+
+	[ "$enabled" = "true" ] || enabled="false"
+	tmp="$(mktemp "$(update_log_dir)/.runner.XXXXXX")" || return 1
+	{
+		printf '{\n'
+		printf '  "protocol": %s,\n' "$UPDATE_PROTOCOL"
+		printf '  "enabled": %s,\n' "$enabled"
+		printf '  "helper": "systemd",\n'
+		printf '  "installDir": %s,\n' "$(json_string "$INSTALL_DIR")"
+		printf '  "cliVersion": %s,\n' "$(json_string "$CLI_VERSION")"
+		printf '  "updatedAt": %s\n' "$(json_string "$(utc_now)")"
+		printf '}\n'
+	} > "$tmp" || { rm -f "$tmp"; return 1; }
+	publish_update_file "$tmp" "runner.json"
+}
+
+# status.json for the dashboard. The same text is kept as the private
+# last-status.json, which is the only copy this runner ever reads back.
+write_update_status() {
+	local state="$1"
+	local code="$2"
+	local step="${3:-}"
+	local restored="${4:-false}"
+	local finished_at=""
+	local tmp
+
+	case "$state" in
+		done|failed) finished_at="$(utc_now)" ;;
+	esac
+	[ "$restored" = "true" ] || restored="false"
+
+	tmp="$(mktemp "$(update_log_dir)/.status.XXXXXX")" || return 1
+	{
+		printf '{\n'
+		printf '  "protocol": %s,\n' "$UPDATE_PROTOCOL"
+		printf '  "state": %s,\n' "$(json_string "$state")"
+		printf '  "code": %s,\n' "$(json_string "$code")"
+		printf '  "step": %s,\n' "$(json_string "$step")"
+		printf '  "requestId": %s,\n' "$(json_string "$UPDATE_RUN_REQUEST_ID")"
+		printf '  "version": %s,\n' "$(json_string "$UPDATE_RUN_VERSION")"
+		printf '  "fromTag": %s,\n' "$(json_string "$UPDATE_RUN_FROM_TAG")"
+		printf '  "startedAt": %s,\n' "$(json_string "$UPDATE_RUN_STARTED_AT")"
+		printf '  "finishedAt": %s,\n' "$(json_string "$finished_at")"
+		printf '  "logPath": %s,\n' "$(json_string "$UPDATE_RUN_LOG_PATH")"
+		printf '  "siteRestored": %s\n' "$restored"
+		printf '}\n'
+	} > "$tmp" || { rm -f "$tmp"; return 1; }
+	cp -f "$tmp" "$(update_log_dir)/last-status.json" || true
+	publish_update_file "$tmp" "status.json"
+}
+
+log_update() {
+	if [ "$UPDATE_RUN_LOG_PATH" != "" ]; then
+		printf '%s %s\n' "$(utc_now)" "$*" >> "$UPDATE_RUN_LOG_PATH" 2>/dev/null || true
+	fi
+	info "$*"
+}
+
+finish_update_run() {
+	local state="$1"
+	local code="$2"
+	local restored="${3:-false}"
+
+	UPDATE_RUN_FINISHED="true"
+	write_update_status "$state" "$code" "" "$restored" || warn "Could not write the update status for the dashboard."
+	log_update "Update $state ($code)."
+}
+
+# Safety net: if the runner stops unexpectedly mid-run, tell the dashboard
+# instead of leaving it on "running" forever.
+on_update_runner_exit() {
+	local exit_code=$?
+
+	if [ "$UPDATE_RUN_FINISHED" != "true" ] && [ "$UPDATE_RUN_STARTED_AT" != "" ]; then
+		UPDATE_RUN_FINISHED="true"
+		write_update_status failed runner_error "" false || true
+		log_update "The update runner stopped unexpectedly (exit $exit_code)."
+	fi
+	rm -rf "$(update_log_dir)/request.claimed" 2>/dev/null || true
+}
+
+# State of an earlier run of the same request (a repeated trigger), from the
+# runner's private copy of the last status.
+previous_update_state() {
+	local request_id="$1"
+	local copy text state
+
+	copy="$(update_log_dir)/last-status.json"
+	[ -f "$copy" ] || return 0
+	text="$(head -c 65536 "$copy" 2>/dev/null || true)"
+	[ "$(json_text_field "$text" "requestId")" = "$request_id" ] || return 0
+	state="$(json_text_field "$text" "state")"
+	case "$state" in
+		running|done|failed) printf '%s\n' "$state" ;;
+	esac
+}
+
+# Download first, while the sites are still online: a failed download changes
+# nothing. `nextpress upgrade` then finds the image already here.
+pull_release_image() {
+	local version="$1"
+
+	if [ "${NEXTPRESS_SKIP_IMAGE_PULL:-}" = "true" ]; then
+		info "Skipping image pull because NEXTPRESS_SKIP_IMAGE_PULL=true."
+		return 0
+	fi
+	info "Downloading $(release_image_ref "$version") while the sites stay online..."
+	docker_cmd pull "$(release_image_ref "$version")"
+}
+
+# The tested upgrade path, run as its own process (it may self-update the
+# command and re-exec it).
+run_core_upgrade() {
+	local version="$1"
+
+	"$UPDATE_CLI_SELF" --install-dir "$INSTALL_DIR" upgrade --version "$(release_image_tag "$version")"
+}
+
+# After a failed upgrade: put back the image tag that was running and start it.
+# The database stays as it is: the upgrade saves a copy before changing it.
+restore_previous_release() {
+	local current
+
+	if [ "$UPDATE_RUN_FROM_TAG" = "" ]; then
+		warn "The previous version is unknown, so it cannot be put back."
+		return 1
+	fi
+	info "Putting back $UPDATE_RUN_FROM_TAG..."
+	current="$(read_installed_image_tag || true)"
+	if [ "$current" != "$UPDATE_RUN_FROM_TAG" ]; then
+		write_or_update_env "$UPDATE_RUN_FROM_TAG"
+	fi
+	cd "$INSTALL_DIR" || return 1
+	compose up -d || return 1
+	wait_for_app_health
+}
+
+# Turns the log of a failed run into a code the dashboard explains in plain
+# words. Keep in step with CORE_UPDATE_FAILURE_CODES in shared/core-update.
+classify_update_failure() {
+	local fallback="$1"
+	local log="$UPDATE_RUN_LOG_PATH"
+
+	if grep -q "Another NextPress update is already running" "$log" 2>/dev/null; then
+		printf '%s\n' "busy"
+	elif grep -qiE "Need at least [0-9]+MB free|no space left on device" "$log" 2>/dev/null; then
+		printf '%s\n' "low_disk"
+	elif grep -q "Schema upgrade expects" "$log" 2>/dev/null; then
+		printf '%s\n' "needs_manual_step"
+	elif grep -q "Database backup failed" "$log" 2>/dev/null; then
+		printf '%s\n' "backup_failed"
+	elif grep -q "App health check failed" "$log" 2>/dev/null; then
+		printf '%s\n' "health_check_failed"
+	elif grep -qiE "manifest unknown|pull access denied|could not resolve host|TLS handshake timeout|Could not fetch compose" "$log" 2>/dev/null; then
+		printf '%s\n' "download_failed"
+	else
+		printf '%s\n' "$fallback"
+	fi
+}
+
+prune_update_logs() {
+	local old
+
+	while IFS= read -r old; do
+		[ -n "$old" ] || continue
+		rm -f "$old"
+	done < <(ls -t "$(update_log_dir)"/update-*.log 2>/dev/null | tail -n +$((UPDATE_LOG_KEEP_COUNT + 1)) || true)
+}
+
+# Runs one update the dashboard asked for. Started by the systemd path unit
+# whenever update/request.json exists; quiet and quick when there is nothing.
+run_update_runner() {
+	local shared_dir private_dir request claimed content request_id version requested_by
+	local mtime age latest code restored
+
+	shared_dir="$(update_dir)"
+	private_dir="$(update_log_dir)"
+	request="$shared_dir/request.json"
+
+	if [ ! -e "$request" ] && [ ! -L "$request" ]; then
+		return 0
+	fi
+
+	prepare_update_dirs || fail "Could not prepare $shared_dir and $private_dir. Check their owner and permissions."
+	claimed="$private_dir/request.claimed"
+	rm -rf "$claimed"
+	# Rename, not copy: whatever sits at request.json (a file, a link, a pipe)
+	# moves out of the app's reach before this script looks at it.
+	if ! mv -f "$request" "$claimed" 2>/dev/null; then
+		if [ -e "$request" ] || [ -L "$request" ]; then
+			fail "Could not take the update request from $shared_dir. Check that folder's owner and permissions."
+		fi
+		return 0
+	fi
+
+	UPDATE_RUN_STARTED_AT="$(utc_now)"
+	UPDATE_RUN_LOG_PATH="$private_dir/update-$(date -u +%Y%m%d-%H%M%S).log"
+	UPDATE_RUN_FROM_TAG="$(read_installed_image_tag || true)"
+	trap on_update_runner_exit EXIT
+	trap 'exit 143' TERM INT HUP
+	log_update "Update request received."
+
+	if [ -L "$claimed" ] || [ ! -f "$claimed" ] || [ "$(wc -c < "$claimed")" -gt "$UPDATE_REQUEST_MAX_BYTES" ]; then
+		rm -rf "$claimed"
+		finish_update_run failed bad_request
+		return 0
+	fi
+	mtime="$(stat -c %Y "$claimed" 2>/dev/null || printf '0')"
+	content="$(head -c "$UPDATE_REQUEST_MAX_BYTES" "$claimed")"
+	rm -f "$claimed"
+
+	request_id="$(json_text_field "$content" "requestId")"
+	version="$(json_text_field "$content" "version")"
+	requested_by="$(json_text_field "$content" "requestedBy")"
+
+	if ! is_update_id "$request_id"; then
+		finish_update_run failed bad_request
+		return 0
+	fi
+	UPDATE_RUN_REQUEST_ID="$request_id"
+
+	case "$(previous_update_state "$request_id")" in
+		done|failed)
+			UPDATE_RUN_FINISHED="true"
+			log_update "Request $request_id was already handled; nothing to do."
+			return 0
+			;;
+		running)
+			finish_update_run failed interrupted
+			return 0
+			;;
+	esac
+
+	if ! is_release_version "$version"; then
+		finish_update_run failed bad_request
+		return 0
+	fi
+	UPDATE_RUN_VERSION="$version"
+	is_update_id "$requested_by" || requested_by="unknown"
+	log_update "Requested by user $requested_by: ${UPDATE_RUN_FROM_TAG:-unknown} -> $(release_image_tag "$version")."
+	# Show the run at once, so the dashboard never offers a second start while
+	# this one is still being checked.
+	write_update_status running running waiting || warn "Could not write the update status for the dashboard."
+
+	age=$(( $(date +%s) - mtime ))
+	if [ "$age" -gt "$UPDATE_REQUEST_MAX_AGE_SECONDS" ]; then
+		finish_update_run failed expired
+		return 0
+	fi
+	if upgrade_lock_busy; then
+		finish_update_run failed busy true
+		return 0
+	fi
+	if ! latest="$(fetch_latest_release_version)"; then
+		finish_update_run failed release_check_failed
+		return 0
+	fi
+	if [ "$latest" != "$version" ]; then
+		log_update "The newest official release is $latest, not $version."
+		finish_update_run failed not_latest
+		return 0
+	fi
+
+	write_update_status running running download || warn "Could not write the update status for the dashboard."
+	if ! ( pull_release_image "$version" ) >>"$UPDATE_RUN_LOG_PATH" 2>&1; then
+		finish_update_run failed "$(classify_update_failure download_failed)" true
+		prune_update_logs
+		return 0
+	fi
+
+	write_update_status running running install || warn "Could not write the update status for the dashboard."
+	if ( run_core_upgrade "$version" ) >>"$UPDATE_RUN_LOG_PATH" 2>&1; then
+		finish_update_run done updated
+		prune_update_logs
+		return 0
+	fi
+
+	code="$(classify_update_failure upgrade_failed)"
+	restored="false"
+	if [ "$code" = "busy" ]; then
+		# The other upgrade owns the stack; this one stopped before changing anything.
+		restored="true"
+	elif ( restore_previous_release ) >>"$UPDATE_RUN_LOG_PATH" 2>&1; then
+		restored="true"
+	fi
+	finish_update_run failed "$code" "$restored"
+	prune_update_logs
+}
+
+# The default install keeps the plain unit name; any other install dir gets its
+# own units, so two installs on one host never share a watcher.
+update_unit_name() {
+	if [ "$INSTALL_DIR" = "$DEFAULT_INSTALL_DIR" ]; then
+		printf '%s\n' "nextpress-update"
+		return
+	fi
+	printf 'nextpress-update-%s\n' "$(printf '%s' "$INSTALL_DIR" | cksum | awk '{print $1}')"
+}
+
+# Absolute path of the command the service runs: the installed command when
+# there is one (self-update keeps it current), else this script.
+update_cli_path() {
+	local installed
+
+	installed="$(command -v nextpress 2>/dev/null || true)"
+	if [ "${installed#/}" != "$installed" ]; then
+		printf '%s\n' "$installed"
+		return
+	fi
+	printf '%s/%s\n' "$(cd "$(dirname "$0")" && pwd -P)" "$(basename "$0")"
+}
+
+render_update_service_unit() {
+	local cli="$1"
+
+	cat <<EOF
+# Written by nextpress update-helper. Runs "nextpress upgrade" when the admin
+# dashboard asks for an update. Turn off: nextpress update-helper off
+[Unit]
+Description=NextPress update requested from the admin dashboard
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=HOME=/root
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+ExecStart=$cli --install-dir $INSTALL_DIR update-runner
+EOF
+}
+
+render_update_path_unit() {
+	local name="$1"
+
+	cat <<EOF
+# Written by nextpress update-helper. Starts $name.service when the admin
+# dashboard leaves an update request. Turn off: nextpress update-helper off
+[Unit]
+Description=Watch for NextPress update requests from the admin dashboard
+
+[Path]
+PathExists=$(update_dir)/request.json
+Unit=$name.service
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}
+
+install_update_units() {
+	local unit_dir name cli tmp_dir changed="false"
+
+	unit_dir="$(systemd_unit_dir)"
+	name="$(update_unit_name)"
+	cli="$(update_cli_path)"
+	if ! is_safe_unit_path "$cli"; then
+		warn "Cannot use $cli in a system service."
+		return 1
+	fi
+
+	tmp_dir="$(mktemp -d)" || return 1
+	render_update_service_unit "$cli" > "$tmp_dir/service"
+	render_update_path_unit "$name" > "$tmp_dir/path"
+	if ! cmp -s "$tmp_dir/service" "$unit_dir/$name.service"; then
+		install -m 0644 "$tmp_dir/service" "$unit_dir/$name.service" || { rm -rf "$tmp_dir"; return 1; }
+		changed="true"
+	fi
+	if ! cmp -s "$tmp_dir/path" "$unit_dir/$name.path"; then
+		install -m 0644 "$tmp_dir/path" "$unit_dir/$name.path" || { rm -rf "$tmp_dir"; return 1; }
+		changed="true"
+	fi
+	rm -rf "$tmp_dir"
+
+	if [ "$changed" = "true" ]; then
+		systemctl daemon-reload || return 1
+	fi
+	systemctl enable --now "$name.path" >/dev/null 2>&1
+}
+
+remove_update_units() {
+	local unit_dir name
+
+	unit_dir="$(systemd_unit_dir)"
+	name="$(update_unit_name)"
+	systemctl disable --now "$name.path" >/dev/null 2>&1 || true
+	rm -f "$unit_dir/$name.path" "$unit_dir/$name.service"
+	systemctl daemon-reload >/dev/null 2>&1 || true
+}
+
+# Why this host can't run the update helper; prints nothing when it can.
+update_helper_blocker() {
+	if ! systemd_available; then
+		printf '%s\n' "Updates from the dashboard need systemd on this server. Update with: nextpress upgrade"
+	elif ! running_as_root; then
+		printf '%s\n' "To turn on updates from the dashboard, run once: sudo nextpress update-helper on"
+	elif ! is_safe_unit_path "$INSTALL_DIR"; then
+		printf '%s\n' "Updates from the dashboard need an install path of letters, numbers, dots, dashes and slashes only."
+	fi
+}
+
+install_update_helper() {
+	prepare_update_dirs || { warn "Could not prepare $(update_dir)."; return 1; }
+	install_update_units || { warn "Could not set up the update service. Check: systemctl status $(update_unit_name).path"; return 1; }
+	write_update_helper_marker true || { warn "Could not tell the dashboard that updates are on."; return 1; }
+}
+
+# Best effort, never fails the caller: install and upgrade end with this, so
+# dashboard updates work without a separate step.
+ensure_update_helper() {
+	local blocker
+
+	if [ -f "$INSTALL_DIR/$UPDATE_HELPER_OFF_FILE" ]; then
+		( prepare_update_dirs && write_update_helper_marker false ) >/dev/null 2>&1 || true
+		info "Updates from the dashboard are off on this server (turn on: sudo nextpress update-helper on)."
+		return 0
+	fi
+	blocker="$(update_helper_blocker)"
+	if [ "$blocker" != "" ]; then
+		info "$blocker"
+		return 0
+	fi
+	if ( install_update_helper ); then
+		info "Updates from the admin dashboard are on (turn off: sudo nextpress update-helper off)."
+	else
+		warn "Updates from the dashboard could not be turned on. Update with: nextpress upgrade"
+	fi
+	return 0
+}
+
+turn_update_helper_on() {
+	local blocker
+
+	blocker="$(update_helper_blocker)"
+	if [ "$blocker" != "" ]; then
+		fail "$blocker"
+	fi
+	rm -f "$INSTALL_DIR/$UPDATE_HELPER_OFF_FILE" || fail "Could not change $INSTALL_DIR."
+	install_update_helper || fail "Updates from the dashboard could not be turned on."
+	info "Updates from the admin dashboard are on."
+	if [ -f "$INSTALL_DIR/$COMPOSE_FILE" ] && ! grep -q "/app/update" "$INSTALL_DIR/$COMPOSE_FILE"; then
+		info "Run nextpress upgrade once so the app can reach the update folder."
+	fi
+}
+
+turn_update_helper_off() {
+	touch "$INSTALL_DIR/$UPDATE_HELPER_OFF_FILE" 2>/dev/null || fail "Could not change $INSTALL_DIR. Re-run with sudo."
+	if systemd_available && running_as_root; then
+		remove_update_units
+	fi
+	if [ -d "$(update_dir)" ]; then
+		rm -f "$(update_dir)/request.json"
+		( prepare_update_dirs && write_update_helper_marker false ) \
+			|| warn "Could not tell the dashboard; it may offer updates until the next upgrade."
+	fi
+	info "Updates from the admin dashboard are off. Update with: nextpress upgrade"
+}
+
+print_update_helper_status() {
+	local name last text
+
+	name="$(update_unit_name)"
+	if [ -f "$INSTALL_DIR/$UPDATE_HELPER_OFF_FILE" ]; then
+		info "Updates from the admin dashboard: off (turn on: sudo nextpress update-helper on)"
+	elif systemd_available && systemctl is-active --quiet "$name.path" 2>/dev/null; then
+		info "Updates from the admin dashboard: on ($name.path watches $(update_dir))"
+	else
+		info "Updates from the admin dashboard: not set up (turn on: sudo nextpress update-helper on)"
+	fi
+
+	last="$(update_log_dir)/last-status.json"
+	if [ -r "$last" ]; then
+		text="$(head -c 65536 "$last")"
+		info "Last update: $(json_text_field "$text" "state") ($(json_text_field "$text" "code")), version $(json_text_field "$text" "version")"
+		info "Log: $(json_text_field "$text" "logPath")"
+	fi
+}
+
+run_update_helper() {
+	local action="${1:-status}"
+
+	if [ "$#" -gt 1 ]; then
+		fail "Use: nextpress update-helper on|off|status"
+	fi
+	assert_install_dir_exists
+	case "$action" in
+		on) turn_update_helper_on ;;
+		off) turn_update_helper_off ;;
+		status) print_update_helper_status ;;
+		*) fail "Use: nextpress update-helper on|off|status" ;;
+	esac
+}
+
+# Started by the update service, not by people.
+run_update_runner_command() {
+	if [ "$#" -gt 0 ]; then
+		fail "update-runner takes no options; the update service starts it."
+	fi
+	assert_install_dir_exists
+	UPDATE_CLI_SELF="$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")"
+	run_update_runner
 }
 
 run_reload() {
@@ -1435,6 +2149,11 @@ run_uninstall() {
 		(cd "$INSTALL_DIR" && compose down -v --remove-orphans) || warn "Compose down failed; continuing cleanup."
 	else
 		warn "No $COMPOSE_FILE found; skipping compose down."
+	fi
+
+	if systemd_available && running_as_root; then
+		info "Removing the dashboard update service (best effort)..."
+		remove_update_units
 	fi
 
 	info "Removing NextPress images (best effort)..."
@@ -1501,6 +2220,12 @@ main() {
 		reset)
 			run_reset "${sub_args[@]}"
 			;;
+		update-helper)
+			run_update_helper "${sub_args[@]}"
+			;;
+		update-runner)
+			run_update_runner_command "${sub_args[@]}"
+			;;
 		uninstall)
 			run_uninstall "${sub_args[@]}"
 			;;
@@ -1512,4 +2237,12 @@ main() {
 	esac
 }
 
-main "$@"
+# main runs inside one block that bash reads whole before running it, and that
+# ends with exit. `nextpress upgrade` can replace this file in place
+# (self-update) while another nextpress process, such as the update runner, is
+# still running it; bash must never read on from its old position in the new
+# file. Sourcing the file (tests) only defines the functions.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+	exit "$?"
+fi

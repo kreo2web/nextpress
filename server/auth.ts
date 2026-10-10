@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { fromNodeHeaders } from "better-auth/node";
 import { auth } from "./lib/better-auth";
 import { verifyApiKey } from "./lib/sdk-auth";
-import { readRequestSiteId } from "./routes/shared/resolve-request-site";
+import { readRequestSiteId } from "./routes/shared/read-request-site-id";
 import { models } from "./storage";
 
 export type RequestAuth = {

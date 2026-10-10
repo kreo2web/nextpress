@@ -13,13 +13,18 @@ import {
 	slugifyPopupName,
 	type PopupContent,
 } from "@shared/popup-model";
-import { BORDER_RADIUS_PRESETS, SPACING_PRESETS } from "@shared/dimension-presets";
+import { BORDER_RADIUS_PRESETS } from "@shared/dimension-presets";
 import { SettingsLabel } from "../../shared";
 import { SettingsChipGroup } from "../../settings-chip-group";
 import { DimensionPresetField } from "../../dimension-preset-field";
+import { SpacingField } from "../../spacing-field";
+import { applySpacingShorthandPatch, expandSpacingShorthand } from "../../spacing-styles";
 import ColorField from "../../ColorField";
 import { usePagePopups } from "../../popup-links";
 import { useSettingsState } from "../useSettingsState";
+
+/** The popup's inner padding when none is saved. A side that is cleared falls back to it. */
+const POPUP_INNER_PADDING = "24px";
 
 const SIZE_OPTIONS = [
 	{ value: "sm", label: "SM" },
@@ -189,11 +194,25 @@ export function PopupSettings({ block, onUpdate }: PopupSettingsProps) {
 						value={content.radius}
 						onChange={(next) => updateContent({ radius: next || "12px" })}
 					/>
-					<DimensionPresetField
-						label="Inner padding"
-						presets={SPACING_PRESETS}
-						value={content.padding}
-						onChange={(next) => updateContent({ padding: next || "24px" })}
+					<SpacingField
+						targets={[
+							{
+								kind: "padding",
+								label: "Inner padding",
+								sides: expandSpacingShorthand(content.padding),
+								defaultSides: expandSpacingShorthand(POPUP_INNER_PADDING),
+							},
+						]}
+						onCommit={(patch) =>
+							updateContent({
+								padding: applySpacingShorthandPatch({
+									kind: "padding",
+									current: content.padding,
+									patch,
+									fallback: POPUP_INNER_PADDING,
+								}),
+							})
+						}
 					/>
 					<SettingsChipGroup
 						label="Opening"
