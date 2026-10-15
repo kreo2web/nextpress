@@ -192,10 +192,10 @@ describe("In-Canvas Editing & Toolbar", () => {
       </BlockActionsProvider>,
     );
 
-    const input = screen.getByDisplayValue("Heading text");
-    expect(input.tagName).toBe("INPUT");
+    const editor = screen.getByDisplayValue("Heading text");
+    expect(editor.tagName).toBe("TEXTAREA");
 
-    fireEvent.change(input, { target: { value: "New heading" } });
+    fireEvent.change(editor, { target: { value: "New heading" } });
     const updated = onBlockChange.mock.calls[0][0] as BlockConfig;
     expect((updated.content as { value?: string }).value).toBe("New heading");
   });

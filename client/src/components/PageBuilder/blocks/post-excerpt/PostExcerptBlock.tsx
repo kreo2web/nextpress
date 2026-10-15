@@ -1,13 +1,12 @@
 // blocks/post-excerpt/PostExcerptBlock.tsx
 import * as React from 'react';
 import type { BlockConfig } from '@shared/schema-types';
-import { SettingsLabel } from '../../shared';
+import { SettingsLabel, SettingsSection } from '../../shared';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
-import { CollapsibleCard } from '@/components/ui/collapsible-card';
-import { FileText, Settings } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useSettingsState } from '../useSettingsState';
 import { createBlockDefinition } from '../createBlockDefinition';
 import { BlockShell } from '../shared/block-shell';
@@ -97,10 +96,9 @@ function PostExcerptRenderer({ content, styles, onTextChange }: PostExcerptRende
         <textarea
           aria-label="Post excerpt"
           value={text}
-          maxLength={maxLength}
           rows={3}
           onChange={(e) => {
-            const next = e.target.value.slice(0, maxLength);
+            const next = e.target.value;
             onTextChange(next);
             postDocument?.updateDocument({ excerpt: next });
           }}
@@ -115,7 +113,11 @@ function PostExcerptRenderer({ content, styles, onTextChange }: PostExcerptRende
       )}
       {showReadMore && (
         <p className="wp-block-post-excerpt__more-link">
-          <button type="button" onClick={(e) => e.preventDefault()} className="text-blue-600 hover:text-blue-800 underline">
+          <button
+            type="button"
+            onClick={(e) => e.preventDefault()}
+            className="text-npb-accent underline"
+          >
             {readMoreText}
           </button>
         </p>
@@ -149,104 +151,83 @@ function PostExcerptSettings({ block, onUpdate }: PostExcerptSettingsProps) {
     content?.maxLength ?? DEFAULT_CONTENT.maxLength!;
   const currentShowReadMore = content?.showReadMore ?? true;
   const currentReadMoreText = content?.readMoreText || 'Read More';
-  const rawExcerptText =
+  const excerptText =
     content?.text && content.text !== DEFAULT_CONTENT.text
       ? content.text
       : postDocument?.excerpt || content?.text || '';
-  const excerptText =
-    rawExcerptText.length > currentMaxLength
-      ? rawExcerptText.slice(0, currentMaxLength)
-      : rawExcerptText;
 
   const setMaxLength = (nextMaxLength: number) => {
-    updateContent({
-      maxLength: nextMaxLength,
-      ...(rawExcerptText.length > nextMaxLength
-        ? { text: rawExcerptText.slice(0, nextMaxLength) }
-        : {}),
-    });
+    updateContent({ maxLength: nextMaxLength });
   };
 
   return (
-    <div className="space-y-4">
-      {/* Content */}
-      <CollapsibleCard title="Content" icon={FileText} defaultOpen>
+    <SettingsSection>
+      <div>
+        <SettingsLabel htmlFor="excerpt-text">Excerpt Text</SettingsLabel>
+        <Textarea
+          id="excerpt-text"
+          value={excerptText}
+          onChange={(e) => {
+            const text = e.target.value;
+            updateContent({ text });
+            postDocument?.updateDocument({ excerpt: text });
+          }}
+          placeholder="Write the post excerpt..."
+          rows={4}
+          className="mt-1 text-sm resize-y"
+          aria-describedby="excerpt-text-count"
+        />
+        <p
+          id="excerpt-text-count"
+          className="mt-1 text-xs tabular-nums text-npb-text-muted">
+          {excerptText.length} / {currentMaxLength} characters
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <SettingsLabel>Max Length</SettingsLabel>
+          <span className="text-xs text-npb-text-muted">
+            {currentMaxLength} characters
+          </span>
+        </div>
+        <Slider
+          value={[currentMaxLength]}
+          min={MAX_LENGTH_MIN}
+          max={MAX_LENGTH_MAX}
+          step={MAX_LENGTH_STEP}
+          onValueChange={([val]) => {
+            if (typeof val === 'number') setMaxLength(val);
+          }}
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <SettingsLabel htmlFor="show-read-more">Show "Read More"</SettingsLabel>
+        <Switch
+          id="show-read-more"
+          checked={currentShowReadMore}
+          onCheckedChange={(checked) =>
+            updateContent({ showReadMore: checked })
+          }
+        />
+      </div>
+
+      {currentShowReadMore && (
         <div>
-          <SettingsLabel htmlFor="excerpt-text">Excerpt Text</SettingsLabel>
-          <Textarea
-            id="excerpt-text"
-            value={excerptText}
-            maxLength={currentMaxLength}
-            onChange={(e) => {
-              const text = e.target.value.slice(0, currentMaxLength);
-              updateContent({ text });
-              postDocument?.updateDocument({ excerpt: text });
-            }}
-            placeholder="Write the post excerpt..."
-            rows={4}
-            className="mt-1 text-sm resize-y"
-            aria-describedby="excerpt-text-count"
+          <SettingsLabel htmlFor="read-more-text">Read More Text</SettingsLabel>
+          <Input
+            id="read-more-text"
+            value={currentReadMoreText}
+            onChange={(e) =>
+              updateContent({ readMoreText: e.target.value })
+            }
+            placeholder="Read More"
+            className="mt-1 h-9 text-sm"
           />
-          <p
-            id="excerpt-text-count"
-            className="mt-1 text-xs tabular-nums text-npb-text-muted">
-            {excerptText.length} / {currentMaxLength} characters
-          </p>
         </div>
-      </CollapsibleCard>
-
-      {/* Excerpt Settings */}
-      <CollapsibleCard title="Settings" icon={Settings} defaultOpen={false}>
-        <div className="space-y-4">
-          {/* Max Length Slider */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-            <SettingsLabel>Max Length</SettingsLabel>
-              <span className="text-xs text-npb-text-muted">
-                {currentMaxLength} characters
-              </span>
-            </div>
-            <Slider
-              value={[currentMaxLength]}
-              min={MAX_LENGTH_MIN}
-              max={MAX_LENGTH_MAX}
-              step={MAX_LENGTH_STEP}
-              onValueChange={([val]) => {
-                if (typeof val === 'number') setMaxLength(val);
-              }}
-            />
-          </div>
-
-          {/* Show Read More Toggle */}
-          <div className="flex items-center justify-between">
-            <SettingsLabel htmlFor="show-read-more">Show "Read More"</SettingsLabel>
-            <Switch
-              id="show-read-more"
-              checked={currentShowReadMore}
-              onCheckedChange={(checked) =>
-                updateContent({ showReadMore: checked })
-              }
-            />
-          </div>
-
-          {/* Read More Text Input (visible only when toggle is on) */}
-          {currentShowReadMore && (
-            <div>
-            <SettingsLabel htmlFor="read-more-text">Read More Text</SettingsLabel>
-              <Input
-                id="read-more-text"
-                value={currentReadMoreText}
-                onChange={(e) =>
-                  updateContent({ readMoreText: e.target.value })
-                }
-                placeholder="Read More"
-                className="mt-1 h-9 text-sm"
-              />
-            </div>
-          )}
-        </div>
-      </CollapsibleCard>
-    </div>
+      )}
+    </SettingsSection>
   );
 }
 

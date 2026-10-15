@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, Unlink } from "lucide-react";
+import { ExternalLink, RefreshCw, Unlink } from "lucide-react";
 import type { BlockConfig } from "@shared/schema-types";
 import type { TemplatePartContent } from "@shared/template-parts";
 import { readTemplatePartSiteId } from "@shared/template-usage";
@@ -73,7 +73,13 @@ export function TemplatePartSettings({ block, onUpdate }: TemplatePartSettingsPr
 			</div>
 
 			{linked.isError ? (
-				<p className="npb-settings-hint text-xs">The list of templates could not be loaded. Try again.</p>
+				<div className="flex flex-wrap items-center gap-2">
+					<p className="npb-settings-hint text-xs">The list of templates could not be loaded.</p>
+					<Button type="button" variant="outline" size="sm" onClick={() => void linked.refetch()}>
+						<RefreshCw className="h-3.5 w-3.5" aria-hidden />
+						Try again
+					</Button>
+				</div>
 			) : null}
 			{siteId && linked.isSuccess && templates.length === 0 ? (
 				<p className="npb-settings-hint-muted text-xs">

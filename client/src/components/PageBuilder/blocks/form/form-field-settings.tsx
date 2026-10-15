@@ -9,9 +9,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { CollapsibleCard } from "@/components/ui/collapsible-card";
-import { SettingsLabel } from "../../shared";
-import { Settings, Type } from "lucide-react";
+import { SettingsDisclosure, SettingsLabel, SettingsSection } from "../../shared";
 import { useSettingsState } from "../useSettingsState";
 import type { FormFieldBase, InputFieldType } from "@shared/form-field-model";
 
@@ -24,6 +22,38 @@ type FormFieldSettingsProps<T extends FormFieldBase> = {
 		updateContent: (patch: Partial<T>) => void;
 	}) => React.ReactNode;
 };
+
+const INPUT_FIELD_TYPES: readonly InputFieldType[] = [
+	"text",
+	"search",
+	"email",
+	"password",
+	"number",
+	"tel",
+	"url",
+];
+
+function isInputFieldType(value: string): value is InputFieldType {
+	return INPUT_FIELD_TYPES.some((type) => type === value);
+}
+
+function hasMoreFieldValues({
+	content,
+	defaultContent,
+}: {
+	content: FormFieldBase | undefined;
+	defaultContent: FormFieldBase;
+}): boolean {
+	const name = content?.name?.trim() ?? "";
+	const defaultName = defaultContent.name?.trim() ?? "";
+	const nameIsCustom = name !== "" && name !== defaultName;
+	return Boolean(
+		nameIsCustom ||
+			content?.defaultValue?.trim() ||
+			content?.ariaLabel?.trim() ||
+			content?.disabled === true,
+	);
+}
 
 /** Content-tab settings shared by input, textarea, and select blocks. */
 export function FormFieldSettings<T extends FormFieldBase>({
@@ -39,95 +69,88 @@ export function FormFieldSettings<T extends FormFieldBase>({
 	});
 
 	return (
-		<div className="space-y-4">
-			<CollapsibleCard title="Content" icon={Type} defaultOpen>
-				<div className="space-y-4">
-					<div>
-						<SettingsLabel htmlFor="form-field-label">Label</SettingsLabel>
-						<Input
-							id="form-field-label"
-							value={content?.label ?? ""}
-							onChange={(e) => updateContent({ label: e.target.value } as Partial<T>)}
-							placeholder="e.g. Your email"
-							className="h-9 rounded-none"
-						/>
-						<p className="npb-settings-hint-muted mt-1.5 text-xs">
-							Shown above the field, and names this answer in form submissions.
-						</p>
-					</div>
-					<div>
-						<SettingsLabel htmlFor="form-field-name">Field name</SettingsLabel>
-						<Input
-							id="form-field-name"
-							value={content?.name ?? ""}
-							onChange={(e) => updateContent({ name: e.target.value } as Partial<T>)}
-							placeholder="search"
-							className="h-9 rounded-none"
-						/>
-					</div>
-					<div>
-						<SettingsLabel htmlFor="form-field-placeholder">Placeholder</SettingsLabel>
-						<Input
-							id="form-field-placeholder"
-							value={content?.placeholder ?? ""}
-							onChange={(e) =>
-								updateContent({ placeholder: e.target.value } as Partial<T>)
-							}
-							className="h-9 rounded-none"
-						/>
-					</div>
-					<div>
-						<SettingsLabel htmlFor="form-field-default">Default value</SettingsLabel>
-						<Input
-							id="form-field-default"
-							value={content?.defaultValue ?? ""}
-							onChange={(e) =>
-								updateContent({ defaultValue: e.target.value } as Partial<T>)
-							}
-							className="h-9 rounded-none"
-						/>
-					</div>
-					<div>
-						<SettingsLabel htmlFor="form-field-aria">Accessible label</SettingsLabel>
-						<Input
-							id="form-field-aria"
-							value={content?.ariaLabel ?? ""}
-							onChange={(e) =>
-								updateContent({ ariaLabel: e.target.value } as Partial<T>)
-							}
-							placeholder="Optional label for screen readers"
-							className="h-9 rounded-none"
-						/>
-					</div>
-					{extraFields?.({ content, updateContent })}
-					<div className="flex items-center justify-between gap-3">
-						<SettingsLabel htmlFor="form-field-required">Required</SettingsLabel>
-						<Switch
-							id="form-field-required"
-							checked={content?.required ?? false}
-							onCheckedChange={(checked) =>
-								updateContent({ required: checked } as Partial<T>)
-							}
-						/>
-					</div>
-					<div className="flex items-center justify-between gap-3">
-						<SettingsLabel htmlFor="form-field-disabled">Disabled</SettingsLabel>
-						<Switch
-							id="form-field-disabled"
-							checked={content?.disabled ?? false}
-							onCheckedChange={(checked) =>
-								updateContent({ disabled: checked } as Partial<T>)
-							}
-						/>
-					</div>
-				</div>
-			</CollapsibleCard>
-			<CollapsibleCard title="Settings" icon={Settings} defaultOpen={false}>
-				<p className="text-xs text-npb-text-muted">
-					Width, colors, and borders are in the Style tab.
+		<SettingsSection>
+			<div>
+				<SettingsLabel htmlFor="form-field-label">Label</SettingsLabel>
+				<Input
+					id="form-field-label"
+					value={content?.label ?? ""}
+					onChange={(e) => updateContent({ label: e.target.value } as Partial<T>)}
+					placeholder="e.g. Your email"
+					className="h-9"
+				/>
+				<p className="npb-settings-hint-muted mt-1.5 text-xs">
+					Shown above the field, and names this answer in form submissions.
 				</p>
-			</CollapsibleCard>
-		</div>
+			</div>
+			<div>
+				<SettingsLabel htmlFor="form-field-placeholder">Placeholder</SettingsLabel>
+				<Input
+					id="form-field-placeholder"
+					value={content?.placeholder ?? ""}
+					onChange={(e) =>
+						updateContent({ placeholder: e.target.value } as Partial<T>)
+					}
+					className="h-9"
+				/>
+			</div>
+			{extraFields?.({ content, updateContent })}
+			<div className="flex items-center justify-between gap-3">
+				<SettingsLabel htmlFor="form-field-required">Required</SettingsLabel>
+				<Switch
+					id="form-field-required"
+					checked={content?.required ?? false}
+					onCheckedChange={(checked) =>
+						updateContent({ required: checked } as Partial<T>)
+					}
+				/>
+			</div>
+			<SettingsDisclosure title="More" defaultOpen={hasMoreFieldValues({ content, defaultContent })}>
+				<div>
+					<SettingsLabel htmlFor="form-field-name">Answer name</SettingsLabel>
+					<Input
+						id="form-field-name"
+						value={content?.name ?? ""}
+						onChange={(e) => updateContent({ name: e.target.value } as Partial<T>)}
+						placeholder="search"
+						className="h-9"
+					/>
+				</div>
+				<div>
+					<SettingsLabel htmlFor="form-field-default">Default value</SettingsLabel>
+					<Input
+						id="form-field-default"
+						value={content?.defaultValue ?? ""}
+						onChange={(e) =>
+							updateContent({ defaultValue: e.target.value } as Partial<T>)
+						}
+						className="h-9"
+					/>
+				</div>
+				<div>
+					<SettingsLabel htmlFor="form-field-aria">Accessible label</SettingsLabel>
+					<Input
+						id="form-field-aria"
+						value={content?.ariaLabel ?? ""}
+						onChange={(e) =>
+							updateContent({ ariaLabel: e.target.value } as Partial<T>)
+						}
+						placeholder="Optional label for screen readers"
+						className="h-9"
+					/>
+				</div>
+				<div className="flex items-center justify-between gap-3">
+					<SettingsLabel htmlFor="form-field-disabled">Disabled</SettingsLabel>
+					<Switch
+						id="form-field-disabled"
+						checked={content?.disabled ?? false}
+						onCheckedChange={(checked) =>
+							updateContent({ disabled: checked } as Partial<T>)
+						}
+					/>
+				</div>
+			</SettingsDisclosure>
+		</SettingsSection>
 	);
 }
 
@@ -140,8 +163,13 @@ export function InputTypeSelect({ value, onChange }: InputTypeSelectProps) {
 	return (
 		<div>
 			<SettingsLabel htmlFor="input-field-type">Input type</SettingsLabel>
-			<Select value={value} onValueChange={(v) => onChange(v as InputFieldType)}>
-				<SelectTrigger id="input-field-type" className="mt-1 h-9 rounded-none">
+			<Select
+				value={value}
+				onValueChange={(next) => {
+					if (isInputFieldType(next)) onChange(next);
+				}}
+			>
+				<SelectTrigger id="input-field-type" className="mt-1 h-9">
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>

@@ -1,5 +1,5 @@
 import React from "react";
-import type { BlockConfig } from "@shared/schema-types";
+import type { BlockConfig, TokenEntry } from "@shared/schema-types";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -10,11 +10,75 @@ import { Square as CoverIcon, Settings } from "lucide-react";
 import { useSettingsState } from "../useSettingsState";
 import { SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
+import ColorField from "../../ColorField";
+import { sanitizeHtml } from "../../utils";
 import { type CoverData, DEFAULT_DATA } from './cover-model';
 
-interface CoverSettingsProps {
+type CoverSettingsProps = {
   block: BlockConfig;
   onUpdate?: (updates: Partial<BlockConfig>) => void;
+};
+
+function isCoverBackgroundType(value: string): value is NonNullable<CoverData["backgroundType"]> {
+  return value === "image" || value === "video";
+}
+
+function readOverlayColor(color: string | undefined): string | undefined {
+  return typeof color === "string" && color.trim() !== "" ? color : undefined;
+}
+
+/**
+ * WHY: Cover titles are stored as HTML, but most are one styled paragraph.
+ * Extra tags (strong, a, headings) mean the saved markup is intentional —
+ * keep the raw HTML so those tags are not stripped by a plain-text save.
+ */
+function hasCoverTitleFormatting(html: string): boolean {
+  const withoutAllowed = html
+    .replace(/<\/?p\b[^>]*>/gi, "")
+    .replace(/<br\s*\/?>/gi, "");
+  return /<\/?[a-z][^>]*>/i.test(withoutAllowed);
+}
+
+function coverParagraphToLine(inner: string): string {
+  const withoutBreaks = inner.replace(/<br\s*\/?>/gi, "");
+  return withoutBreaks.trim() === "" ? "" : inner;
+}
+
+function readCoverPlainText(html: string): string {
+  if (html && /<p/i.test(html)) {
+    return html
+      .split(/<\/p>/i)
+      .filter((chunk) => /<p/i.test(chunk))
+      .map((chunk) => coverParagraphToLine(chunk.replace(/<p[^>]*>/i, "")))
+      .join("\n");
+  }
+  const withoutBreaks = html.replace(/<br\s*\/?>/gi, "");
+  return withoutBreaks.trim() === "" ? "" : html;
+}
+
+/**
+ * WHY: The default cover title is one `<p>` with size/weight. Reuse that
+ * opening tag on the first edit so the poster look does not collapse.
+ */
+function readSinglePOpeningTag(html: string): string | undefined {
+  const matches = html.match(/<p\b[^>]*>/gi);
+  if (!matches || matches.length !== 1) return undefined;
+  const tag = matches[0];
+  return /<p\s+\S/i.test(tag) ? tag : undefined;
+}
+
+function writeCoverTitleHtml({
+  text,
+  openingTag,
+}: {
+  text: string;
+  openingTag?: string;
+}): string {
+  const open = openingTag ?? "<p>";
+  return text
+    .split("\n")
+    .map((line) => (line === "" ? `${open}<br></p>` : `${open}${sanitizeHtml(line)}</p>`))
+    .join("");
 }
 
 export function CoverSettings({ block, onUpdate }: CoverSettingsProps) {
@@ -24,27 +88,65 @@ export function CoverSettings({ block, onUpdate }: CoverSettingsProps) {
     defaultContent: DEFAULT_DATA,
   });
 
+  const innerContent = blockData?.innerContent ?? "";
+  const titleHasFormatting = hasCoverTitleFormatting(innerContent);
+  const titleOpeningTag = titleHasFormatting ? undefined : readSinglePOpeningTag(innerContent);
+
+  const pickOverlayColor = (entry: TokenEntry) => {
+    if (typeof entry.style === "string" && entry.style.trim() !== "") {
+      updateContent({ customOverlayColor: entry.style });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <CollapsibleCard title="Content" icon={CoverIcon} defaultOpen={true}>
         <div className="space-y-4">
           <div>
-            <SettingsLabel htmlFor="cover-content">Cover Content</SettingsLabel>
-            <Textarea
-              id="cover-content"
-              value={blockData?.innerContent || '<p>Write title…</p>'}
-              onChange={(e) => updateContent({ innerContent: e.target.value })}
-              placeholder="Enter your cover content (HTML allowed)"
-              rows={4}
-              className="mt-1"
-            />
+            <SettingsLabel htmlFor="cover-title">Title</SettingsLabel>
+            {titleHasFormatting ? (
+              <>
+                <Textarea
+                  id="cover-title"
+                  value={innerContent}
+                  onChange={(e) => updateContent({ innerContent: e.target.value })}
+                  placeholder="Write title…"
+                  rows={4}
+                  className="mt-1"
+                  aria-label="Title"
+                />
+                <p className="npb-settings-hint-muted text-xs">
+                  This title has formatting. Editing here keeps the tags.
+                </p>
+              </>
+            ) : (
+              <Textarea
+                id="cover-title"
+                value={readCoverPlainText(innerContent)}
+                onChange={(e) =>
+                  updateContent({
+                    innerContent: writeCoverTitleHtml({
+                      text: e.target.value,
+                      openingTag: titleOpeningTag,
+                    }),
+                  })
+                }
+                placeholder="Write title…"
+                rows={4}
+                className="mt-1"
+                aria-label="Title"
+              />
+            )}
           </div>
 
           <div>
             <SettingsLabel htmlFor="cover-background-type">Background Type</SettingsLabel>
             <Select
               value={blockData?.backgroundType || 'image'}
-              onValueChange={(value) => updateContent({ backgroundType: value as any })}
+              onValueChange={(value) => {
+                if (!isCoverBackgroundType(value)) return;
+                updateContent({ backgroundType: value });
+              }}
             >
               <SelectTrigger id="cover-background-type" className="h-9">
                 <SelectValue />
@@ -158,23 +260,20 @@ export function CoverSettings({ block, onUpdate }: CoverSettingsProps) {
             </div>
           </div>
 
-          <div>
-            <SettingsLabel htmlFor="cover-overlay-color">Overlay Color</SettingsLabel>
-            <div className="flex gap-3 mt-1">
-              <Input
-                id="cover-overlay-color"
-                type="color"
-                value={blockData?.customOverlayColor || '#000000'}
-                onChange={(e) => updateContent({ customOverlayColor: e.target.value })}
-                className="w-12 h-9 p-1 border-npb-border-default"
-              />
-              <Input
-                value={blockData?.customOverlayColor || '#000000'}
-                onChange={(e) => updateContent({ customOverlayColor: e.target.value })}
-                placeholder="#000000"
-                className="flex-1 h-9 text-sm"
-              />
-            </div>
+          <div className="space-y-2">
+            <SettingsLabel>Overlay</SettingsLabel>
+            <ColorField
+              ariaLabel="Overlay"
+              targets={[
+                {
+                  property: "color",
+                  label: "Overlay",
+                  styleValue: readOverlayColor(blockData?.customOverlayColor),
+                },
+              ]}
+              onChange={pickOverlayColor}
+              onTheme={() => updateContent({ customOverlayColor: null } as Partial<CoverData>)}
+            />
           </div>
         </div>
       </CollapsibleCard>

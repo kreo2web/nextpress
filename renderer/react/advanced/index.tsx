@@ -194,16 +194,21 @@ export function CodeBlock(block: BlockConfig) {
 
 	const lines = codeContent.split("\n");
 
+	const savedMaxWidth = style.maxWidth;
 	const preStyle: React.CSSProperties = {
 		backgroundColor: "#1e293b",
 		color: "#f8fafc",
 		padding: "1rem",
 		borderRadius: "6px",
-		overflowX: "auto",
 		fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
 		fontSize: "0.875rem",
 		lineHeight: "1.6",
 		...style,
+		overflowX: "auto",
+		maxWidth:
+			typeof savedMaxWidth === "string" && savedMaxWidth !== ""
+				? savedMaxWidth
+				: "100%",
 	};
 
 	return (
@@ -331,8 +336,18 @@ export function PreformattedBlock(block: BlockConfig) {
 		.filter(Boolean)
 		.join(" ");
 
+	const savedMaxWidth = style.maxWidth;
+	const preStyle: React.CSSProperties = {
+		...style,
+		whiteSpace: "pre-wrap",
+		maxWidth:
+			typeof savedMaxWidth === "string" && savedMaxWidth.trim() !== ""
+				? savedMaxWidth
+				: "100%",
+	};
+
 	return (
-		<pre className={mergedClassName || undefined} style={style} {...attributes}>
+		<pre className={mergedClassName || undefined} style={preStyle} {...attributes}>
 			{text}
 		</pre>
 	);
@@ -432,6 +447,7 @@ export function TableBlock(block: BlockConfig) {
 			style={style}
 			{...attributes}
 		>
+			<div style={{ overflowX: "auto", maxWidth: "100%" }}>
 			<table style={tableStyle}>
 				{caption ? <caption>{caption}</caption> : null}
 				{headRows.length > 0 && (
@@ -492,6 +508,7 @@ export function TableBlock(block: BlockConfig) {
 					</tfoot>
 				)}
 			</table>
+			</div>
 		</figure>
 	);
 }

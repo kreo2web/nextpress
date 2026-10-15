@@ -239,6 +239,42 @@ describe("template part settings and library", () => {
 		actions = { insertTemplatePart: vi.fn(), replaceBlockWith: vi.fn() };
 	});
 
+	it("retries the template list when loading it fails", async () => {
+		const user = userEvent.setup();
+		let listCalls = 0;
+		global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+			const url = String(input);
+			if (url.includes("/api/templates?")) {
+				listCalls += 1;
+				if (listCalls === 1) {
+					return jsonResponse({ message: "Could not load templates" }, 500);
+				}
+				return jsonResponse({
+					templates: [linkedTemplate()],
+					total: 1,
+					page: 1,
+					per_page: 100,
+					total_pages: 1,
+				});
+			}
+			return jsonResponse({ message: "Template not found" }, 404);
+		}) as typeof fetch;
+
+		const block = { ...buildTemplatePartBlock({ id: "part-1", templateId: "" }), parentId: "page-shell" };
+		renderWithEditor({
+			actions,
+			children: <TemplatePartSettings block={block} onUpdate={vi.fn()} />,
+		});
+
+		expect(await screen.findByText("The list of templates could not be loaded.")).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Try again" }));
+
+		await waitFor(() => {
+			expect(screen.queryByText("The list of templates could not be loaded.")).not.toBeInTheDocument();
+		});
+		expect(listCalls).toBe(2);
+	});
+
 	it("offers Edit template and Detach for the chosen template", async () => {
 		mockTemplatesApi([linkedTemplate()]);
 		const block = { ...buildTemplatePartBlock({ id: "part-1", templateId: "tpl-header" }), parentId: "page-shell" };

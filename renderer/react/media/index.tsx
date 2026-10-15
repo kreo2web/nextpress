@@ -34,6 +34,13 @@ export function ImageBlock(block: BlockConfig) {
 	const intrinsicHeight =
 		intrinsicPx(content.intrinsicHeight as number | string | undefined) ?? intrinsicPx(height);
 	const objectFit = content.objectFit as string | undefined;
+	const rawAspectRatio = content.aspectRatio;
+	const contentAspectRatio =
+		typeof rawAspectRatio === "string" ? rawAspectRatio.trim() : "";
+	const explicitAspectRatio =
+		contentAspectRatio !== "" && contentAspectRatio !== "auto"
+			? contentAspectRatio
+			: undefined;
 	const href = content.href as string | undefined;
 	const linkTarget = (content.linkTarget as string) || (content.target as string) || undefined;
 	const linkDestination = content.linkDestination as string | undefined;
@@ -52,9 +59,11 @@ export function ImageBlock(block: BlockConfig) {
 		...style,
 		maxWidth: style.maxWidth ?? "100%",
 		height: style.height ?? "auto",
-		...(intrinsicWidth && intrinsicHeight
-			? { aspectRatio: `${intrinsicWidth} / ${intrinsicHeight}` }
-			: {}),
+		...(explicitAspectRatio
+			? { aspectRatio: explicitAspectRatio }
+			: intrinsicWidth && intrinsicHeight
+				? { aspectRatio: `${intrinsicWidth} / ${intrinsicHeight}` }
+				: {}),
 		...(width && intrinsicWidth == null ? { width } : {}),
 		...(height && intrinsicHeight == null ? { height } : {}),
 		...(objectFit
@@ -258,13 +267,20 @@ export function AudioBlock(block: BlockConfig) {
 		.filter(Boolean)
 		.join(" ");
 
+	const savedMaxWidth = style.maxWidth;
 	const audio = (
 		<audio
 			src={url}
 			controls={controls !== false}
 			autoPlay={autoplay}
 			loop={loop}
-			style={style}
+			style={{
+				...style,
+				maxWidth:
+					typeof savedMaxWidth === "string" && savedMaxWidth !== ""
+						? savedMaxWidth
+						: "100%",
+			}}
 			{...attributes}
 		>
 			{alt && <track kind="captions" label={alt} />}

@@ -82,7 +82,7 @@ export function PostListOverlay({ enabled }: { enabled: boolean }) {
 		>
 			<DialogContent
 				aria-describedby={undefined}
-				className="np-post-overlay left-0 top-0 flex h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border border-zinc-200 bg-[#fafafa] p-0 text-zinc-900 shadow-none sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[90dvh] sm:min-h-[16rem] sm:w-[min(44rem,calc(100vw-2rem))] sm:max-w-[44rem] sm:translate-x-[-50%] sm:translate-y-[-50%]"
+				className="np-post-overlay left-0 top-0 flex h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border border-npb-border-default bg-npb-surface-base p-0 text-npb-text-primary shadow-none sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[90dvh] sm:min-h-[16rem] sm:w-[min(44rem,calc(100vw-2rem))] sm:max-w-[44rem] sm:translate-x-[-50%] sm:translate-y-[-50%]"
 			>
 				<DialogTitle className="sr-only">{title}</DialogTitle>
 				<DialogDescription className="sr-only">Post details</DialogDescription>

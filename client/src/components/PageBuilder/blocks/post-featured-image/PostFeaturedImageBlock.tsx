@@ -2,20 +2,14 @@ import React, { useState } from 'react';
 import type { BlockConfig } from '@shared/schema-types';
 import { SettingsLabel } from '../../shared';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
-import { Image as ImageIcon, Settings } from 'lucide-react';
+import { Frame, Image as ImageIcon } from 'lucide-react';
 import { useSettingsState } from '../useSettingsState';
 import { createBlockDefinition } from '../createBlockDefinition';
 import { BlockShell } from '../shared/block-shell';
 import { MediaUrlField } from '../shared/media-url-field';
 import { usePostDocument } from '../../PageContext';
+import { SettingsChipGroup } from '../../settings-chip-group';
 
 // ============================================================================
 // TYPES
@@ -38,6 +32,42 @@ const DEFAULT_CONTENT: PostFeaturedImageContent = {
   aspectRatio: '16/9',
   className: '',
 };
+
+type FeaturedImageFit = NonNullable<PostFeaturedImageContent['objectFit']>;
+
+const FIT_OPTIONS: { value: FeaturedImageFit; label: string; accessibleName: string }[] = [
+  { value: 'cover', label: 'Crop to fill', accessibleName: 'Crop to fill' },
+  { value: 'contain', label: 'Show the whole image', accessibleName: 'Show the whole image' },
+  { value: 'fill', label: 'Stretch', accessibleName: 'Stretch' },
+];
+
+const ASPECT_OPTIONS = [
+  { value: '16/9', label: 'Wide', accessibleName: 'Wide 16 by 9' },
+  { value: '4/3', label: 'Standard', accessibleName: 'Standard 4 by 3' },
+  { value: '1/1', label: 'Square', accessibleName: 'Square 1 by 1' },
+  { value: '3/2', label: 'Tall', accessibleName: 'Tall 3 by 2' },
+  { value: '21/9', label: 'Cinema', accessibleName: 'Cinema 21 by 9' },
+  { value: 'auto', label: 'Natural', accessibleName: 'Natural auto' },
+] as const;
+
+function isFeaturedImageFit(value: string): value is FeaturedImageFit {
+  return value === 'cover' || value === 'contain' || value === 'fill';
+}
+
+function isAspectRatio(value: string): boolean {
+  return ASPECT_OPTIONS.some((option) => option.value === value);
+}
+
+/** Frame opens itself only when fit or ratio is no longer the factory default. */
+function hasFrameValues(content: PostFeaturedImageContent | undefined): boolean {
+  const fit = content?.objectFit;
+  const ratio = content?.aspectRatio;
+  if (fit && fit !== DEFAULT_CONTENT.objectFit) return true;
+  if (typeof ratio === 'string' && ratio.trim() !== '' && ratio !== DEFAULT_CONTENT.aspectRatio) {
+    return true;
+  }
+  return false;
+}
 
 // ============================================================================
 // URL INPUT ROW — reused in placeholder and hover overlay
@@ -251,45 +281,31 @@ function PostFeaturedImageSettings({
         </div>
       </CollapsibleCard>
 
-      <CollapsibleCard title="Display" icon={Settings} defaultOpen={false}>
+      <CollapsibleCard title="Frame" icon={Frame} defaultOpen={hasFrameValues(content)}>
         <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="fi-object-fit">Object Fit</SettingsLabel>
-            <Select
-              value={content?.objectFit || 'cover'}
-              onValueChange={(v) =>
-                updateContent({
-                  objectFit: v as PostFeaturedImageContent['objectFit'],
-                })
-              }>
-              <SelectTrigger id="fi-object-fit" className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cover">Cover</SelectItem>
-                <SelectItem value="contain">Contain</SelectItem>
-                <SelectItem value="fill">Fill</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <SettingsLabel htmlFor="fi-aspect-ratio">Aspect Ratio</SettingsLabel>
-            <Select
-              value={content?.aspectRatio || '16/9'}
-              onValueChange={(v) => updateContent({ aspectRatio: v })}>
-              <SelectTrigger id="fi-aspect-ratio" className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="16/9">16 : 9</SelectItem>
-                <SelectItem value="4/3">4 : 3</SelectItem>
-                <SelectItem value="1/1">1 : 1</SelectItem>
-                <SelectItem value="3/2">3 : 2</SelectItem>
-                <SelectItem value="21/9">21 : 9</SelectItem>
-                <SelectItem value="auto">Auto</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <SettingsChipGroup
+            label="Fit"
+            ariaLabel="Fit"
+            labelMaxChars={22}
+            options={FIT_OPTIONS}
+            value={content?.objectFit || 'cover'}
+            onChange={(value) => {
+              if (isFeaturedImageFit(value)) {
+                updateContent({ objectFit: value });
+              }
+            }}
+          />
+          <SettingsChipGroup
+            label="Aspect"
+            ariaLabel="Aspect"
+            options={[...ASPECT_OPTIONS]}
+            value={content?.aspectRatio || '16/9'}
+            onChange={(value) => {
+              if (isAspectRatio(value)) {
+                updateContent({ aspectRatio: value });
+              }
+            }}
+          />
         </div>
       </CollapsibleCard>
     </div>

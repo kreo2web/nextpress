@@ -149,51 +149,60 @@ export function ColumnsSettings({ block, onUpdate }: ColumnsSettingsProps) {
 
           <div className="grid grid-cols-4 gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => addQuickColumns(2)} className="text-xs" aria-label="2 columns">
-              2 Cols
+              2 columns
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => addQuickColumns(3)} className="text-xs" aria-label="3 columns">
-              3 Cols
+              3 columns
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => addQuickColumns(4)} className="text-xs" aria-label="4 columns">
-              4 Cols
+              4 columns
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => addQuickColumns(6)} className="text-xs" aria-label="6 columns">
-              6 Cols
+              6 columns
             </Button>
           </div>
 
-          {columnLayout.map((column, index) => (
-            <div key={column.columnId} className="border rounded p-3 space-y-2">
-              <div className="flex justify-between items-center">
-                <SettingsLabel aria-label={`Column ${index + 1}`}>
-                  Column {index + 1}
-                </SettingsLabel>
-                <Button type="button" variant="ghost" size="sm" onClick={() => removeColumn(index)} className="text-red-600 h-6 w-6 p-0" aria-label={`Remove column ${index + 1}`}>
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </div>
-              {layoutMode === "flex" ? (
-                <div className="space-y-1">
-                  <UnitValueField
-                    id={`col-width-${index}`}
-                    label="Width"
-                    segmentLabel={null}
-                    keywords={["auto"]}
-                    units={["px", "%", "rem", "em", "fr"]}
-                    value={column.width}
-                    onChange={(next) => updateColumn(index, { width: next ?? "auto" })}
-                    placeholder="e.g. 50%, 240px, 1fr, auto"
-                    ariaLabel={`Column ${index + 1} width`}
-                  />
-                  <p className="text-[11px] text-muted-foreground leading-snug">
-                    Any CSS width (%, px, rem, calc), flex share (1fr, 2fr), or auto.
-                  </p>
+          <div className="divide-y divide-npb-border-default">
+            {columnLayout.map((column, index) => (
+              <div key={column.columnId} className="space-y-2 py-3 first:pt-0 last:pb-0">
+                <div className="flex justify-between items-center">
+                  <SettingsLabel aria-label={`Column ${index + 1}`}>
+                    Column {index + 1}
+                  </SettingsLabel>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeColumn(index)}
+                    className="h-9 w-9 shrink-0 p-0"
+                    aria-label={`Remove column ${index + 1}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-              ) : (
-                <p className="text-xs text-npb-text-muted">Equal width in grid mode</p>
-              )}
-            </div>
-          ))}
+                {layoutMode === "flex" ? (
+                  <div className="space-y-1">
+                    <UnitValueField
+                      id={`col-width-${index}`}
+                      label="Width"
+                      segmentLabel={null}
+                      keywords={["auto"]}
+                      units={["px", "%", "rem", "em", "fr"]}
+                      value={column.width}
+                      onChange={(next) => updateColumn(index, { width: next ?? "auto" })}
+                      placeholder="e.g. 50%, 240px, 1fr, auto"
+                      ariaLabel={`Column ${index + 1} width`}
+                    />
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Any CSS width (%, px, rem, calc), flex share (1fr, 2fr), or auto.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-npb-text-muted">Equal width in grid mode</p>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </CollapsibleCard>
 

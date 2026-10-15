@@ -52,9 +52,9 @@ const ICON_POSITION_OPTIONS = [
 	{ value: "end", label: "After title" },
 ];
 const ICON_SIZE_PRESETS = [
-	{ value: "14px", label: "SM" },
-	{ value: "18px", label: "MD" },
-	{ value: "22px", label: "LG" },
+	{ value: "14px", label: "Small" },
+	{ value: "18px", label: "Medium" },
+	{ value: "22px", label: "Large" },
 ];
 
 /** Colour keys an accordion keeps as plain CSS colours on its content. */

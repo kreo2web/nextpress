@@ -61,6 +61,27 @@ describe("bindPostBlocks", () => {
 		});
 	});
 
+	it("keeps featured image fit and ratio on the public media payload", () => {
+		const bound = bindPostBlocks({
+			blocks: [
+				block("post/featured-image", {
+					url: "https://cdn.example/hero.jpg",
+					objectFit: "contain",
+					aspectRatio: "4/3",
+				}),
+			],
+			post,
+		});
+
+		expect(bound[0]?.content).toMatchObject({
+			kind: "media",
+			url: "https://cdn.example/hero.jpg",
+			objectFit: "contain",
+			aspectRatio: "4/3",
+			mediaType: "image",
+		});
+	});
+
 	it("falls back to the post document when block text is empty", () => {
 		const bound = bindPostBlocks({
 			blocks: [block("post/title", { text: "", tag: "h2" })],

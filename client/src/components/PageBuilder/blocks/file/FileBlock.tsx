@@ -4,7 +4,7 @@ import { readStructuredBlockData } from "@shared/read-block-content";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
-import { File as FileIcon, Download, Settings } from "lucide-react";
+import { File as FileIcon, Download } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { useSettingsState } from "../useSettingsState";
@@ -89,6 +89,16 @@ function FileRenderer({ content, styles }: FileRendererProps) {
           <p>File Block</p>
           <small>Add a file for users to download</small>
         </div>
+      </BlockShell>
+    );
+  }
+
+  if (!displayPreview && !showDownloadButton) {
+    return (
+      <BlockShell blockClass="wp-block-file" className={blockData?.className} style={styles}>
+        <p className="text-npb-text-muted">
+          Nothing to show. Turn on the preview or the download.
+        </p>
       </BlockShell>
     );
   }
@@ -217,8 +227,8 @@ function FileSettings({ block, onUpdate }: FileSettingsProps) {
         </div>
       </CollapsibleCard>
 
-      {/* Settings Card */}
-      <CollapsibleCard title="Settings" icon={Settings} defaultOpen={false}>
+      {/* Download Card */}
+      <CollapsibleCard title="Download" icon={Download} defaultOpen={false}>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <SettingsLabel htmlFor="file-show-preview">Show file preview</SettingsLabel>

@@ -164,17 +164,11 @@ describe('HeadingBlock', () => {
       
       render(<Settings block={block} onUpdate={mockOnUpdate} />)
       
-      // Check for elements that are visible by default (in open collapsible cards)
       expect(screen.getByLabelText(/heading text/i)).toBeInTheDocument()
-      expect(screen.getByText(/heading level/i)).toBeInTheDocument() // Label text, not form control
+      expect(screen.getByText(/heading level/i)).toBeInTheDocument()
       
-      // Check for heading level buttons
       expect(screen.getByLabelText('Heading level 1')).toBeInTheDocument()
       expect(screen.getByLabelText('Heading level 2')).toBeInTheDocument()
-      
-      // Content section and Settings section should be visible (defaultOpen=true)
-      expect(screen.getByText('Content')).toBeInTheDocument()
-      expect(screen.getByText('Settings')).toBeInTheDocument()
     })
 
     it('should call onUpdate when text changes', () => {
@@ -211,6 +205,16 @@ describe('HeadingBlock', () => {
         styles: {
           fontSize: '1.75rem',
           fontWeight: '700',
+        }
+      })
+
+      const h4Button = screen.getByLabelText('Heading level 4')
+      fireEvent.click(h4Button)
+
+      expect(mockOnUpdate).toHaveBeenCalledWith({
+        styles: {
+          fontSize: '1.5rem',
+          fontWeight: '600',
         }
       })
     })
@@ -264,7 +268,6 @@ describe('HeadingBlock', () => {
 
     it('should have default styles', () => {
       expect(HeadingBlock.defaultStyles).toEqual({
-        fontWeight: '700',
         margin: '0',
       })
     })

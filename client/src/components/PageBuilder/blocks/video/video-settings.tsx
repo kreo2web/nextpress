@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
-import { Video as VideoIcon, AlignCenter, Maximize, Settings, Clapperboard } from "lucide-react";
+import { Video as VideoIcon, Maximize, Settings, Clapperboard } from "lucide-react";
 import { useSettingsState } from "../useSettingsState";
 import { SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
@@ -28,6 +28,16 @@ const FIT_OPTIONS = [
   { value: "contain", label: "Whole video" },
 ];
 
+const FIGURE_WIDTH_OPTIONS = [
+  { value: "default", label: "Default" },
+  { value: "wide", label: "Wide" },
+  { value: "full", label: "Full" },
+];
+
+function isVideoFigureWidth(value: string): value is "default" | "wide" | "full" {
+  return value === "default" || value === "wide" || value === "full";
+}
+
 interface VideoSettingsProps {
   block: BlockConfig;
   onUpdate?: (updates: Partial<BlockConfig>) => void;
@@ -40,13 +50,7 @@ export function VideoSettings({ block, onUpdate }: VideoSettingsProps) {
     defaultContent: DEFAULT_CONTENT,
   });
 
-  const alignmentOptions = [
-    { value: 'default', label: 'Default', icon: AlignCenter },
-    { value: 'wide', label: 'Wide', icon: Maximize },
-    { value: 'full', label: 'Full', icon: Maximize }
-  ];
-
-  const currentAlign = content?.align || 'default';
+  const currentAlign = content?.align || "default";
   const playback = readVideoPlayback(content);
   const videoUrl = content?.kind === 'media' ? content.url : '';
 
@@ -169,7 +173,7 @@ export function VideoSettings({ block, onUpdate }: VideoSettingsProps) {
               />
               {playback.autoplay ? (
                 <p id="video-muted-hint" className="npb-settings-hint-muted text-xs">
-                  Stays on while Autoplay is on. Browsers only autoplay muted videos.
+                  Muted, so the browser will allow it to play.
                 </p>
               ) : null}
             </div>
@@ -212,29 +216,18 @@ export function VideoSettings({ block, onUpdate }: VideoSettingsProps) {
               Wide and full presets. Use the sidebar <span className="font-semibold">Style</span> tab for exact width
               and height.
             </p>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {alignmentOptions.map((option) => {
-                const Icon = option.icon;
-                return (
-                  <button
-                    key={option.value}
-                    onClick={() =>
-                      updateContent({
-                        align: option.value === "default" ? undefined : (option.value as "wide" | "full"),
-                      })
-                    }
-                    className={`flex items-center gap-2 p-3 text-sm font-medium rounded-lg border transition-colors ${
-                      currentAlign === option.value
-                        ? "bg-npb-interactive-bg-active text-npb-interactive-text-active border-npb-interactive-bg-active"
-                        : "bg-npb-interactive-bg text-npb-interactive-text border-npb-border-default hover:bg-npb-interactive-bg-hover"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
+            <SettingsChipGroup
+              label=""
+              ariaLabel="Figure width"
+              options={FIGURE_WIDTH_OPTIONS}
+              value={currentAlign}
+              onChange={(value) => {
+                if (!isVideoFigureWidth(value)) return;
+                updateContent({
+                  align: value === "default" ? undefined : value,
+                });
+              }}
+            />
           </div>
         </div>
       </CollapsibleCard>

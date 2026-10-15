@@ -1,7 +1,6 @@
 import type { BlockConfig } from "@shared/schema-types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Image as ImageIcon, Settings, Link } from "lucide-react";
@@ -9,11 +8,88 @@ import { useSettingsState } from "../useSettingsState";
 import { SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
 import { LinkUrlField, LinkTargetSelect } from "../shared/link-settings";
+import { SettingsChipGroup } from "../../settings-chip-group";
+import { sanitizeHtml } from "../../utils";
 import { type MediaTextData, DEFAULT_DATA } from './media-text-model';
 
-interface MediaTextSettingsProps {
+type MediaTextSettingsProps = {
   block: BlockConfig;
   onUpdate?: (updates: Partial<BlockConfig>) => void;
+};
+
+const SIDE_OPTIONS = [
+  { value: "left", label: "Left" },
+  { value: "right", label: "Right" },
+];
+
+const VERTICAL_ALIGN_OPTIONS = [
+  { value: "top", label: "Top" },
+  { value: "center", label: "Center" },
+  { value: "bottom", label: "Bottom" },
+];
+
+function isMediaPosition(value: string): value is NonNullable<MediaTextData["mediaPosition"]> {
+  return value === "left" || value === "right";
+}
+
+function isVerticalAlignment(
+  value: string,
+): value is NonNullable<MediaTextData["verticalAlignment"]> {
+  return value === "top" || value === "center" || value === "bottom";
+}
+
+/**
+ * WHY: Media-text stores HTML in `content`, but most values are simple paragraphs.
+ * Extra tags (strong, a, headings) mean the saved markup is intentional —
+ * keep the raw HTML so those tags are not stripped by a plain-text save.
+ */
+function hasMediaTextFormatting(html: string): boolean {
+  const withoutAllowed = html
+    .replace(/<\/?p\b[^>]*>/gi, "")
+    .replace(/<br\s*\/?>/gi, "");
+  return /<\/?[a-z][^>]*>/i.test(withoutAllowed);
+}
+
+function mediaTextParagraphToLine(inner: string): string {
+  const withoutBreaks = inner.replace(/<br\s*\/?>/gi, "");
+  return withoutBreaks.trim() === "" ? "" : inner;
+}
+
+function readMediaTextPlainText(html: string): string {
+  if (html && /<p/i.test(html)) {
+    return html
+      .split(/<\/p>/i)
+      .filter((chunk) => /<p/i.test(chunk))
+      .map((chunk) => mediaTextParagraphToLine(chunk.replace(/<p[^>]*>/i, "")))
+      .join("\n");
+  }
+  const withoutBreaks = html.replace(/<br\s*\/?>/gi, "");
+  return withoutBreaks.trim() === "" ? "" : html;
+}
+
+/**
+ * WHY: A single styled `<p>` should keep its opening tag on the first edit
+ * so a pasted look does not collapse to a bare paragraph.
+ */
+function readSinglePOpeningTag(html: string): string | undefined {
+  const matches = html.match(/<p\b[^>]*>/gi);
+  if (!matches || matches.length !== 1) return undefined;
+  const tag = matches[0];
+  return /<p\s+\S/i.test(tag) ? tag : undefined;
+}
+
+function writeMediaTextHtml({
+  text,
+  openingTag,
+}: {
+  text: string;
+  openingTag?: string;
+}): string {
+  const open = openingTag ?? "<p>";
+  return text
+    .split("\n")
+    .map((line) => (line === "" ? `${open}<br></p>` : `${open}${sanitizeHtml(line)}</p>`))
+    .join("");
 }
 
 export function MediaTextSettings({ block, onUpdate }: MediaTextSettingsProps) {
@@ -22,6 +98,10 @@ export function MediaTextSettings({ block, onUpdate }: MediaTextSettingsProps) {
     onUpdate,
     defaultContent: DEFAULT_DATA,
   });
+
+  const textHtml = blockData?.content || "";
+  const textHasFormatting = hasMediaTextFormatting(textHtml);
+  const textOpeningTag = textHasFormatting ? undefined : readSinglePOpeningTag(textHtml);
 
   return (
     <div className="space-y-4">
@@ -56,36 +136,56 @@ export function MediaTextSettings({ block, onUpdate }: MediaTextSettingsProps) {
             />
           </div>
           <div>
-            <SettingsLabel htmlFor="text-content">Text Content (HTML)</SettingsLabel>
-            <Textarea
-              id="text-content"
-              value={blockData?.content || ''}
-              onChange={(e) => updateContent({ content: e.target.value })}
-              placeholder="<p>Add your content…</p>"
-              rows={4}
-              className="mt-1"
-            />
+            <SettingsLabel htmlFor="text-content">Text</SettingsLabel>
+            {textHasFormatting ? (
+              <>
+                <Textarea
+                  id="text-content"
+                  value={textHtml}
+                  onChange={(e) => updateContent({ content: e.target.value })}
+                  placeholder="Add your content…"
+                  rows={4}
+                  className="mt-1"
+                  aria-label="Text"
+                />
+                <p className="npb-settings-hint-muted text-xs">
+                  This text has formatting. Editing here keeps the tags.
+                </p>
+              </>
+            ) : (
+              <Textarea
+                id="text-content"
+                value={readMediaTextPlainText(textHtml)}
+                onChange={(e) =>
+                  updateContent({
+                    content: writeMediaTextHtml({
+                      text: e.target.value,
+                      openingTag: textOpeningTag,
+                    }),
+                  })
+                }
+                placeholder="Add your content…"
+                rows={4}
+                className="mt-1"
+                aria-label="Text"
+              />
+            )}
           </div>
         </div>
       </CollapsibleCard>
 
       <CollapsibleCard title="Layout" icon={Settings} defaultOpen={false}>
         <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="media-position">Media Position</SettingsLabel>
-            <Select
-              value={blockData?.mediaPosition || 'left'}
-              onValueChange={(value) => updateContent({ mediaPosition: value as any })}
-            >
-              <SelectTrigger id="media-position" className="h-9 mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="left">Left</SelectItem>
-                <SelectItem value="right">Right</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <SettingsChipGroup
+            label="Side"
+            options={SIDE_OPTIONS}
+            value={blockData?.mediaPosition || "left"}
+            onChange={(value) => {
+              if (isMediaPosition(value)) {
+                updateContent({ mediaPosition: value });
+              }
+            }}
+          />
 
           <div>
             <SettingsLabel htmlFor="media-width">Media Width (%)</SettingsLabel>
@@ -106,8 +206,8 @@ export function MediaTextSettings({ block, onUpdate }: MediaTextSettingsProps) {
               id="stacked-mobile"
               checked={Boolean(blockData?.isStackedOnMobile)}
               onCheckedChange={(checked) => updateContent({ isStackedOnMobile: checked })}
-              />
-            </div>
+            />
+          </div>
 
           <div className="flex items-center justify-between">
             <SettingsLabel htmlFor="image-fill">Image fill</SettingsLabel>
@@ -118,22 +218,16 @@ export function MediaTextSettings({ block, onUpdate }: MediaTextSettingsProps) {
             />
           </div>
 
-          <div>
-            <SettingsLabel htmlFor="vertical-align">Vertical alignment</SettingsLabel>
-            <Select
-              value={blockData?.verticalAlignment || 'center'}
-              onValueChange={(value) => updateContent({ verticalAlignment: value as any })}
-            >
-              <SelectTrigger id="vertical-align" className="h-9 mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="top">Top</SelectItem>
-                <SelectItem value="center">Center</SelectItem>
-                <SelectItem value="bottom">Bottom</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <SettingsChipGroup
+            label="Vertical alignment"
+            options={VERTICAL_ALIGN_OPTIONS}
+            value={blockData?.verticalAlignment || "center"}
+            onChange={(value) => {
+              if (isVerticalAlignment(value)) {
+                updateContent({ verticalAlignment: value });
+              }
+            }}
+          />
         </div>
       </CollapsibleCard>
 

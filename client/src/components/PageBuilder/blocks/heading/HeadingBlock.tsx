@@ -1,10 +1,8 @@
 // blocks/heading/HeadingBlock.tsx
-import { Heading1, Type, Settings } from "lucide-react";
+import { Heading1 } from "lucide-react";
 import type { BlockConfig, BlockContent } from "@shared/schema-types";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { CollapsibleCard } from "@/components/ui/collapsible-card";
-import { OptionButton, OptionGroup, SettingsLabel } from '../../shared';
+import { OptionButton, OptionGroup, SettingsLabel, SettingsSection } from '../../shared';
 import * as React from "react";
 import type { JSX } from "react";
 import { createBlockDefinition } from "../createBlockDefinition";
@@ -59,11 +57,6 @@ const HEADING_FONT_WEIGHTS: Record<number, string> = {
   5: "600",
   6: "600",
 };
-
-const SETTINGS_SECTIONS = {
-  content: { title: "Content", icon: Type, defaultOpen: true },
-  settings: { title: "Settings", icon: Settings, defaultOpen: true },
-} as const;
 
 // ============================================================================
 // UTILITIES
@@ -141,7 +134,7 @@ function HeadingRenderer({
           onChange={(value) => onUpdateContent?.({ kind: "text", value })}
           style={mergedStyles}
           placeholder="Enter heading text"
-          className="text-left"
+          growToWrap
         />
       </BlockShell>
     );
@@ -176,64 +169,48 @@ function LegacyHeadingSettings({ block, onUpdate }: HeadingSettingsProps) {
     defaultContent: DEFAULT_CONTENT,
   });
 
-  // Derived data
   const textValue = content?.kind === "text" ? content.value : "";
   const currentLevel = content?.level || 2;
-  // Render
-  return (
-    <div className="space-y-4">
-      {/* Content Section */}
-      <CollapsibleCard
-        title={SETTINGS_SECTIONS.content.title}
-        icon={SETTINGS_SECTIONS.content.icon}
-        defaultOpen={SETTINGS_SECTIONS.content.defaultOpen}
-      >
-        <div>
-          <SettingsLabel htmlFor="heading-text">Heading Text</SettingsLabel>
-          <Input
-            id="heading-text"
-            aria-label="Heading text"
-            value={textValue}
-            onChange={(e) =>
-              updateContent({ kind: "text", value: e.target.value })
-            }
-            placeholder="Enter heading text"
-            className="mt-1 h-9"
-          />
-        </div>
-      </CollapsibleCard>
 
-      {/* Level Section */}
-      <CollapsibleCard
-        title={SETTINGS_SECTIONS.settings.title}
-        icon={SETTINGS_SECTIONS.settings.icon}
-        defaultOpen={SETTINGS_SECTIONS.settings.defaultOpen}
-      >
-        <OptionGroup label="Heading Level">
-          {HEADING_LEVELS.map((level) => (
-            <OptionButton
-              key={level}
-              isActive={currentLevel === level}
-              onClick={() => {
-                updateContent({ level });
-                if (!accessor) {
-                  onUpdate?.({
-                    styles: {
-                      ...block.styles,
-                      fontSize: HEADING_FONT_SIZES[level],
-                      fontWeight: HEADING_FONT_WEIGHTS[level],
-                    },
-                  });
-                }
-              }}
-              ariaLabel={`Heading level ${level}`}
-            >
-              H{level}
-            </OptionButton>
-          ))}
-        </OptionGroup>
-      </CollapsibleCard>
-    </div>
+  return (
+    <SettingsSection>
+      <OptionGroup label="Heading Level">
+        {HEADING_LEVELS.map((level) => (
+          <OptionButton
+            key={level}
+            isActive={currentLevel === level}
+            onClick={() => {
+              updateContent({ level });
+              if (!accessor) {
+                onUpdate?.({
+                  styles: {
+                    ...block.styles,
+                    fontSize: HEADING_FONT_SIZES[level],
+                    fontWeight: HEADING_FONT_WEIGHTS[level],
+                  },
+                });
+              }
+            }}
+            ariaLabel={`Heading level ${level}`}
+          >
+            H{level}
+          </OptionButton>
+        ))}
+      </OptionGroup>
+      <div>
+        <SettingsLabel htmlFor="heading-text">Heading Text</SettingsLabel>
+        <Input
+          id="heading-text"
+          aria-label="Heading text"
+          value={textValue}
+          onChange={(e) =>
+            updateContent({ kind: "text", value: e.target.value })
+          }
+          placeholder="Enter heading text"
+          className="mt-1 h-9"
+        />
+      </div>
+    </SettingsSection>
   );
 }
 
@@ -249,7 +226,6 @@ export const HeadingBlock = createBlockDefinition<HeadingContent>({
   category: "basic",
   defaultContent: DEFAULT_CONTENT,
   defaultStyles: {
-    fontWeight: "700",
     margin: "0",
   },
   settings: LegacyHeadingSettings,

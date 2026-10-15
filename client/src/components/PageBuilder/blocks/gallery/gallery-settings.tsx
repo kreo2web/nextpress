@@ -155,9 +155,9 @@ export function GallerySettings({ block, onUpdate }: GallerySettingsProps) {
                   type="button"
                   onClick={() => setSelectedImageIndex(index)}
                   className={cn(
-                    "relative rounded border p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-npb-focus",
+                    "relative rounded border p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-npb-focus",
                     activeImageIndex === index
-                      ? "border-npb-interactive-bg-active ring-2 ring-npb-focus"
+                      ? "border-npb-interactive-bg-active"
                       : "border-npb-border-default hover:border-npb-border-strong",
                   )}
                   aria-label={`Select image ${index + 1}`}
@@ -174,7 +174,7 @@ export function GallerySettings({ block, onUpdate }: GallerySettingsProps) {
           )}
 
           {activeImage && activeImageIndex !== null && (
-            <div className="border border-npb-border-default rounded p-4 space-y-3 bg-npb-surface-raised">
+            <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <SettingsLabel>Image {activeImageIndex + 1}</SettingsLabel>
                 <Button
@@ -182,7 +182,7 @@ export function GallerySettings({ block, onUpdate }: GallerySettingsProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => removeImage(activeImageIndex)}
-                  className="text-red-600"
+                  className="h-9 w-9 shrink-0 p-0"
                   aria-label={`Remove image ${activeImageIndex + 1}`}
                 >
                   <Trash2 className="w-4 h-4" />

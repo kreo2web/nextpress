@@ -68,12 +68,12 @@ export function StackSettings({ block, onUpdate }: StackSettingsProps) {
 				/>
 				<p className="npb-settings-hint-muted mt-2 text-xs">
 					{isOverlay
-						? "Children share one cell — later children draw on top. Fine-tune on the Style tab."
+						? "Children share one cell. Later children draw on top. Fine-tune on the Style tab."
 						: "Writes layout styles. Fine-tune on the Style tab."}
 				</p>
 				{drifted ? (
 					<p className="npb-settings-hint mt-2 text-xs">
-						Styles changed on the Style tab — pick a mode again to replace them.
+						Styles changed on the Style tab. Pick a mode again to replace them.
 					</p>
 				) : null}
 			</CollapsibleCard>
@@ -81,57 +81,56 @@ export function StackSettings({ block, onUpdate }: StackSettingsProps) {
 			{isOverlay ? (
 				<CollapsibleCard title="Layers" icon={Layers} defaultOpen={children.length > 0}>
 					<p className="npb-settings-hint-muted mb-2 text-xs">
-						Bottom → top. Click to select, arrows to restack.
+						Back to front. Click to select. Arrows restack.
 					</p>
 					{children.length === 0 ? (
 						<p className="npb-settings-hint-muted text-xs">
-							Empty stack — drop blocks on the canvas to layer them.
+							Empty stack. Drop blocks on the canvas to layer them.
 						</p>
 					) : (
-						<ul className="space-y-1" aria-label="Stack layers, bottom to top">
+						<ul className="space-y-1" aria-label="Stack layers, back to front">
 							{children.map((child, index) => {
 								const isSelected = actions?.selectedBlockId === child.id;
+								const name = child.label ?? child.name;
+								const canSendBackward = index > 0;
+								const canBringForward = index < children.length - 1;
 								return (
 									<li key={child.id} className="flex items-center gap-1">
 										<button
 											type="button"
 											onClick={() => actions?.onSelect(child.id)}
 											className={
-												"flex h-8 min-w-0 flex-1 items-center rounded-md border px-2 text-left text-sm transition-colors " +
+												"flex min-h-9 min-w-0 flex-1 items-center rounded-md border px-2 text-left text-sm transition-colors " +
 												(isSelected
 													? "border-npb-border-strong bg-npb-surface-inset text-npb-text-primary"
 													: "border-transparent text-npb-text-secondary hover:bg-npb-surface-inset")
 											}
-											title={`Select ${child.label ?? child.name} (layer ${index + 1})`}
+											title={`Select ${name} (layer ${index + 1})`}
 										>
 											<span className="truncate">
-												{index + 1}. {child.label ?? child.name}
+												{index + 1}. {name}
 											</span>
 										</button>
-										<button
-											type="button"
-											onClick={() => moveChild(index, -1)}
-											disabled={index === 0}
-											className="text-npb-text-muted hover:text-npb-text-primary disabled:cursor-not-allowed disabled:opacity-40"
-											aria-label={`Move ${child.label ?? child.name} down one layer`}
-											title={index === 0 ? "Already the bottom layer" : "Move down one layer"}
-										>
-											<ChevronDown className="size-4" />
-										</button>
-										<button
-											type="button"
-											onClick={() => moveChild(index, 1)}
-											disabled={index === children.length - 1}
-											className="text-npb-text-muted hover:text-npb-text-primary disabled:cursor-not-allowed disabled:opacity-40"
-											aria-label={`Move ${child.label ?? child.name} up one layer`}
-											title={
-												index === children.length - 1
-													? "Already the top layer"
-													: "Move up one layer"
-											}
-										>
-											<ChevronUp className="size-4" />
-										</button>
+										{canSendBackward ? (
+											<button
+												type="button"
+												onClick={() => moveChild(index, -1)}
+												className="inline-flex min-h-9 min-w-9 items-center justify-center text-npb-text-muted hover:text-npb-text-primary"
+												aria-label={`Send ${name} backward`}
+											>
+												<ChevronDown className="size-4" />
+											</button>
+										) : null}
+										{canBringForward ? (
+											<button
+												type="button"
+												onClick={() => moveChild(index, 1)}
+												className="inline-flex min-h-9 min-w-9 items-center justify-center text-npb-text-muted hover:text-npb-text-primary"
+												aria-label={`Bring ${name} forward`}
+											>
+												<ChevronUp className="size-4" />
+											</button>
+										) : null}
 									</li>
 								);
 							})}

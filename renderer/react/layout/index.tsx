@@ -326,6 +326,54 @@ export function ContainerBlock(block: BlockConfig) {
 	);
 }
 
+const DEFAULT_SPACER_HEIGHT = "100px";
+
+/**
+ * Legacy spacers store a pixel number (100). New writes are CSS lengths ("100px").
+ * Missing or empty is unset so the caller can fall back to 100px.
+ */
+function readSpacerHeight(value: string | number | null | undefined): string | undefined {
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return `${value}px`;
+	}
+	if (typeof value === "string" && value.trim() !== "") {
+		return value;
+	}
+	return undefined;
+}
+
+function readStyleHeight(height: React.CSSProperties["height"]): string | undefined {
+	if (typeof height === "number" && Number.isFinite(height)) {
+		return `${height}px`;
+	}
+	if (typeof height === "string" && height.trim() !== "") {
+		return height;
+	}
+	return undefined;
+}
+
+/**
+ * Content height first, then a copy of style. Style height wins only when it is
+ * actually set — an absent style height must not wipe the spacer value.
+ */
+function buildSpacerStyle(
+	contentHeight: string | undefined,
+	style: React.CSSProperties,
+): React.CSSProperties {
+	const fromContent = contentHeight ?? DEFAULT_SPACER_HEIGHT;
+	const spacerStyle: React.CSSProperties = {
+		height: fromContent,
+		...style,
+	};
+	const fromStyle = readStyleHeight(style.height);
+	if (fromStyle !== undefined) {
+		spacerStyle.height = fromStyle;
+	} else {
+		spacerStyle.height = fromContent;
+	}
+	return spacerStyle;
+}
+
 /**
  * Spacer Block Component
  * Renders a vertical spacer with configurable height
@@ -333,21 +381,20 @@ export function ContainerBlock(block: BlockConfig) {
 export function SpacerBlock(block: BlockConfig) {
 	const { style, className, attributes } = getRenderProps(block);
 	const data = parseStructuredContent(block.content);
-	const height = (data.height as string) || "40px";
+	const rawHeight = data.height;
+	const contentHeight =
+		typeof rawHeight === "number" || typeof rawHeight === "string"
+			? readSpacerHeight(rawHeight)
+			: undefined;
 
 	const mergedClassName = ["wp-block-spacer", className]
 		.filter(Boolean)
 		.join(" ");
 
-	const spacerStyle: React.CSSProperties = {
-		...style,
-		height,
-	};
-
 	return (
 		<div
 			className={mergedClassName || undefined}
-			style={spacerStyle}
+			style={buildSpacerStyle(contentHeight, style)}
 			{...attributes}
 		/>
 	);
@@ -386,30 +433,44 @@ export function SeparatorBlock(block: BlockConfig) {
 export function DividerBlock(block: BlockConfig) {
 	const { style, className, attributes } = getRenderProps(block);
 	const data = parseStructuredContent(block.content);
-	const dividerStyle = data.dividerStyle as string | undefined;
+	const storedStyle = data.style;
+	const legacyStyle = data.dividerStyle;
+	const lineStyle =
+		storedStyle === "solid" || storedStyle === "dashed" || storedStyle === "dotted"
+			? storedStyle
+			: legacyStyle === "solid" || legacyStyle === "dashed" || legacyStyle === "dotted"
+				? legacyStyle
+				: "solid";
+	const storedColor = data.color;
+	const lineColor =
+		typeof storedColor === "string" && storedColor.trim() !== ""
+			? storedColor
+			: "currentColor";
+	const storedWidth = data.width;
+	const lineWidth =
+		typeof storedWidth === "number" && Number.isFinite(storedWidth) ? storedWidth : 100;
 
-	const mergedClassName = [
-		"wp-block-divider",
-		dividerStyle ? `is-style-${dividerStyle}` : "",
-		className,
-	]
+	const mergedClassName = ["wp-block-divider", `is-style-${lineStyle}`, className]
 		.filter(Boolean)
 		.join(" ");
-
-	const dividerElementStyle: React.CSSProperties = {
-		...style,
-	};
-	if (dividerStyle) {
-		dividerElementStyle.borderStyle = dividerStyle;
-	} else if (!style?.borderStyle) {
-		dividerElementStyle.borderStyle = "solid";
-	}
+	const { padding, margin, ...restStyle } = style;
 
 	return (
-		<hr
+		<div
 			className={mergedClassName || undefined}
-			style={dividerElementStyle}
+			style={{ padding, margin }}
 			{...(attributes as Record<string, unknown>)}
-		/>
+		>
+			<hr
+				style={{
+					...restStyle,
+					borderStyle: lineStyle,
+					borderWidth: "1px 0 0 0",
+					borderColor: lineColor,
+					width: `${lineWidth}%`,
+					margin: "0 auto",
+				}}
+			/>
+		</div>
 	);
 }

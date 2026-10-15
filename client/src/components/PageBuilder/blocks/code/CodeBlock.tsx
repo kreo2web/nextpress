@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { SettingsLabel } from "../../shared";
-import { Code as CodeIcon, Settings, Sparkles, Copy as CopyIcon, Check } from "lucide-react";
+import { Code as CodeIcon, Copy as CopyIcon, Check } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { useSettingsState } from "../useSettingsState";
@@ -88,17 +88,22 @@ function CodeRenderer({
     }).catch(() => undefined);
   };
 
+  const savedMaxWidth = styles?.maxWidth;
   const preStyle: React.CSSProperties = {
     backgroundColor: "#1e293b",
     color: "#f8fafc",
     padding: "1rem",
     borderRadius: "6px",
-    overflowX: "auto",
     fontFamily:
       'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
     fontSize: "0.875rem",
     lineHeight: "1.6",
     ...styles,
+    overflowX: "auto",
+    maxWidth:
+      typeof savedMaxWidth === "string" && savedMaxWidth !== ""
+        ? savedMaxWidth
+        : "100%",
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -232,7 +237,7 @@ function CodeSettings({ block, onUpdate }: CodeSettingsProps) {
               value={language}
               onValueChange={(val) => updateContent({ language: val })}
             >
-              <SelectTrigger id="code-language" className="mt-1 h-8 text-xs">
+              <SelectTrigger id="code-language" className="mt-1 h-9">
                 <SelectValue placeholder="Select language" />
               </SelectTrigger>
               <SelectContent>
@@ -260,7 +265,7 @@ function CodeSettings({ block, onUpdate }: CodeSettingsProps) {
       </CollapsibleCard>
 
       {/* Display Settings Card */}
-      <CollapsibleCard title="Display Options" icon={Sparkles} defaultOpen={false}>
+      <CollapsibleCard title="Display" defaultOpen={false}>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <SettingsLabel htmlFor="code-linenumbers">Show line numbers</SettingsLabel>

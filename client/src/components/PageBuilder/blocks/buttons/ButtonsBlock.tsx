@@ -2,17 +2,11 @@ import React from 'react';
 import type { BlockConfig, BlockContent } from '@shared/schema-types';
 import { readStructuredBlockData } from '@shared/read-block-content';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { CollapsibleCard } from '@/components/ui/collapsible-card';
-import { SettingsLabel } from '../../shared';
-import { Plus, Trash2, SquareMousePointer, Settings } from 'lucide-react';
+import { SettingsLabel, SettingsSection } from '../../shared';
+import { SettingsChipGroup } from '../../settings-chip-group';
+import { LinkTargetChips } from '../shared/link-settings';
+import { Plus, Trash2, SquareMousePointer } from 'lucide-react';
 import { createBlockDefinition } from '../createBlockDefinition';
 import { BlockShell } from '../shared/block-shell';
 import { useSettingsState } from '../useSettingsState';
@@ -31,12 +25,40 @@ interface ButtonItem {
   className?: string;
 }
 
+type ButtonsLayout = 'flex-start' | 'center' | 'flex-end' | 'space-between';
+type ButtonsOrientation = 'horizontal' | 'vertical';
+
 type ButtonsData = {
   buttons?: ButtonItem[];
-  layout?: string;
-  orientation?: 'horizontal' | 'vertical';
+  layout?: ButtonsLayout;
+  orientation?: ButtonsOrientation;
   className?: string;
 };
+
+const BUTTONS_LAYOUT_OPTIONS = [
+  { value: 'flex-start', label: 'Left' },
+  { value: 'center', label: 'Center' },
+  { value: 'flex-end', label: 'Right' },
+  { value: 'space-between', label: 'Space between', accessibleName: 'Space between' },
+] as const;
+
+const BUTTONS_ORIENTATION_OPTIONS = [
+  { value: 'horizontal', label: 'Row' },
+  { value: 'vertical', label: 'Stack' },
+] as const;
+
+function isButtonsLayout(value: string): value is ButtonsLayout {
+  return (
+    value === 'flex-start' ||
+    value === 'center' ||
+    value === 'flex-end' ||
+    value === 'space-between'
+  );
+}
+
+function isButtonsOrientation(value: string): value is ButtonsOrientation {
+  return value === 'horizontal' || value === 'vertical';
+}
 
 type ButtonsContent = BlockContent & {
   data?: ButtonsData;
@@ -192,112 +214,81 @@ function ButtonsSettings({ block, onUpdate }: ButtonsSettingsProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <CollapsibleCard title="Content" icon={SquareMousePointer} defaultOpen={true}>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <SettingsLabel>Buttons</SettingsLabel>
-            <Button type="button" variant="outline" size="sm" onClick={addButton}>
-              <Plus className="w-4 h-4 mr-1" />
-              Add Button
-            </Button>
-          </div>
+    <SettingsSection>
+      <div className="flex justify-between items-center">
+        <SettingsLabel>Buttons</SettingsLabel>
+        <Button type="button" variant="outline" size="sm" onClick={addButton}>
+          <Plus className="w-4 h-4 mr-1" />
+          Add Button
+        </Button>
+      </div>
 
-          {buttons.map((button, index) => (
-            <div key={button.id || index} className="border border-npb-border-default rounded p-4 space-y-3 bg-npb-surface-raised">
-              <div className="flex justify-between items-center">
-                <SettingsLabel>Button {index + 1}</SettingsLabel>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeButton(index)}
-                  className="text-red-600">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <div>
-                <SettingsLabel htmlFor={`btn-text-${index}`}>Button Text</SettingsLabel>
-                <Input
-                  id={`btn-text-${index}`}
-                  value={button.text}
-                  onChange={(e) => updateButton(index, { text: e.target.value })}
-                  placeholder="Button text"
-                  className="mt-1 h-9"
-                />
-              </div>
-
-              <div>
-                <SettingsLabel htmlFor={`btn-url-${index}`}>URL</SettingsLabel>
-                <Input
-                  id={`btn-url-${index}`}
-                  value={button.url}
-                  onChange={(e) => updateButton(index, { url: e.target.value })}
-                  placeholder="https://example.com"
-                  className="mt-1 h-9"
-                />
-              </div>
-
-              <div>
-                <SettingsLabel htmlFor={`btn-target-${index}`}>Link Target</SettingsLabel>
-                <Select
-                  value={button.linkTarget || '_self'}
-                  onValueChange={(value: '_self' | '_blank') =>
-                    updateButton(index, { linkTarget: value })
-                  }>
-                  <SelectTrigger id={`btn-target-${index}`} className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_self">Same Window</SelectItem>
-                    <SelectItem value="_blank">New Window</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+      <div className="divide-y divide-npb-border-default">
+        {buttons.map((button, index) => (
+          <div key={button.id || index} className="space-y-3 py-4 first:pt-0 last:pb-0">
+            <div className="flex justify-between items-center">
+              <SettingsLabel>Button {index + 1}</SettingsLabel>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 shrink-0 p-0"
+                aria-label={`Remove button ${index + 1}`}
+                onClick={() => removeButton(index)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
-          ))}
-        </div>
-      </CollapsibleCard>
 
-      <CollapsibleCard title="Settings" icon={Settings} defaultOpen={false}>
-        <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="buttons-layout">Layout</SettingsLabel>
-            <Select
-              value={buttonsData?.layout || 'flex-start'}
-              onValueChange={(value) => updateContent({ layout: value })}>
-              <SelectTrigger id="buttons-layout" className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="flex-start">Left</SelectItem>
-                <SelectItem value="center">Center</SelectItem>
-                <SelectItem value="flex-end">Right</SelectItem>
-                <SelectItem value="space-between">Space Between</SelectItem>
-              </SelectContent>
-            </Select>
+            <div>
+              <SettingsLabel htmlFor={`btn-text-${index}`}>Button Text</SettingsLabel>
+              <Input
+                id={`btn-text-${index}`}
+                value={button.text}
+                onChange={(e) => updateButton(index, { text: e.target.value })}
+                placeholder="Button text"
+                className="mt-1 h-9"
+              />
+            </div>
+
+            <div>
+              <SettingsLabel htmlFor={`btn-url-${index}`}>URL</SettingsLabel>
+              <Input
+                id={`btn-url-${index}`}
+                value={button.url}
+                onChange={(e) => updateButton(index, { url: e.target.value })}
+                placeholder="https://example.com"
+                className="mt-1 h-9"
+              />
+            </div>
+
+            <LinkTargetChips
+              value={button.linkTarget}
+              onChange={({ target }) => updateButton(index, { linkTarget: target })}
+            />
           </div>
+        ))}
+      </div>
 
-          <div>
-            <SettingsLabel htmlFor="buttons-orientation">Orientation</SettingsLabel>
-            <Select
-              value={buttonsData?.orientation || 'horizontal'}
-              onValueChange={(value) => updateContent({ orientation: value as any })}>
-              <SelectTrigger id="buttons-orientation" className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="horizontal">Horizontal</SelectItem>
-                <SelectItem value="vertical">Vertical</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </CollapsibleCard>
+      <SettingsChipGroup
+        label="Alignment"
+        options={[...BUTTONS_LAYOUT_OPTIONS]}
+        value={buttonsData?.layout || 'flex-start'}
+        onChange={(value) => {
+          if (!isButtonsLayout(value)) return;
+          updateContent({ layout: value });
+        }}
+      />
 
-
-    </div>
+      <SettingsChipGroup
+        label="Direction"
+        options={[...BUTTONS_ORIENTATION_OPTIONS]}
+        value={buttonsData?.orientation || 'horizontal'}
+        onChange={(value) => {
+          if (!isButtonsOrientation(value)) return;
+          updateContent({ orientation: value });
+        }}
+      />
+    </SettingsSection>
   );
 }
 
@@ -309,8 +300,7 @@ const ButtonsBlock = createBlockDefinition<ButtonsContent>({
   id: 'core/buttons',
   label: 'Buttons',
   icon: SquareMousePointer,
-  description:
-    'Prompt visitors to take action with a group of button-style links',
+  description: 'A row of buttons',
   category: 'basic',
   defaultContent: DEFAULT_CONTENT,
   defaultStyles: { margin: '1em 0' },

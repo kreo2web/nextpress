@@ -94,6 +94,14 @@ export function getBlockStateAccessor(
 }
 
 /**
+ * Snapshot of every registered block accessor, in registration order.
+ * Imperative getter for use after a store subscription (or outside React).
+ */
+export function listBlockAccessors(): BlockStateAccessor[] {
+	return Array.from(blockStateRegistry.values());
+}
+
+/**
  * React hook that subscribes to registry changes and returns the accessor
  * for the given block ID. Re-renders the consuming component whenever the
  * registry is updated (block registered/unregistered/replaced).
@@ -107,4 +115,13 @@ export function useBlockAccessor(
 	useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 	if (!blockId) return undefined;
 	return blockStateRegistry.get(blockId);
+}
+
+/**
+ * Subscribe to the registry and return every registered accessor.
+ * Re-renders when a block is registered or unregistered.
+ */
+export function useBlockAccessors(): BlockStateAccessor[] {
+	useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+	return listBlockAccessors();
 }

@@ -2,18 +2,13 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { BarChart3, Palette, Settings } from 'lucide-react';
 import type { BlockDefinition, BlockComponentProps } from '../types.ts';
-import type { BlockConfig } from '@shared/schema-types';
+import type { BlockConfig, TokenEntry } from '@shared/schema-types';
 import { SettingsLabel } from '../../shared';
+import ColorField from '../../ColorField';
+import { SettingsChipGroup } from '../../settings-chip-group';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useSettingsState } from '../useSettingsState';
 import { useBlockState } from '../useBlockState';
 import { BlockShell } from '../shared/block-shell';
@@ -24,24 +19,64 @@ import { defaultParseContent, defaultSerializeContent } from '../createBlockDefi
 // ============================================================================
 
 export type PostProgressContent = {
-  color?: string;
+  color?: string | null;
   height?: number;
   position?: 'top' | 'bottom';
   showPercentage?: boolean;
-  backgroundColor?: string;
+  backgroundColor?: string | null;
   className?: string;
 };
 
+const DEFAULT_BAR_COLOR = 'var(--npb-accent)';
+const DEFAULT_BACKGROUND_COLOR = 'transparent';
+const SAMPLE_HINT =
+  'On the live page this follows reading. The canvas shows a sample.';
+
 const DEFAULT_CONTENT: PostProgressContent = {
-  color: '#3b82f6',
+  color: DEFAULT_BAR_COLOR,
   height: 4,
   position: 'top',
   showPercentage: false,
-  backgroundColor: 'transparent',
+  backgroundColor: DEFAULT_BACKGROUND_COLOR,
   className: '',
 };
 
 const EDITOR_PREVIEW_FILL = 40;
+
+const POSITION_OPTIONS = [
+  { value: 'top', label: 'Top' },
+  { value: 'bottom', label: 'Bottom' },
+];
+
+function readBarColor(color: string | null | undefined): string {
+  if (typeof color === 'string' && color.trim() !== '') return color;
+  return DEFAULT_BAR_COLOR;
+}
+
+function readBackgroundColor(color: string | null | undefined): string {
+  if (typeof color === 'string' && color.trim() !== '') return color;
+  return DEFAULT_BACKGROUND_COLOR;
+}
+
+function barFollowsTheme(color: string | null | undefined): boolean {
+  return color == null || color.trim() === '' || color === DEFAULT_BAR_COLOR;
+}
+
+function backgroundFollowsTheme(color: string | null | undefined): boolean {
+  return (
+    color == null || color.trim() === '' || color === DEFAULT_BACKGROUND_COLOR
+  );
+}
+
+function readPosition(value: string | null | undefined): 'top' | 'bottom' {
+  return value === 'bottom' ? 'bottom' : 'top';
+}
+
+function pickColorStyle(entry: TokenEntry): string | null {
+  return typeof entry.style === 'string' && entry.style.trim() !== ''
+    ? entry.style
+    : null;
+}
 
 // ============================================================================
 // HOOKS
@@ -93,11 +128,11 @@ function PostProgressRenderer({
   styles?: React.CSSProperties;
   isPreview?: boolean;
 }) {
-  const color = content?.color ?? DEFAULT_CONTENT.color!;
+  const color = readBarColor(content?.color);
   const height = content?.height ?? DEFAULT_CONTENT.height!;
-  const position = content?.position ?? DEFAULT_CONTENT.position!;
+  const position = readPosition(content?.position);
   const showPercentage = content?.showPercentage ?? false;
-  const backgroundColor = content?.backgroundColor ?? 'transparent';
+  const backgroundColor = readBackgroundColor(content?.backgroundColor);
 
   const scrollProgress = useScrollProgress(!!isPreview);
   const fillWidth = isPreview ? scrollProgress : EDITOR_PREVIEW_FILL;
@@ -177,7 +212,7 @@ function PostProgressRenderer({
           Reading Progress Bar
         </span>
         <span className="text-xs text-npb-text-muted italic">
-          Fixed to viewport when published
+          {SAMPLE_HINT}
         </span>
       </div>
     </BlockShell>
@@ -230,58 +265,55 @@ function PostProgressSettings({
     serializeContent: defaultSerializeContent,
   });
 
+  const barIsTheme = barFollowsTheme(content?.color);
+  const backgroundIsTheme = backgroundFollowsTheme(content?.backgroundColor);
+
   return (
     <div className="space-y-4">
-      {/* Appearance */}
+      <p className="npb-settings-hint-muted text-xs">{SAMPLE_HINT}</p>
+
       <CollapsibleCard title="Appearance" icon={Palette} defaultOpen>
         <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="progress-color">Bar Color</SettingsLabel>
-            <div className="flex items-center gap-2 mt-1">
-              <input
-                id="progress-color"
-                type="color"
-                value={content?.color ?? DEFAULT_CONTENT.color}
-                onChange={(e) => updateContent({ color: e.target.value })}
-                className="h-9 w-9 cursor-pointer rounded border border-npb-border-default p-0.5"
-              />
-              <Input
-                value={content?.color ?? DEFAULT_CONTENT.color}
-                onChange={(e) => updateContent({ color: e.target.value })}
-                className="h-9 text-sm flex-1"
-                placeholder="#3b82f6"
-              />
-            </div>
+          <div className="space-y-2">
+            <SettingsLabel>Bar</SettingsLabel>
+            <ColorField
+              ariaLabel="Bar"
+              targets={[
+                {
+                  property: 'color',
+                  label: 'Bar',
+                  styleValue: barIsTheme ? undefined : (content?.color ?? undefined),
+                  followsTheme: barIsTheme,
+                },
+              ]}
+              onChange={(entry) => {
+                const next = pickColorStyle(entry);
+                if (next) updateContent({ color: next });
+              }}
+              onTheme={() => updateContent({ color: null })}
+            />
           </div>
 
-          <div>
-            <SettingsLabel htmlFor="progress-bg">Background Color</SettingsLabel>
-            <div className="flex items-center gap-2 mt-1">
-              <input
-                id="progress-bg"
-                type="color"
-                value={
-                  content?.backgroundColor === 'transparent'
-                    ? '#ffffff'
-                    : (content?.backgroundColor ?? '#ffffff')
-                }
-                onChange={(e) =>
-                  updateContent({ backgroundColor: e.target.value })
-                }
-                className="h-9 w-9 cursor-pointer rounded border border-npb-border-default p-0.5"
-              />
-              <Input
-                value={
-                  content?.backgroundColor ??
-                  DEFAULT_CONTENT.backgroundColor
-                }
-                onChange={(e) =>
-                  updateContent({ backgroundColor: e.target.value })
-                }
-                className="h-9 text-sm flex-1"
-                placeholder="transparent"
-              />
-            </div>
+          <div className="space-y-2">
+            <SettingsLabel>Background</SettingsLabel>
+            <ColorField
+              ariaLabel="Background"
+              targets={[
+                {
+                  property: 'backgroundColor',
+                  label: 'Background',
+                  styleValue: backgroundIsTheme
+                    ? undefined
+                    : (content?.backgroundColor ?? undefined),
+                  followsTheme: backgroundIsTheme,
+                },
+              ]}
+              onChange={(entry) => {
+                const next = pickColorStyle(entry);
+                if (next) updateContent({ backgroundColor: next });
+              }}
+              onTheme={() => updateContent({ backgroundColor: null })}
+            />
           </div>
 
           <div>
@@ -302,27 +334,14 @@ function PostProgressSettings({
         </div>
       </CollapsibleCard>
 
-      {/* Behavior */}
-      <CollapsibleCard title="Behavior" icon={Settings} defaultOpen={false}>
+      <CollapsibleCard title="Placement" icon={Settings} defaultOpen={false}>
         <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="progress-position">Position</SettingsLabel>
-            <Select
-              value={content?.position ?? DEFAULT_CONTENT.position}
-              onValueChange={(val) =>
-                updateContent({ position: val as 'top' | 'bottom' })
-              }>
-              <SelectTrigger
-                id="progress-position"
-                className="mt-1 h-9 text-sm">
-                <SelectValue placeholder="Select position" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="top">Top of viewport</SelectItem>
-                <SelectItem value="bottom">Bottom of viewport</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <SettingsChipGroup
+            label="Position"
+            options={POSITION_OPTIONS}
+            value={readPosition(content?.position)}
+            onChange={(value) => updateContent({ position: readPosition(value) })}
+          />
 
           <div className="flex items-center justify-between">
             <SettingsLabel htmlFor="progress-percentage">

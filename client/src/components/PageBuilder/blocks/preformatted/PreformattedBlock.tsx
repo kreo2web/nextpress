@@ -1,11 +1,8 @@
 import React from "react";
 import type { BlockConfig } from "@shared/schema-types";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { CollapsibleCard } from "@/components/ui/collapsible-card";
-import { SettingsLabel } from '../../shared';
-import { UnitValueField } from "../../unit-value-field";
-import { FileText as PreformattedIcon, Settings } from "lucide-react";
+import { SettingsLabel, SettingsSection } from '../../shared';
+import { FileText as PreformattedIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { InlineTextEditor } from "../shared/inline-text-editor";
@@ -44,6 +41,7 @@ function PreformattedRenderer({
 }: PreformattedRendererProps) {
   const textContent = content?.content || '';
 
+  const savedMaxWidth = styles?.maxWidth;
   const preStyle: React.CSSProperties = {
     fontFamily: 'Monaco, Consolas, "Andale Mono", "DejaVu Sans Mono", monospace',
     fontSize: '14px',
@@ -56,6 +54,10 @@ function PreformattedRenderer({
     borderRadius: '4px',
     margin: '1em 0',
     ...styles,
+    maxWidth:
+      typeof savedMaxWidth === "string" && savedMaxWidth.trim() !== ""
+        ? savedMaxWidth
+        : "100%",
   };
 
   if (isEditing) {
@@ -105,97 +107,33 @@ interface PreformattedSettingsProps {
 }
 
 function PreformattedSettings({ block, onUpdate }: PreformattedSettingsProps) {
-  const { content, styles, updateContent, updateStyles } = useSettingsState<PreformattedContent>({
+  const { content, updateContent } = useSettingsState<PreformattedContent>({
     block,
     onUpdate,
     defaultContent: DEFAULT_CONTENT,
   });
 
   return (
-    <div className="space-y-4">
-      {/* Content Card */}
-      <CollapsibleCard title="Content" icon={PreformattedIcon} defaultOpen={true}>
-        <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="preformatted-content">Preformatted Text</SettingsLabel>
-            <Textarea
-              id="preformatted-content"
-              value={content?.content || ''}
-              onChange={(e) => updateContent({ content: e.target.value })}
-              placeholder="Enter your preformatted text here..."
-              rows={8}
-              className="mt-1"
-              style={{
-                fontFamily: 'Monaco, Consolas, "Andale Mono", "DejaVu Sans Mono", monospace',
-                fontSize: '14px',
-              }}
-            />
-            <p className="text-sm text-npb-text-muted mt-2">
-              This text will preserve whitespace and line breaks exactly as you type them.
-            </p>
-          </div>
-        </div>
-      </CollapsibleCard>
-
-      {/* Settings Card */}
-      <CollapsibleCard title="Settings" icon={Settings} defaultOpen={false}>
-        <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="preformatted-bg-color">Background Color</SettingsLabel>
-            <div className="flex gap-3 mt-1">
-              <Input
-                id="preformatted-bg-color"
-                type="color"
-                value={styles?.backgroundColor || "#f8f9fa"}
-                onChange={(e) => updateStyles({ backgroundColor: e.target.value })}
-                className="w-12 h-9 p-1 border-npb-border-default"
-              />
-              <Input
-                value={styles?.backgroundColor || "#f8f9fa"}
-                onChange={(e) => updateStyles({ backgroundColor: e.target.value })}
-                placeholder="#f8f9fa"
-                className="flex-1 h-9 text-sm"
-              />
-            </div>
-          </div>
-
-          <div>
-            <SettingsLabel htmlFor="preformatted-text-color">Text Color</SettingsLabel>
-            <div className="flex gap-3 mt-1">
-              <Input
-                id="preformatted-text-color"
-                type="color"
-                value={styles?.color || "#000000"}
-                onChange={(e) => updateStyles({ color: e.target.value })}
-                className="w-12 h-9 p-1 border-npb-border-default"
-              />
-              <Input
-                value={styles?.color || "#000000"}
-                onChange={(e) => updateStyles({ color: e.target.value })}
-                placeholder="#000000"
-                className="flex-1 h-9 text-sm"
-              />
-            </div>
-          </div>
-
-          <div>
-            <UnitValueField
-              id="preformatted-font-size"
-              label="Font Size"
-              segmentLabel={null}
-              value={
-                styles?.fontSize !== undefined && styles.fontSize !== null
-                  ? String(styles.fontSize)
-                  : undefined
-              }
-              onChange={(next) => updateStyles({ fontSize: next })}
-              placeholder="14px"
-              ariaLabel="Font size"
-            />
-          </div>
-        </div>
-      </CollapsibleCard>
-    </div>
+    <SettingsSection>
+      <div>
+        <SettingsLabel htmlFor="preformatted-content">Preformatted Text</SettingsLabel>
+        <Textarea
+          id="preformatted-content"
+          value={content?.content || ''}
+          onChange={(e) => updateContent({ content: e.target.value })}
+          placeholder="Enter your preformatted text here..."
+          rows={8}
+          className="mt-1"
+          style={{
+            fontFamily: 'Monaco, Consolas, "Andale Mono", "DejaVu Sans Mono", monospace',
+            fontSize: '14px',
+          }}
+        />
+        <p className="text-sm text-npb-text-muted mt-2">
+          This text will preserve whitespace and line breaks exactly as you type them.
+        </p>
+      </div>
+    </SettingsSection>
   );
 }
 

@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { ListOrdered, Settings, Type } from 'lucide-react';
+import { ListOrdered } from 'lucide-react';
 import type { BlockDefinition, BlockComponentProps } from '../types.ts';
 import type { BlockConfig } from '@shared/schema-types';
-import { SettingsLabel } from '../../shared';
+import { useBlockAccessors, type BlockStateAccessor } from '../blockStateRegistry';
+import { SettingsLabel, SettingsSection } from '../../shared';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { CollapsibleCard } from '@/components/ui/collapsible-card';
 import {
   Select,
   SelectContent,
@@ -17,6 +17,7 @@ import { useSettingsState } from '../useSettingsState';
 import { useBlockState } from '../useBlockState';
 import { BlockShell } from '../shared/block-shell';
 import { defaultParseContent, defaultSerializeContent } from '../createBlockDefinition';
+import { usePageHeadings, type HeadingEntry } from './use-page-headings';
 
 // ============================================================================
 // TYPES
@@ -29,10 +30,15 @@ export type PostTocContent = {
   className?: string;
 };
 
-type HeadingEntry = {
-  id: string;
-  text: string;
-  level: number;
+type CoreHeadingContent = {
+  value?: string;
+  level?: number;
+  anchor?: string;
+};
+
+type PostTitleHeadingContent = {
+  text?: string;
+  tag?: string;
 };
 
 // ============================================================================
@@ -47,51 +53,62 @@ const DEFAULT_CONTENT: PostTocContent = {
 };
 
 const DEPTH_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
-
-/** Sample entries shown in the editor when live headings aren't available. */
-const PLACEHOLDER_HEADINGS: HeadingEntry[] = [
-  { id: 'intro', text: 'Introduction', level: 1 },
-  { id: 'getting-started', text: 'Getting Started', level: 2 },
-  { id: 'prerequisites', text: 'Prerequisites', level: 3 },
-  { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'conclusion', text: 'Conclusion', level: 1 },
-];
+const HEADING_BLOCK = 'core/heading';
+const TITLE_BLOCK = 'post/title';
+const EMPTY_HEADINGS_COPY = 'Headings on this page show up here.';
 
 // ============================================================================
 // UTILITIES
 // ============================================================================
 
-/** Build a heading selector string like "h1, h2, h3" up to maxDepth. */
-function buildHeadingSelector(maxDepth: number): string {
-  return Array.from({ length: maxDepth }, (_, i) => `h${i + 1}`).join(', ');
+function stripTags(value: string): string {
+  return value.replace(/<[^>]+>/g, '').trim();
 }
 
-/**
- * Scan the page DOM for heading elements and return structured entries.
- * Filters to the given maxDepth and derives anchor IDs from the element id
- * or text content.
- */
-function collectPageHeadings(maxDepth: number): HeadingEntry[] {
-  const selector = buildHeadingSelector(maxDepth);
-  const nodes = document.querySelectorAll(selector);
-  const entries: HeadingEntry[] = [];
+function slugFromText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
 
-  nodes.forEach((node) => {
-    const text = (node.textContent || '').trim();
-    if (!text) return;
+function levelFromTitleTag(tag: string | undefined): number {
+  if (tag === 'h2') return 2;
+  if (tag === 'h3') return 3;
+  return 1;
+}
 
-    const level = Number.parseInt(node.tagName.charAt(1), 10);
-    const id =
-      node.id ||
-      text
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
+function headingFromAccessor(accessor: BlockStateAccessor): HeadingEntry | null {
+  const name = accessor.getFullState().name;
+  const content = accessor.getContent();
+  if (!content || typeof content !== 'object') return null;
 
-    entries.push({ id, text, level });
-  });
+  if (name === HEADING_BLOCK) {
+    const heading = content as CoreHeadingContent;
+    const text = stripTags(heading.value ?? '');
+    if (!text) return null;
+    const level = heading.level || 2;
+    return { id: heading.anchor || slugFromText(text), text, level };
+  }
 
-  return entries;
+  if (name === TITLE_BLOCK) {
+    const title = content as PostTitleHeadingContent;
+    const text = stripTags(title.text ?? '');
+    if (!text) return null;
+    return { id: slugFromText(text), text, level: levelFromTitleTag(title.tag) };
+  }
+
+  return null;
+}
+
+/** Live heading blocks from the editor registry, filtered by maxDepth. */
+function collectEditorHeadings(
+  accessors: BlockStateAccessor[],
+  maxDepth: number,
+): HeadingEntry[] {
+  return accessors
+    .map(headingFromAccessor)
+    .filter((entry): entry is HeadingEntry => entry !== null && entry.level <= maxDepth);
 }
 
 /**
@@ -102,9 +119,7 @@ function computeNumbering(entries: HeadingEntry[]): string[] {
   const counters: number[] = [];
   return entries.map((entry) => {
     const depth = entry.level;
-    // Grow counters array to match depth
     while (counters.length < depth) counters.push(0);
-    // Shrink counters when going back up to a shallower level
     counters.length = depth;
     counters[depth - 1] = (counters[depth - 1] || 0) + 1;
     return counters.join('.');
@@ -119,38 +134,28 @@ function indentForLevel(level: number): string {
   return `${(level - 1) * 1}rem`;
 }
 
+function depthLabel(depth: number): string {
+  return depth > 1 ? `H1 to H${depth}` : 'H1 only';
+}
+
 // ============================================================================
 // RENDERER
 // ============================================================================
 
-interface PostTocRendererProps {
+type PostTocRendererProps = {
   content: PostTocContent;
   styles?: React.CSSProperties;
   isPreview?: boolean;
-}
+  entries: HeadingEntry[];
+};
 
 /**
  * Pure presentational renderer for the Table of Contents block.
- * In preview mode, scans the live DOM for headings.
- * In editor mode, renders static placeholder entries.
+ * Headings are passed in — this component never scans or calls useEffect.
  */
-function PostTocRenderer({ content, styles, isPreview }: PostTocRendererProps) {
-  const [headings, setHeadings] = React.useState<HeadingEntry[]>([]);
-  const maxDepth = content?.maxDepth ?? 3;
+function PostTocRenderer({ content, styles, isPreview, entries }: PostTocRendererProps) {
   const ordered = content?.ordered ?? false;
   const title = content?.title ?? '';
-
-  // In preview mode, scan the DOM for real headings
-  React.useEffect(() => {
-    if (!isPreview) return;
-
-    const entries = collectPageHeadings(maxDepth);
-    setHeadings(entries);
-  }, [isPreview, maxDepth]);
-
-  const entries = isPreview
-    ? headings
-    : PLACEHOLDER_HEADINGS.filter((h) => h.level <= maxDepth);
   const numbering = computeNumbering(entries);
   const ListTag = ordered ? 'ol' : 'ul';
 
@@ -174,8 +179,8 @@ function PostTocRenderer({ content, styles, isPreview }: PostTocRendererProps) {
       )}
 
       {entries.length === 0 ? (
-        <p className="text-sm text-npb-text-muted italic">
-          No headings found.
+        <p className="text-sm text-npb-text-muted">
+          {EMPTY_HEADINGS_COPY}
         </p>
       ) : (
         <ListTag style={{ listStyle: 'none', margin: 0, padding: 0 }}>
@@ -207,6 +212,35 @@ function PostTocRenderer({ content, styles, isPreview }: PostTocRendererProps) {
   );
 }
 
+function PostTocEditor({
+  content,
+  styles,
+}: {
+  content: PostTocContent;
+  styles?: React.CSSProperties;
+}) {
+  const accessors = useBlockAccessors();
+  const maxDepth = content?.maxDepth ?? 3;
+  const entries = collectEditorHeadings(accessors, maxDepth);
+  return (
+    <PostTocRenderer content={content} styles={styles} entries={entries} />
+  );
+}
+
+function PostTocPreview({
+  content,
+  styles,
+}: {
+  content: PostTocContent;
+  styles?: React.CSSProperties;
+}) {
+  const maxDepth = content?.maxDepth ?? 3;
+  const entries = usePageHeadings(maxDepth);
+  return (
+    <PostTocRenderer content={content} styles={styles} isPreview entries={entries} />
+  );
+}
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -223,24 +257,26 @@ export function PostTocComponent({
     parseContent: defaultParseContent,
     serializeContent: defaultSerializeContent,
   });
+  const maxDepth = content?.maxDepth ?? 3;
 
-  return (
-    <PostTocRenderer content={content} styles={styles} isPreview={isPreview} />
-  );
+  if (isPreview) {
+    return <PostTocPreview key={maxDepth} content={content} styles={styles} />;
+  }
+
+  return <PostTocEditor content={content} styles={styles} />;
 }
 
 // ============================================================================
 // SETTINGS COMPONENT
 // ============================================================================
 
-interface PostTocSettingsProps {
+type PostTocSettingsProps = {
   block: BlockConfig;
   onUpdate?: (updates: Partial<BlockConfig>) => void;
-}
+};
 
 /**
- * Sidebar settings panel for the Table of Contents block.
- * Exposes title, max heading depth, ordered/unordered toggle, and CSS class.
+ * Sidebar settings for the Table of Contents: title, heading depth, numbered list.
  */
 function PostTocSettings({ block, onUpdate }: PostTocSettingsProps) {
   const { content, updateContent } = useSettingsState<PostTocContent>({
@@ -252,56 +288,44 @@ function PostTocSettings({ block, onUpdate }: PostTocSettingsProps) {
   });
 
   return (
-    <div className="space-y-4">
-      {/* Content Section */}
-      <CollapsibleCard title="Content" icon={Type} defaultOpen>
-        <div>
-          <SettingsLabel htmlFor="toc-title">Title</SettingsLabel>
-          <Input
-            id="toc-title"
-            aria-label="TOC title"
-            value={content?.title ?? ''}
-            onChange={(e) => updateContent({ title: e.target.value })}
-            placeholder='e.g. "Table of Contents"'
-            className="mt-1 h-9 text-sm"
-          />
-        </div>
-      </CollapsibleCard>
-
-      {/* Display Settings */}
-      <CollapsibleCard title="Settings" icon={Settings} defaultOpen={false}>
-        <div className="space-y-4">
-          {/* Max Depth */}
-          <div>
-            <SettingsLabel htmlFor="toc-depth">Max Heading Depth</SettingsLabel>
-            <Select
-              value={String(content?.maxDepth ?? 3)}
-              onValueChange={(val) => updateContent({ maxDepth: Number(val) })}>
-              <SelectTrigger id="toc-depth" className="mt-1 h-9 text-sm">
-                <SelectValue placeholder="Select depth" />
-              </SelectTrigger>
-              <SelectContent>
-                {DEPTH_OPTIONS.map((depth) => (
-                  <SelectItem key={depth} value={String(depth)}>
-                    H1{depth > 1 ? ` – H${depth}` : ' only'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Ordered Toggle */}
-          <div className="flex items-center justify-between">
-            <SettingsLabel htmlFor="toc-ordered">Numbered List</SettingsLabel>
-            <Switch
-              id="toc-ordered"
-              checked={content?.ordered ?? false}
-              onCheckedChange={(checked) => updateContent({ ordered: checked })}
-            />
-          </div>
-        </div>
-      </CollapsibleCard>
-    </div>
+    <SettingsSection>
+      <div>
+        <SettingsLabel htmlFor="toc-title">Title</SettingsLabel>
+        <Input
+          id="toc-title"
+          aria-label="Title"
+          value={content?.title ?? ''}
+          onChange={(e) => updateContent({ title: e.target.value })}
+          placeholder='e.g. "Table of Contents"'
+          className="mt-1 h-9 text-sm"
+        />
+      </div>
+      <div>
+        <SettingsLabel htmlFor="toc-depth">Max Heading Depth</SettingsLabel>
+        <Select
+          value={String(content?.maxDepth ?? 3)}
+          onValueChange={(val) => updateContent({ maxDepth: Number(val) })}>
+          <SelectTrigger id="toc-depth" className="mt-1 h-9 text-sm">
+            <SelectValue placeholder="Select depth" />
+          </SelectTrigger>
+          <SelectContent>
+            {DEPTH_OPTIONS.map((depth) => (
+              <SelectItem key={depth} value={String(depth)}>
+                {depthLabel(depth)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center justify-between">
+        <SettingsLabel htmlFor="toc-ordered">Numbered List</SettingsLabel>
+        <Switch
+          id="toc-ordered"
+          checked={content?.ordered ?? false}
+          onCheckedChange={(checked) => updateContent({ ordered: checked })}
+        />
+      </div>
+    </SettingsSection>
   );
 }
 
@@ -311,9 +335,8 @@ function PostTocSettings({ block, onUpdate }: PostTocSettingsProps) {
 
 /**
  * Post Table of Contents block definition for the PageBuilder.
- * Auto-generates a navigable TOC from heading elements on the page.
- * In preview mode it scans the DOM for headings; in editor mode it
- * displays sample placeholder entries.
+ * Editor reads heading blocks from the live registry; preview scans the page
+ * after paint via usePageHeadings (hook file, not this component).
  */
 const PostTocBlock: BlockDefinition = {
   id: 'post/toc',

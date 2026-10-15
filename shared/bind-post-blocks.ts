@@ -131,6 +131,7 @@ function bindOneBlock({
 				alt: typeof data.alt === "string" ? data.alt : "Featured image",
 				caption: typeof data.caption === "string" ? data.caption : undefined,
 				objectFit: data.objectFit,
+				aspectRatio: data.aspectRatio,
 				mediaType: "image",
 			} as BlockContent,
 		};

@@ -1,16 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import type { BlockConfig, TokenEntry } from "@shared/schema-types";
-import { Label } from "@/components/ui/label";
+import type { DimensionPreset } from "@shared/dimension-presets";
 import { Input } from "@/components/ui/input";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Link as LinkIcon, Smile, Type } from "lucide-react";
 import { useSettingsState } from "../useSettingsState";
 import { IconRenderer } from "../shared/IconRenderer";
 import { IconPickerButton } from "../../IconPicker/IconPickerButton";
+import { SettingsLabel } from "../../shared";
+import { DimensionPresetField } from "../../dimension-preset-field";
 import {
   type IconReference,
   formatIconReferenceLabel,
 } from "@/lib/icon-indexes";
+import { isNumericLengthUnit } from "@/lib/icon-indexes/types";
 import {
   NPB_ICON_REFERENCE_ROW_MAX_CHARS,
   truncateWithEllipsis,
@@ -41,6 +44,13 @@ const PICTURE_COLOUR_OPTIONS = [
   { value: "tint", label: "Icon colour" },
 ];
 
+const ICON_SIZE_PRESETS: readonly DimensionPreset[] = [
+  { value: "16px", label: "Small" },
+  { value: "24px", label: "Medium" },
+  { value: "32px", label: "Large" },
+  { value: "48px", label: "Extra large" },
+];
+
 function settingsChipClass(selected: boolean): string {
   return cn(
     "npb-settings-chip flex min-h-10 w-full min-w-0 items-center justify-center px-2 text-xs font-medium focus:outline-none",
@@ -60,6 +70,7 @@ export type IconBlockSettingsProps = {
  */
 export function IconBlockSettings({ block, onUpdate }: IconBlockSettingsProps) {
   const { accessor, rerender } = useSettingsState({ block, onUpdate });
+  const [sizeHint, setSizeHint] = useState("");
 
   const content = accessor
     ? (accessor.getContent() as unknown as IconContent)
@@ -179,14 +190,31 @@ export function IconBlockSettings({ block, onUpdate }: IconBlockSettingsProps) {
   const strokeValue = `${currentIcon.strokeWidth ?? 2}${currentIcon.strokeWidthUnit ?? "px"}`;
   const savedStyles = (styles ?? {}) as Record<string, unknown>;
 
+  const commitIconSize = (next: string | undefined): void => {
+    const parsed = parseUnitValue({ value: next, units: SIZE_UNITS });
+    const n = parsed.kind === "amount" ? Number(parsed.amount) : NaN;
+    if (parsed.kind !== "amount" || !Number.isFinite(n)) {
+      setSizeHint("Use a number, like 24px.");
+      return;
+    }
+    const candidate = parsed.unit || currentIcon.sizeUnit || "px";
+    const sizeUnit = isNumericLengthUnit(candidate) ? candidate : "px";
+    setSizeHint("");
+    updateContent({
+      icon: {
+        ...currentIcon,
+        size: Math.min(200, Math.max(0.25, n)),
+        sizeUnit,
+      },
+    });
+  };
+
   return (
     <div className="space-y-4">
       <CollapsibleCard title="Icon" icon={Smile} defaultOpen={true}>
         <div className="space-y-4">
           <div>
-            <Label className="npb-settings-label text-sm font-medium">
-              Selected Icon
-            </Label>
+            <SettingsLabel>Selected Icon</SettingsLabel>
             <div className="mt-2 flex min-w-0 items-center gap-3">
               <div className="npb-settings-well flex h-10 w-10 shrink-0 items-center justify-center rounded-none border p-0">
                 <IconRenderer icon={currentIcon} size={20} />
@@ -215,24 +243,18 @@ export function IconBlockSettings({ block, onUpdate }: IconBlockSettingsProps) {
 
       <CollapsibleCard title="Appearance" icon={Type} defaultOpen={false}>
         <div className="space-y-4">
-          <UnitValueField
-            id="icon-size"
-            label="Icon size"
-            value={sizeValue}
-            segmentLabel={null}
-            onChange={(next) => {
-              const parsed = parseUnitValue({ value: next, units: SIZE_UNITS });
-              const n = parsed.kind === "amount" ? Number(parsed.amount) : NaN;
-              if (!Number.isFinite(n) || parsed.kind !== "amount") return;
-              updateContent({
-                icon: {
-                  ...currentIcon,
-                  size: Math.min(200, Math.max(0.25, n)),
-                  sizeUnit: (parsed.unit || currentIcon.sizeUnit || "px") as IconReference["sizeUnit"],
-                },
-              });
-            }}
-          />
+          <div>
+            <DimensionPresetField
+              label="Size"
+              presets={ICON_SIZE_PRESETS}
+              value={sizeValue}
+              defaultValue="24px"
+              onChange={commitIconSize}
+            />
+            {sizeHint ? (
+              <p className="text-npb-text-muted text-xs">{sizeHint}</p>
+            ) : null}
+          </div>
 
           {ICON_FILE_SETS.has(currentIcon.iconSet) && currentIcon.url ? (
             <div className="space-y-2">
@@ -251,7 +273,7 @@ export function IconBlockSettings({ block, onUpdate }: IconBlockSettingsProps) {
           ) : null}
 
           <div className="space-y-2">
-            <Label className="npb-settings-label text-sm font-medium">Colors</Label>
+            <SettingsLabel>Colors</SettingsLabel>
             <ColorField
               ariaLabel="Icon color"
               defaultProperty="color"
@@ -329,11 +351,7 @@ export function IconBlockSettings({ block, onUpdate }: IconBlockSettingsProps) {
           />
 
           <div>
-            <Label
-              htmlFor="icon-label"
-              className="npb-settings-label text-sm font-medium">
-              Accessible label
-            </Label>
+            <SettingsLabel htmlFor="icon-label">Accessible label</SettingsLabel>
             <Input
               id="icon-label"
               className="mt-2 text-sm"

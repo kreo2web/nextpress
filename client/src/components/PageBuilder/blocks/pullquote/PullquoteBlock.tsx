@@ -2,9 +2,8 @@ import React from "react";
 import type { BlockConfig } from "@shared/schema-types";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { CollapsibleCard } from "@/components/ui/collapsible-card";
-import { SettingsLabel } from '../../shared';
-import { Quote as QuoteIcon, Settings } from "lucide-react";
+import { SettingsLabel, SettingsSection } from '../../shared';
+import { Quote as QuoteIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { InlineTextEditor } from "../shared/inline-text-editor";
@@ -147,91 +146,36 @@ interface PullquoteSettingsProps {
 }
 
 function PullquoteSettings({ block, onUpdate }: PullquoteSettingsProps) {
-  const { content, styles, updateContent, updateStyles } = useSettingsState<PullquoteContent>({
+  const { content, updateContent } = useSettingsState<PullquoteContent>({
     block,
     onUpdate,
     defaultContent: DEFAULT_CONTENT,
   });
 
   return (
-    <div className="space-y-4">
-      {/* Content Card */}
-      <CollapsibleCard title="Content" icon={QuoteIcon} defaultOpen={true}>
-        <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="pullquote-content">Quote Content</SettingsLabel>
-            <Textarea
-              id="pullquote-content"
-              value={quotePlainText(content?.value || '')}
-              onChange={(e) => updateContent({ value: quoteHtmlFromPlain(e.target.value) })}
-              placeholder="Enter your quote here..."
-              rows={4}
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <SettingsLabel htmlFor="pullquote-citation">Citation</SettingsLabel>
-            <Input
-              id="pullquote-citation"
-              value={content?.citation || ''}
-              onChange={(e) => updateContent({ citation: e.target.value })}
-              placeholder="Quote author or source"
-              className="mt-1 h-9"
-            />
-          </div>
-        </div>
-      </CollapsibleCard>
-
-      {/* Settings Card */}
-      <CollapsibleCard title="Settings" icon={Settings} defaultOpen={false}>
-        <div className="space-y-4">
-          <p className="text-xs text-npb-text-muted">
-            Text alignment is in the Style tab.
-          </p>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <SettingsLabel htmlFor="pullquote-bg-color">Background Color</SettingsLabel>
-              <div className="flex gap-3 mt-1">
-                <Input
-                  id="pullquote-bg-color"
-                  type="color"
-                  value={styles?.backgroundColor || "#f8f9fa"}
-                  onChange={(e) => updateStyles({ backgroundColor: e.target.value })}
-                  className="w-12 h-9 p-1 border-npb-border-default"
-                />
-                <Input
-                  value={styles?.backgroundColor || "#f8f9fa"}
-                  onChange={(e) => updateStyles({ backgroundColor: e.target.value })}
-                  placeholder="#f8f9fa"
-                  className="flex-1 h-9 text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <SettingsLabel htmlFor="pullquote-text-color">Text Color</SettingsLabel>
-              <div className="flex gap-3 mt-1">
-                <Input
-                  id="pullquote-text-color"
-                  type="color"
-                  value={styles?.color || "#000000"}
-                  onChange={(e) => updateStyles({ color: e.target.value })}
-                  className="w-12 h-9 p-1 border-npb-border-default"
-                />
-                <Input
-                  value={styles?.color || "#000000"}
-                  onChange={(e) => updateStyles({ color: e.target.value })}
-                  placeholder="#000000"
-                  className="flex-1 h-9 text-sm"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </CollapsibleCard>
-    </div>
+    <SettingsSection>
+      <div>
+        <SettingsLabel htmlFor="pullquote-content">Quote</SettingsLabel>
+        <Textarea
+          id="pullquote-content"
+          value={quotePlainText(content?.value || '')}
+          onChange={(e) => updateContent({ value: quoteHtmlFromPlain(e.target.value) })}
+          placeholder="Enter your quote here..."
+          rows={4}
+          className="mt-1"
+        />
+      </div>
+      <div>
+        <SettingsLabel htmlFor="pullquote-citation">Citation</SettingsLabel>
+        <Input
+          id="pullquote-citation"
+          value={content?.citation || ''}
+          onChange={(e) => updateContent({ citation: e.target.value })}
+          placeholder="Quote author or source"
+          className="mt-1 h-9"
+        />
+      </div>
+    </SettingsSection>
   );
 }
 

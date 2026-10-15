@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { JSX } from "react";
 import type { BlockConfig } from "@shared/schema-types";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { SettingsLabel } from '../../shared';
-import { Settings, List as ListIcon } from "lucide-react";
+import { List as ListIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { InlineTextEditor } from "../shared/inline-text-editor";
 import { useSettingsState } from "../useSettingsState";
+import { SettingsChipGroup } from "../../settings-chip-group";
 import { sanitizeHtml } from "../../utils";
 
 // ============================================================================
@@ -38,6 +39,83 @@ const DEFAULT_CONTENT: ListContent = {
   anchor: '',
   className: '',
 };
+
+const LIST_KIND_OPTIONS = [
+  { value: "unordered", label: "Bullets" },
+  { value: "ordered", label: "Numbers" },
+];
+
+/**
+ * WHY: Enter must keep a blank line while the field is focused. Saved HTML
+ * only stores non-empty items, so the field reads a draft until blur.
+ */
+function createListItemsDraft({
+  savedText,
+  draft,
+  setDraft,
+}: {
+  savedText: string;
+  draft: string | null;
+  setDraft: (next: string | null) => void;
+}): {
+  fieldValue: string;
+  onFocus: () => void;
+  onBlur: () => void;
+  onTextChange: (text: string) => string;
+} {
+  return {
+    fieldValue: draft ?? savedText,
+    onFocus: () => {
+      if (draft === null) setDraft(savedText);
+    },
+    onBlur: () => {
+      setDraft(null);
+    },
+    onTextChange: (text: string) => {
+      setDraft(text);
+      return text
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .map((line) => `<li>${sanitizeHtml(line)}</li>`)
+        .join("");
+    },
+  };
+}
+
+function readBulletStyle({ type }: { type?: string }): "disc" | "circle" | "square" {
+  if (type === "circle" || type === "square") return type;
+  return "disc";
+}
+
+function ListCanvasItemsEditor({
+  itemsText,
+  onUpdateContent,
+}: {
+  itemsText: string;
+  onUpdateContent?: (updates: Partial<ListContent>) => void;
+}): JSX.Element {
+  const [itemsDraft, setItemsDraft] = useState<string | null>(null);
+  const field = createListItemsDraft({
+    savedText: itemsText,
+    draft: itemsDraft,
+    setDraft: setItemsDraft,
+  });
+
+  return (
+    <InlineTextEditor
+      value={field.fieldValue}
+      onChange={(text) => {
+        onUpdateContent?.({ values: field.onTextChange(text), items: undefined });
+      }}
+      onFocus={field.onFocus}
+      onBlur={field.onBlur}
+      style={{ color: "inherit", fontSize: "inherit", lineHeight: "inherit" }}
+      multiline
+      placeholder={"List item 1\nList item 2\nList item 3"}
+    />
+  );
+}
 
 // ============================================================================
 // RENDERER
@@ -107,16 +185,9 @@ function ListRenderer({
         className={className}
         style={style}
       >
-        <InlineTextEditor
-          value={itemsText}
-          onChange={(text) => {
-            const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
-            const html = lines.map((l) => `<li>${sanitizeHtml(l)}</li>`).join('');
-            onUpdateContent?.({ values: html, items: undefined });
-          }}
-          style={{ color: 'inherit', fontSize: 'inherit', lineHeight: 'inherit' }}
-          multiline
-          placeholder={'List item 1\nList item 2\nList item 3'}
+        <ListCanvasItemsEditor
+          itemsText={itemsText}
+          onUpdateContent={onUpdateContent}
         />
       </BlockShell>
     );
@@ -157,6 +228,7 @@ function ListSettings({ block, onUpdate }: ListSettingsProps) {
     defaultContent: DEFAULT_CONTENT,
   });
 
+  const [itemsDraft, setItemsDraft] = useState<string | null>(null);
   const isOrdered = !!content?.ordered;
   const values: string = content?.values || '';
   // Provide a simple textarea UX: one line per list item
@@ -167,6 +239,11 @@ function ListSettings({ block, onUpdate }: ListSettingsProps) {
         .filter((line) => line.length > 0)
         .join('\n')
     : (content?.items as string[] | undefined)?.join('\n') || '';
+  const itemsField = createListItemsDraft({
+    savedText: itemsText,
+    draft: itemsDraft,
+    setDraft: setItemsDraft,
+  });
 
   return (
     <div className="space-y-4">
@@ -177,34 +254,24 @@ function ListSettings({ block, onUpdate }: ListSettingsProps) {
             id="list-items"
             aria-label="List items, one per line"
             className="h-36"
-            value={itemsText}
+            value={itemsField.fieldValue}
             onChange={(e) => {
-              const lines = e.target.value.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
-              const html = lines.map((l) => `<li>${sanitizeHtml(l)}</li>`).join('');
-              updateContent({ values: html });
+              updateContent({ values: itemsField.onTextChange(e.target.value) });
             }}
+            onFocus={itemsField.onFocus}
+            onBlur={itemsField.onBlur}
             placeholder={`List item 1\nList item 2\nList item 3`}
             rows={6}
           />
         </div>
-      </CollapsibleCard>
-      <CollapsibleCard title="List options" icon={Settings} defaultOpen={false}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <SettingsLabel htmlFor="list-type">List Type</SettingsLabel>
-            <Select
-              value={isOrdered ? 'ordered' : 'unordered'}
-              onValueChange={(value) => updateContent({ ordered: value === 'ordered' })}
-            >
-              <SelectTrigger id="list-type" className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unordered">Bulleted</SelectItem>
-                <SelectItem value="ordered">Numbered</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-4">
+          <SettingsChipGroup
+            label="List Type"
+            ariaLabel="List Type"
+            options={LIST_KIND_OPTIONS}
+            value={isOrdered ? "ordered" : "unordered"}
+            onChange={(value) => updateContent({ ordered: value === "ordered" })}
+          />
           {isOrdered ? (
             <div className="space-y-2">
               <SettingsLabel htmlFor="list-start">Start</SettingsLabel>
@@ -222,17 +289,18 @@ function ListSettings({ block, onUpdate }: ListSettingsProps) {
             <div className="space-y-2">
               <SettingsLabel htmlFor="list-type-unordered">Bullet Style</SettingsLabel>
               <Select
-                value={content?.type ?? 'default'}
-                onValueChange={(value) => updateContent({ type: value === 'default' ? undefined : value })}
+                value={readBulletStyle({ type: content?.type })}
+                onValueChange={(value) =>
+                  updateContent({ type: value === "disc" ? undefined : value })
+                }
               >
                 <SelectTrigger id="list-type-unordered" className="h-9">
-                  <SelectValue placeholder="Default (disc)" />
+                  <SelectValue placeholder="Dot" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="default">Default (disc)</SelectItem>
-                  <SelectItem value="disc">disc</SelectItem>
-                  <SelectItem value="circle">circle</SelectItem>
-                  <SelectItem value="square">square</SelectItem>
+                  <SelectItem value="disc">Dot</SelectItem>
+                  <SelectItem value="circle">Circle</SelectItem>
+                  <SelectItem value="square">Square</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -71,7 +71,11 @@ function FormCanvas({ hostBlock, content, isPreview, onNestedBlockChange }: Form
 					<span className="font-normal">— what visitors send appears in Forms.</span>
 				</p>
 			)}
-			<ContainerChildren block={hostBlock} isPreview={isPreview ?? false} onBlockChange={onNestedBlockChange} />
+			{Array.isArray(hostBlock.children) && hostBlock.children.length > 0 ? (
+				<ContainerChildren block={hostBlock} isPreview={isPreview ?? false} onBlockChange={onNestedBlockChange} />
+			) : isPreview ? null : (
+				<p className="text-npb-text-muted text-sm">Add a field from Form fields.</p>
+			)}
 			<FormHiddenFields formId={hostBlock.id} />
 		</form>
 	);

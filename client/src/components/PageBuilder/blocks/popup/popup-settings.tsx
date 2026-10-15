@@ -27,9 +27,9 @@ import { useSettingsState } from "../useSettingsState";
 const POPUP_INNER_PADDING = "24px";
 
 const SIZE_OPTIONS = [
-	{ value: "sm", label: "SM" },
-	{ value: "md", label: "MD" },
-	{ value: "lg", label: "LG" },
+	{ value: "sm", label: "Small" },
+	{ value: "md", label: "Medium" },
+	{ value: "lg", label: "Large" },
 	{ value: "full", label: "Wide" },
 ];
 const ANIMATION_OPTIONS = [
@@ -88,7 +88,10 @@ export function PopupSettings({ block, onUpdate }: PopupSettingsProps) {
 	const copyLink = async () => {
 		try {
 			await navigator.clipboard.writeText(popupHref(content.slug));
-			toast({ title: "Link copied", description: `Use ${popupHref(content.slug)} on any button or link.` });
+			toast({
+				title: "Link copied",
+				description: "Paste it onto a button, or pick this popup under the button's link.",
+			});
 		} catch (error) {
 			console.error("[popup-settings] Copy failed", { blockId: block.id, error });
 			toast({ title: "Couldn't copy", description: "Select the link text and copy it by hand." });

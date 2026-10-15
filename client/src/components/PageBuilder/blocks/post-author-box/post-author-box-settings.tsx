@@ -113,6 +113,9 @@ export function PostAuthorBoxSettings({
                   placeholder="Author name"
                   className="mt-1 h-9 text-sm"
                 />
+                <p className="text-xs text-npb-text-muted mt-1">
+                  Updates when you leave the field.
+                </p>
               </div>
               <div>
                 <SettingsLabel htmlFor="author-bio">Bio</SettingsLabel>
@@ -158,7 +161,7 @@ export function PostAuthorBoxSettings({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="text-red-600 h-7 text-xs"
+                  className="h-9 text-xs"
                   onClick={() =>
                     updateContent({ name: '', avatar: '', bio: '' })
                   }>
@@ -175,9 +178,8 @@ export function PostAuthorBoxSettings({
               <SettingsLabel htmlFor="author-custom-name">Name</SettingsLabel>
               <Input
                 id="author-custom-name"
-                key={`author-custom-name-${content?.name ?? ''}`}
-                defaultValue={content?.name || ''}
-                onBlur={(e) => {
+                value={content?.name || ''}
+                onChange={(e) => {
                   updateContent({ name: e.target.value });
                 }}
                 placeholder="Author name"
@@ -188,9 +190,8 @@ export function PostAuthorBoxSettings({
               <SettingsLabel htmlFor="author-custom-bio">Bio</SettingsLabel>
               <Textarea
                 id="author-custom-bio"
-                key={`author-custom-bio-${content?.bio ?? ''}`}
-                defaultValue={content?.bio || ''}
-                onBlur={(e) => {
+                value={content?.bio || ''}
+                onChange={(e) => {
                   updateContent({ bio: e.target.value });
                 }}
                 placeholder="A short bio"

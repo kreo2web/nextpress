@@ -1,8 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import React from "react";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { TableBlock, CodeBlock } from "../../../renderer/react/advanced";
+import { TableSettings } from "../components/PageBuilder/blocks/table/table-settings";
+import CanvasTableBlock from "../components/PageBuilder/blocks/table/TableBlock";
 import type { BlockConfig } from "@shared/schema-types";
+
+const CanvasTable = CanvasTableBlock.component;
+
+if (!CanvasTable) {
+  throw new Error("Table block is missing canvas component");
+}
 
 describe("renderer/react/advanced TableBlock", () => {
   it("renders structured table data with headers and body rows properly", () => {
@@ -58,6 +66,54 @@ describe("renderer/react/advanced TableBlock", () => {
 
     const caption = container.querySelector("caption");
     expect(caption?.textContent).toBe("Menu Prices");
+
+    const wrap = table?.parentElement;
+    expect(wrap?.style.overflowX).toBe("auto");
+    expect(wrap?.style.maxWidth).toBe("100%");
+  });
+
+  it("scrolls a wide table inside a wrapper instead of stretching the page", () => {
+    const block: BlockConfig = {
+      id: "table-wide",
+      name: "core/table",
+      type: "block",
+      parentId: null,
+      content: {
+        kind: "structured",
+        data: {
+          head: [
+            {
+              cells: [
+                { content: "One", tag: "th" },
+                { content: "Two", tag: "th" },
+                { content: "Three", tag: "th" },
+                { content: "Four", tag: "th" },
+                { content: "Five", tag: "th" },
+                { content: "Six", tag: "th" },
+              ],
+            },
+          ],
+          body: [
+            {
+              cells: [
+                { content: "A", tag: "td" },
+                { content: "B", tag: "td" },
+                { content: "C", tag: "td" },
+                { content: "D", tag: "td" },
+                { content: "E", tag: "td" },
+                { content: "F", tag: "td" },
+              ],
+            },
+          ],
+        },
+      },
+    };
+
+    const { container } = render(<TableBlock {...block} />);
+    const table = container.querySelector("table");
+    expect(table).not.toBeNull();
+    expect(table?.parentElement?.style.overflowX).toBe("auto");
+    expect(table?.parentElement?.style.maxWidth).toBe("100%");
   });
 
   it("maintains backward compatibility with legacy headers and rows arrays", () => {
@@ -86,6 +142,59 @@ describe("renderer/react/advanced TableBlock", () => {
     const tds = container.querySelectorAll("tbody td");
     expect(tds.length).toBe(4);
     expect(tds[0].textContent).toBe("A1");
+  });
+});
+
+describe("table settings and canvas", () => {
+  function createEditorTableBlock(): BlockConfig {
+    return {
+      id: "test-table",
+      name: "core/table",
+      type: "block",
+      parentId: null,
+      label: "Table",
+      content: {
+        kind: "structured",
+        data: {
+          head: [{ cells: [{ content: "Header 1", tag: "th" }] }],
+          body: [
+            { cells: [{ content: "Cell 1", tag: "td" }] },
+            { cells: [{ content: "Cell 2", tag: "td" }] },
+          ],
+          foot: [],
+          compact: false,
+        },
+      },
+      styles: {},
+      children: [],
+      settings: {},
+    };
+  }
+
+  it("renames cards, keeps Cells Data, and uses a named ghost row delete", () => {
+    render(<TableSettings block={createEditorTableBlock()} onUpdate={vi.fn()} />);
+
+    expect(screen.queryByText("Table Layout")).not.toBeInTheDocument();
+    expect(screen.queryByText("Styles & Options")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rows and columns" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Look" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cells Data" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Compact padding" })).toBeInTheDocument();
+
+    const remove = screen.getByRole("button", { name: "Remove row 1" });
+    expect(remove).toHaveClass("h-9", "w-9");
+    expect(remove.className).not.toMatch(/text-red-600/);
+    expect(remove.className).not.toMatch(/status-error/);
+    expect(screen.getByRole("button", { name: "Remove row 2" })).toBeInTheDocument();
+  });
+
+  it("wraps the canvas table so it can scroll sideways", () => {
+    const { container } = render(
+      <CanvasTable value={createEditorTableBlock()} onChange={vi.fn()} />,
+    );
+    const table = container.querySelector("table");
+    expect(table).not.toBeNull();
+    expect(table?.parentElement).toHaveClass("overflow-x-auto", "max-w-full");
   });
 });
 
@@ -135,5 +244,53 @@ describe("renderer/react/advanced CodeBlock", () => {
     const copyBtn = container.querySelector("button");
     expect(copyBtn).not.toBeNull();
     expect(copyBtn?.textContent).toContain("Copy");
+  });
+
+  it("scrolls long unwrapped lines inside the pre and keeps max-width 100%", () => {
+    const block: BlockConfig = {
+      id: "code-nowrap",
+      name: "core/code",
+      type: "block",
+      parentId: null,
+      content: {
+        kind: "structured",
+        data: {
+          content: "const a = 1;",
+          language: "javascript",
+          wrapLines: false,
+        },
+      },
+      styles: { maxWidth: "" },
+    };
+
+    const { container } = render(<CodeBlock {...block} />);
+    const pre = container.querySelector("pre");
+    expect(pre).not.toBeNull();
+    expect(pre?.style.overflowX).toBe("auto");
+    expect(pre?.style.maxWidth).toBe("100%");
+  });
+
+  it("keeps a saved non-empty maxWidth on the published pre", () => {
+    const block: BlockConfig = {
+      id: "code-maxwidth",
+      name: "core/code",
+      type: "block",
+      parentId: null,
+      content: {
+        kind: "structured",
+        data: {
+          content: "const a = 1;",
+          language: "javascript",
+          wrapLines: true,
+        },
+      },
+      styles: { maxWidth: "40rem" },
+    };
+
+    const { container } = render(<CodeBlock {...block} />);
+    const pre = container.querySelector("pre");
+    expect(pre).not.toBeNull();
+    expect(pre?.style.overflowX).toBe("auto");
+    expect(pre?.style.maxWidth).toBe("40rem");
   });
 });

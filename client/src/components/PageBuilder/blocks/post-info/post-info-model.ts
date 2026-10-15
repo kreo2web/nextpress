@@ -57,7 +57,7 @@ export const DATE_FORMAT_OPTIONS = [
 ] as const;
 
 export const LAYOUT_OPTIONS = [
-  { value: 'inline' as const, label: 'Inline' },
+  { value: 'inline' as const, label: 'In a line' },
   { value: 'stacked' as const, label: 'Stacked' },
 ] as const;
 

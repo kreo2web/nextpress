@@ -1,5 +1,6 @@
 import type { BlockConfig } from '@shared/schema-types';
-import { SettingsLabel } from '../../shared';
+import { SettingsDisclosure, SettingsLabel, SettingsSection } from '../../shared';
+import { SettingsChipGroup } from '../../settings-chip-group';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -9,8 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CollapsibleCard } from '@/components/ui/collapsible-card';
-import { Settings } from 'lucide-react';
 import { useSettingsState } from '../useSettingsState';
 import { defaultParseContent, defaultSerializeContent } from '../createBlockDefinition';
 import { usePostDocument } from '../../PageContext';
@@ -24,6 +23,16 @@ import {
 interface PostInfoSettingsProps {
   block: BlockConfig;
   onUpdate?: (updates: Partial<BlockConfig>) => void;
+}
+
+function isDateFormat(
+  value: string,
+): value is NonNullable<PostInfoContent['dateFormat']> {
+  return value === 'short' || value === 'long' || value === 'relative';
+}
+
+function isLayout(value: string): value is NonNullable<PostInfoContent['layout']> {
+  return value === 'inline' || value === 'stacked';
 }
 
 /** Sidebar settings panel for the post info block. */
@@ -65,109 +74,88 @@ export function PostInfoSettings({ block, onUpdate }: PostInfoSettingsProps) {
   ];
 
   return (
-    <div className="space-y-4">
-      <CollapsibleCard title="Display" icon={Settings} defaultOpen>
-        <div className="space-y-4">
-          {toggles.map((toggle) => (
-            <div key={toggle.id} className="flex items-center justify-between">
-              <SettingsLabel htmlFor={toggle.id}>
-                {toggle.label}
-              </SettingsLabel>
-              <Switch
-                id={toggle.id}
-                checked={toggle.value}
-                onCheckedChange={(checked) =>
-                  updateContent({ [toggle.key]: checked })
-                }
-              />
-            </div>
-          ))}
+    <SettingsSection>
+      {toggles.map((toggle) => (
+        <div key={toggle.id} className="flex items-center justify-between">
+          <SettingsLabel htmlFor={toggle.id}>{toggle.label}</SettingsLabel>
+          <Switch
+            id={toggle.id}
+            checked={toggle.value}
+            onCheckedChange={(checked) =>
+              updateContent({ [toggle.key]: checked })
+            }
+          />
         </div>
-      </CollapsibleCard>
+      ))}
 
-      <CollapsibleCard title="Format" icon={Settings} defaultOpen={false}>
-        <div className="space-y-4">
-          <div>
-            <SettingsLabel>Date Format</SettingsLabel>
-            <Select
-              value={content?.dateFormat ?? 'long'}
-              onValueChange={(val) =>
-                updateContent({
-                  dateFormat: val as PostInfoContent['dateFormat'],
-                })
-              }>
-              <SelectTrigger className="mt-1 h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DATE_FORMAT_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <SettingsLabel>Layout</SettingsLabel>
-            <Select
-              value={content?.layout ?? 'inline'}
-              onValueChange={(val) =>
-                updateContent({ layout: val as PostInfoContent['layout'] })
-              }>
-              <SelectTrigger className="mt-1 h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LAYOUT_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <SettingsDisclosure title="Format">
+        <div>
+          <SettingsLabel>Date Format</SettingsLabel>
+          <Select
+            value={content?.dateFormat ?? 'long'}
+            onValueChange={(val) => {
+              if (!isDateFormat(val)) return;
+              updateContent({ dateFormat: val });
+            }}>
+            <SelectTrigger className="mt-1 h-9 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_FORMAT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </CollapsibleCard>
+        <SettingsChipGroup
+          label="Layout"
+          options={[...LAYOUT_OPTIONS]}
+          value={content?.layout ?? 'inline'}
+          onChange={(value) => {
+            if (!isLayout(value)) return;
+            updateContent({ layout: value });
+          }}
+        />
+      </SettingsDisclosure>
 
-      <CollapsibleCard title="Details" icon={Settings} defaultOpen={false}>
-        <div className="space-y-3">
-          <div>
-            <SettingsLabel htmlFor="post-info-categories">Categories</SettingsLabel>
-            <Input
-              id="post-info-categories"
-              value={(postDocument?.categories ?? []).join(', ')}
-              onChange={(e) =>
-                postDocument?.updateDocument({
-                  categories: e.target.value
-                    .split(',')
-                    .map((item) => item.trim())
-                    .filter(Boolean),
-                })
-              }
-              placeholder="News, Guides"
-              className="mt-1 h-9 text-sm"
-            />
-          </div>
-          <div>
-            <SettingsLabel htmlFor="post-info-tags">Tags</SettingsLabel>
-            <Input
-              id="post-info-tags"
-              value={(postDocument?.tags ?? []).join(', ')}
-              onChange={(e) =>
-                postDocument?.updateDocument({
-                  tags: e.target.value
-                    .split(',')
-                    .map((item) => item.trim())
-                    .filter(Boolean),
-                })
-              }
-              placeholder="writing, design"
-              className="mt-1 h-9 text-sm"
-            />
-          </div>
+      <SettingsDisclosure title="Details">
+        <div>
+          <SettingsLabel htmlFor="post-info-categories">Categories</SettingsLabel>
+          <Input
+            id="post-info-categories"
+            value={(postDocument?.categories ?? []).join(', ')}
+            onChange={(e) =>
+              postDocument?.updateDocument({
+                categories: e.target.value
+                  .split(',')
+                  .map((item) => item.trim())
+                  .filter(Boolean),
+              })
+            }
+            placeholder="News, Guides"
+            className="mt-1 h-9 text-sm"
+          />
         </div>
-      </CollapsibleCard>
-    </div>
+        <div>
+          <SettingsLabel htmlFor="post-info-tags">Tags</SettingsLabel>
+          <Input
+            id="post-info-tags"
+            value={(postDocument?.tags ?? []).join(', ')}
+            onChange={(e) =>
+              postDocument?.updateDocument({
+                tags: e.target.value
+                  .split(',')
+                  .map((item) => item.trim())
+                  .filter(Boolean),
+              })
+            }
+            placeholder="writing, design"
+            className="mt-1 h-9 text-sm"
+          />
+        </div>
+      </SettingsDisclosure>
+    </SettingsSection>
   );
 }

@@ -4,11 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { SettingsLabel } from '../../shared';
-import { MousePointer, Type, Link, Smile, X } from "lucide-react";
+import { MousePointer, Type, Smile, X } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { InlineTextEditor } from "../shared/inline-text-editor";
 import { useSettingsState } from "../useSettingsState";
+import { getBlockStateAccessor, useBlockAccessor } from "../blockStateRegistry";
 import { LinkTargetChips } from "../shared/link-settings";
 import { IconRenderer } from "../shared/IconRenderer";
 import { IconPickerButton } from "../../IconPicker/IconPickerButton";
@@ -21,6 +22,7 @@ import {
 import { splitButtonBlockStyles, mapButtonTextAlignToJustifyContent } from "@shared/button-block-styles";
 import { BUTTON_ICON_SIZE_PRESETS, DEFAULT_BUTTON_ICON_SIZE } from "@shared/dimension-presets";
 import { DimensionPresetField } from "../../dimension-preset-field";
+import { SettingsChipGroup } from "../../settings-chip-group";
 import {
   Tooltip,
   TooltipContent,
@@ -71,25 +73,58 @@ interface ButtonRendererProps {
   blockId?: string;
 }
 
+/** Icon-only hides the label; screen readers need aria-label from title or the hidden text. */
+function iconOnlyAriaLabel({
+  iconOnly,
+  title,
+  text,
+}: {
+  iconOnly: boolean;
+  title: string | undefined;
+  text: string;
+}): string | undefined {
+  if (!iconOnly) return undefined;
+  const accessibleName = title?.trim() ?? "";
+  if (accessibleName) return accessibleName;
+  const buttonText = text.trim();
+  return buttonText || undefined;
+}
+
+/** Walk registered ancestors via parentId until a form, or the chain ends. */
+function isButtonInsideForm({ parentId }: { parentId: string | null }): boolean {
+  let currentId: string | null = parentId;
+  const seen = new Set<string>();
+  while (currentId) {
+    if (seen.has(currentId)) return false;
+    seen.add(currentId);
+    const ancestor = getBlockStateAccessor(currentId)?.getFullState();
+    if (!ancestor) return false;
+    if (ancestor.name === "core/form") return true;
+    currentId = ancestor.parentId;
+  }
+  return false;
+}
+
 /** A link, or (for a form's send button, outside the editor) a real submit button with the same look. */
 function ButtonElement({
   isSubmit,
   href,
   target,
   rel,
+  ariaLabel,
   ...shared
 }: {
   isSubmit: boolean;
   href?: string;
   target?: string;
   rel?: string;
-  title?: string;
+  ariaLabel?: string;
   style: React.CSSProperties;
   className: string;
   children: React.ReactNode;
 }) {
-  if (isSubmit) return <button type="submit" {...shared} />;
-  return <a href={href} target={target} rel={rel} {...shared} />;
+  if (isSubmit) return <button type="submit" aria-label={ariaLabel} {...shared} />;
+  return <a href={href} target={target} rel={rel} aria-label={ariaLabel} {...shared} />;
 }
 
 function ButtonRenderer({
@@ -133,7 +168,7 @@ function ButtonRenderer({
     />
   ) : null;
 
-  const label = iconOnly && icon ? (title || textContent || undefined) : undefined;
+  const ariaLabel = iconOnlyAriaLabel({ iconOnly, title, text: textContent });
 
   const justifyFromTextAlign = mapButtonTextAlignToJustifyContent(
     (shellStyles.textAlign ?? styles?.textAlign) as React.CSSProperties["textAlign"],
@@ -159,7 +194,7 @@ function ButtonRenderer({
         href={url}
         target={linkTarget}
         rel={rel}
-        title={label}
+        ariaLabel={ariaLabel}
         style={{
           ...anchorStyles,
           display: "inline-flex",
@@ -203,6 +238,11 @@ function ButtonSettings({ block, onUpdate }: ButtonSettingsProps) {
     onUpdate,
     defaultContent: DEFAULT_CONTENT,
   });
+  const buttonAccessor = useBlockAccessor(block.id);
+  const parentId = buttonAccessor?.getFullState().parentId ?? block.parentId;
+  const insideForm = isButtonInsideForm({ parentId });
+  const isSubmit = content?.action === "submit";
+  const disableSubmitSwitch = !insideForm && !isSubmit;
 
   const currentIcon = content?.icon as IconReference | undefined;
   const iconRefFullLabel = currentIcon ? formatIconReferenceLabel(currentIcon) : '';
@@ -240,27 +280,40 @@ function ButtonSettings({ block, onUpdate }: ButtonSettingsProps) {
             <SettingsLabel htmlFor="button-submits-form">Sends the form</SettingsLabel>
             <Switch
               id="button-submits-form"
-              checked={content?.action === 'submit'}
+              checked={isSubmit}
+              disabled={disableSubmitSwitch}
               onCheckedChange={(checked) => updateContent({ action: checked ? 'submit' : 'link' })}
             />
           </div>
-          {content?.action === 'submit' ? (
+          {!insideForm ? (
+            <p className="npb-settings-hint-muted text-xs">
+              Place this button inside a form to send it.
+            </p>
+          ) : isSubmit ? (
             <p className="npb-settings-hint-muted -mt-2 text-xs">
               Inside a Form block, this button sends what visitors typed.
             </p>
-          ) : (
-            <div>
-              <SettingsLabel htmlFor="button-url">Link URL</SettingsLabel>
-              <Input
-                id="button-url"
-                value={content?.url || ''}
-                onChange={(e) => updateContent({ url: e.target.value })}
-                placeholder="https://example.com"
-                className="mt-1 h-9"
+          ) : null}
+          {!isSubmit ? (
+            <>
+              <div>
+                <SettingsLabel htmlFor="button-url">Link URL</SettingsLabel>
+                <Input
+                  id="button-url"
+                  value={content?.url || ''}
+                  onChange={(e) => updateContent({ url: e.target.value })}
+                  placeholder="https://example.com"
+                  className="mt-1 h-9"
+                />
+                <PopupLinkPicker id="button-popup" value={content?.url} onChange={(url) => updateContent({ url })} />
+              </div>
+              <LinkTargetChips
+                value={content?.linkTarget}
+                legacyTarget={content?.target}
+                onChange={({ target }) => updateContent({ linkTarget: target, target: undefined })}
               />
-              <PopupLinkPicker id="button-popup" value={content?.url} onChange={(url) => updateContent({ url })} />
-            </div>
-          )}
+            </>
+          ) : null}
         </div>
       </CollapsibleCard>
 
@@ -324,60 +377,43 @@ function ButtonSettings({ block, onUpdate }: ButtonSettingsProps) {
                 customPlaceholder="e.g. 18px or 1.2em"
                 onChange={(next) => updateContent({ iconSize: next ?? DEFAULT_BUTTON_ICON_SIZE })}
               />
-              <div>
-                <SettingsLabel>Position</SettingsLabel>
-                <div className="flex gap-2 mt-1">
-                  {[
-                    { value: 'left' as const, label: 'Left' },
-                    { value: 'right' as const, label: 'Right' },
-                  ].map((pos) => (
-                    <button
-                      key={pos.value}
-                      onClick={() => updateContent({ iconPosition: pos.value })}
-                      className={`h-8 px-3 text-xs font-medium rounded-md transition-all ${
-                          (content?.iconPosition || 'left') === pos.value
-                            ? 'bg-npb-interactive-bg-active text-npb-interactive-text-active hover:bg-npb-interactive-bg-active'
-                            : 'bg-npb-surface-base text-npb-text-secondary border border-npb-border-default hover:bg-npb-interactive-bg-hover hover:border-npb-border-strong'
-                      }`}
-                    >
-                      {pos.label}
-                    </button>
-                  ))}
+              <SettingsChipGroup
+                label="Side"
+                options={[
+                  { value: "left", label: "Left" },
+                  { value: "right", label: "Right" },
+                ]}
+                value={content?.iconPosition === "right" ? "right" : "left"}
+                onChange={(value) => {
+                  if (value === "left" || value === "right") {
+                    updateContent({ iconPosition: value });
+                  }
+                }}
+              />
+              <SettingsChipGroup
+                label="Show"
+                options={[
+                  { value: "with-text", label: "With text" },
+                  { value: "icon-only", label: "Icon only" },
+                ]}
+                value={content?.iconOnly ? "icon-only" : "with-text"}
+                onChange={(value) => updateContent({ iconOnly: value === "icon-only" })}
+              />
+              {content?.iconOnly ? (
+                <div>
+                  <SettingsLabel htmlFor="button-accessible-name">Accessible name</SettingsLabel>
+                  <Input
+                    id="button-accessible-name"
+                    value={content?.title || ""}
+                    onChange={(e) => updateContent({ title: e.target.value })}
+                    placeholder="What this button does"
+                    className="mt-1 h-9"
+                  />
                 </div>
-              </div>
-
-              <div>
-                <SettingsLabel>Mode</SettingsLabel>
-                <div className="flex gap-2 mt-1">
-                  {[
-                    { value: false, label: 'With Text' },
-                    { value: true, label: 'Icon Only' },
-                  ].map((mode) => (
-                    <button
-                      key={String(mode.value)}
-                      onClick={() => updateContent({ iconOnly: mode.value })}
-                      className={`h-8 px-3 text-xs font-medium rounded-md transition-all ${
-                          (content?.iconOnly || false) === mode.value
-                            ? 'bg-npb-interactive-bg-active text-npb-interactive-text-active hover:bg-npb-interactive-bg-active'
-                            : 'bg-npb-surface-base text-npb-text-secondary border border-npb-border-default hover:bg-npb-interactive-bg-hover hover:border-npb-border-strong'
-                      }`}
-                    >
-                      {mode.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              ) : null}
             </>
           )}
         </div>
-      </CollapsibleCard>
-      
-      <CollapsibleCard title="Link Settings" icon={Link} defaultOpen={false}>
-        <LinkTargetChips
-          value={content?.linkTarget}
-          legacyTarget={content?.target}
-          onChange={({ target }) => updateContent({ linkTarget: target, target: undefined })}
-        />
       </CollapsibleCard>
     </div>
   );

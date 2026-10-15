@@ -1,6 +1,5 @@
 import React from "react";
 import type { BlockConfig, BlockContent } from "@shared/schema-types";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { SettingsLabel, SettingsSection } from '../../shared';
@@ -59,6 +58,7 @@ function TextRenderer({
   const dropCap = Boolean(content?.dropCap);
 
   const mergedStyles: React.CSSProperties = {
+    color: "var(--npb-text-primary)",
     ...styles,
     ...(align ? { textAlign: align as React.CSSProperties["textAlign"] } : {}),
   };
@@ -162,6 +162,9 @@ function TextSettings({ block, onUpdate }: TextSettingsProps) {
               onCheckedChange={(checked) => updateContent({ dropCap: checked })}
             />
           </div>
+          <p className="text-npb-text-muted text-xs">
+            Saved on this paragraph. The published page does not draw a drop cap yet.
+          </p>
         </div>
       </SettingsSection>
     </div>
@@ -182,7 +185,6 @@ const TextBlock = createBlockDefinition<TextBlockContent>({
   defaultStyles: {
     fontSize: '16px',
     lineHeight: '1.6',
-    color: '#333333',
   },
   settings: TextSettings,
   hasSettings: true,

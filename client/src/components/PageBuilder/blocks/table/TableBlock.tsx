@@ -282,7 +282,7 @@ function TableRenderer({
         </div>
       )}
 
-      <div className="overflow-x-auto w-full">
+      <div className="overflow-x-auto w-full max-w-full">
         <table
           style={{
             borderCollapse: "collapse",

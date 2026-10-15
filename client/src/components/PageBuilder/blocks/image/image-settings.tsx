@@ -1,6 +1,5 @@
 import React from "react";
 import type { BlockConfig, BlockContent } from "@shared/schema-types";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
@@ -9,11 +8,56 @@ import { useSettingsState } from "../useSettingsState";
 import { SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
 import { LinkUrlField, LinkTargetSelect } from "../shared/link-settings";
-import { type ImageContent, DEFAULT_CONTENT, getAlignmentButtonClass } from "./image-model";
+import { SettingsChipGroup } from "../../settings-chip-group";
+import { type ImageContent, DEFAULT_CONTENT } from "./image-model";
 
-interface ImageSettingsProps {
+type ImageSettingsProps = {
   block: BlockConfig;
   onUpdate?: (updates: Partial<BlockConfig>) => void;
+};
+
+type FigureWidth = NonNullable<ImageContent["align"]>;
+type ImageSizeSlug = NonNullable<ImageContent["sizeSlug"]>;
+type ImageLinkDestination = "none" | "media" | "custom";
+
+const FIGURE_WIDTH_OPTIONS = [
+  { value: "", label: "Default", icon: AlignCenter, accessibleName: "Figure width Default" },
+  { value: "left", label: "Left", icon: AlignLeft, accessibleName: "Figure width Left" },
+  { value: "center", label: "Center", icon: AlignCenter, accessibleName: "Figure width Center" },
+  { value: "right", label: "Right", icon: AlignRight, accessibleName: "Figure width Right" },
+  { value: "wide", label: "Wide", icon: Maximize, accessibleName: "Figure width Wide" },
+  { value: "full", label: "Full", icon: Maximize, accessibleName: "Figure width Full" },
+];
+
+const IMAGE_SIZE_OPTIONS = [
+  { value: "thumbnail", label: "Thumbnail" },
+  { value: "medium", label: "Medium" },
+  { value: "large", label: "Large" },
+  { value: "full", label: "Full" },
+];
+
+function isFigureWidth(value: string): value is FigureWidth {
+  return (
+    value === "" ||
+    value === "left" ||
+    value === "center" ||
+    value === "right" ||
+    value === "wide" ||
+    value === "full"
+  );
+}
+
+function isImageSizeSlug(value: string): value is ImageSizeSlug {
+  return (
+    value === "thumbnail" ||
+    value === "medium" ||
+    value === "large" ||
+    value === "full"
+  );
+}
+
+function isImageLinkDestination(value: string): value is ImageLinkDestination {
+  return value === "none" || value === "media" || value === "custom";
 }
 
 export function ImageSettings({ block, onUpdate }: ImageSettingsProps) {
@@ -40,25 +84,13 @@ export function ImageSettings({ block, onUpdate }: ImageSettingsProps) {
     }
   };
 
-  const alignmentOptions = [
-    { value: '', label: 'Default', icon: AlignCenter },
-    { value: 'left', label: 'Left', icon: AlignLeft },
-    { value: 'center', label: 'Center', icon: AlignCenter },
-    { value: 'right', label: 'Right', icon: AlignRight },
-    { value: 'wide', label: 'Wide', icon: Maximize },
-    { value: 'full', label: 'Full', icon: Maximize }
-  ];
-
-  const sizeOptions = [
-    { value: 'thumbnail', label: 'Thumbnail' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'large', label: 'Large' },
-    { value: 'full', label: 'Full' }
-  ];
-
   const currentAlign = content?.align || '';
   const currentSize = content?.sizeSlug || 'full';
   const imageUrl = content?.kind === 'media' ? content.url : '';
+  const storedLinkDestination = content?.linkDestination || 'none';
+  const hasDeadAttachmentLink = storedLinkDestination === 'attachment';
+  // A blank trigger, not a fake "None", so choosing None actually clears the old attachment link.
+  const linkSelectValue = hasDeadAttachmentLink ? '' : storedLinkDestination;
 
   return (
     <div className="space-y-4">
@@ -71,12 +103,12 @@ export function ImageSettings({ block, onUpdate }: ImageSettingsProps) {
           {/* Image Preview */}
           {imageUrl && (
             <div>
-              <Label>Preview</Label>
+              <SettingsLabel>Preview</SettingsLabel>
               <div className="mt-2 inline-block border border-dashed border-npb-border-strong p-2 rounded-lg" style={{ maxWidth: '100%' }}>
                 <img
                   src={imageUrl}
                   alt={content?.alt || ''}
-                  style={{ width: '240px', height: 'auto', display: 'block' }}
+                  style={{ width: '240px', height: 'auto', display: 'block', maxWidth: "100%" }}
                 />
               </div>
             </div>
@@ -137,45 +169,36 @@ export function ImageSettings({ block, onUpdate }: ImageSettingsProps) {
         <div className="space-y-4">
           {/* Block width in the editor (use Style → Position in container for flex placement) */}
           <div>
-            <SettingsLabel htmlFor="figure-width">Figure width</SettingsLabel>
+            <SettingsLabel>Figure width</SettingsLabel>
             <p className="text-xs text-npb-text-muted mt-1 mb-2">
               How wide the image sits in the layout. This is not text alignment; use{" "}
               <span className="font-semibold">Style → Position in container</span> to nudge the block left, center, or
               right among siblings.
             </p>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {alignmentOptions.map((option) => {
-                const Icon = option.icon;
-                return (
-                  <button
-                    key={option.value}
-                    onClick={() => updateContent({ align: option.value as any })}
-                    className={getAlignmentButtonClass(currentAlign === option.value)}
-                    aria-label={`Figure width ${option.label}`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
+            <SettingsChipGroup
+              label=""
+              ariaLabel="Figure width"
+              options={FIGURE_WIDTH_OPTIONS}
+              value={currentAlign}
+              onChange={(value) => {
+                if (isFigureWidth(value)) {
+                  updateContent({ align: value });
+                }
+              }}
+            />
           </div>
 
-          {/* Image Size */}
-          <div>
-            <SettingsLabel htmlFor="image-size">Image Size</SettingsLabel>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {sizeOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => updateContent({ sizeSlug: option.value as any })}
-                  className={getAlignmentButtonClass(currentSize === option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <SettingsChipGroup
+            label="Image Size"
+            ariaLabel="Image Size"
+            options={IMAGE_SIZE_OPTIONS}
+            value={currentSize}
+            onChange={(value) => {
+              if (isImageSizeSlug(value)) {
+                updateContent({ sizeSlug: value });
+              }
+            }}
+          />
 
           <p className="text-xs text-npb-text-muted">
             Width, height, max size, and object fit live under the sidebar <span className="font-semibold">Style</span>{" "}
@@ -194,19 +217,27 @@ export function ImageSettings({ block, onUpdate }: ImageSettingsProps) {
           <div>
             <SettingsLabel htmlFor="image-link-destination-select">Link To</SettingsLabel>
             <Select
-              value={content?.linkDestination || 'none'}
-              onValueChange={(value) => updateContent({ linkDestination: value as any })}
+              value={linkSelectValue}
+              onValueChange={(value) => {
+                if (isImageLinkDestination(value)) {
+                  updateContent({ linkDestination: value });
+                }
+              }}
             >
               <SelectTrigger id="image-link-destination-select" aria-label="Link destination">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
-                <SelectItem value="media">Media File</SelectItem>
-                <SelectItem value="attachment">Attachment Page</SelectItem>
+                <SelectItem value="media">Media file</SelectItem>
                 <SelectItem value="custom">Custom URL</SelectItem>
               </SelectContent>
             </Select>
+            {hasDeadAttachmentLink ? (
+              <p className="text-npb-text-muted text-xs">
+                This site has no attachment page. Choose another destination.
+              </p>
+            ) : null}
           </div>
 
           {(content?.linkDestination === "custom") && (

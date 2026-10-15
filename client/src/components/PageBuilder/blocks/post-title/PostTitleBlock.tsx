@@ -1,12 +1,13 @@
 import * as React from 'react';
 import type { BlockConfig } from '@shared/schema-types';
-import { OptionButton, OptionGroup, SettingsLabel } from '../../shared';
+import { SettingsLabel, SettingsSection } from '../../shared';
 import { Input } from '@/components/ui/input';
-import { CollapsibleCard } from '@/components/ui/collapsible-card';
-import { Type, Settings } from 'lucide-react';
+import { Type } from 'lucide-react';
 import { useSettingsState } from '../useSettingsState';
 import { createBlockDefinition } from '../createBlockDefinition';
 import { BlockShell } from '../shared/block-shell';
+import { InlineTextEditor } from '../shared/inline-text-editor';
+import { SettingsChipGroup } from '../../settings-chip-group';
 import { usePostDocument } from '../../PageContext';
 
 // ============================================================================
@@ -37,6 +38,10 @@ const POST_TITLE_TYPE: Record<NonNullable<PostTitleContent['tag']>, { fontSize: 
   h2: { fontSize: '2rem', fontWeight: '700' },
   h3: { fontSize: '1.75rem', fontWeight: '700' },
 };
+
+function isPostTitleTag(value: string): value is NonNullable<PostTitleContent['tag']> {
+  return value === 'h1' || value === 'h2' || value === 'h3';
+}
 
 // ============================================================================
 // RENDERER
@@ -69,22 +74,15 @@ function PostTitleRenderer({ content, styles, onTextChange }: PostTitleRendererP
   return (
     <BlockShell as={tag} blockClass="wp-block-post-title" className={content?.className} style={mergedStyles}>
       {onTextChange ? (
-        <input
-          aria-label="Post title"
+        <InlineTextEditor
+          ariaLabel="Post title"
           value={text}
-          onChange={(e) => {
-            const next = e.target.value;
+          onChange={(next) => {
             onTextChange(next);
             postDocument?.updateDocument({ title: next });
           }}
-          className="w-full bg-transparent p-0 outline-none"
-          style={{
-            font: 'inherit',
-            fontSize: 'inherit',
-            fontWeight: 'inherit',
-            color: 'inherit',
-            lineHeight: 'inherit',
-          }}
+          style={mergedStyles}
+          growToWrap
         />
       ) : (
         text
@@ -103,8 +101,7 @@ interface PostTitleSettingsProps {
 }
 
 /**
- * Sidebar settings panel for the post title block.
- * Allows choosing the heading tag level (h1-h3) and adding custom CSS classes.
+ * Sidebar settings for the post title: the name, then heading level.
  */
 function PostTitleSettings({ block, onUpdate }: PostTitleSettingsProps) {
   const { content, updateContent } = useSettingsState<PostTitleContent>({
@@ -126,38 +123,27 @@ function PostTitleSettings({ block, onUpdate }: PostTitleSettingsProps) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Content */}
-      <CollapsibleCard title="Content" icon={Type} defaultOpen>
-        <div>
-          <SettingsLabel htmlFor="post-title-text">Post title</SettingsLabel>
-          <Input
-            id="post-title-text"
-            value={titleValue}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter the post title"
-            className="mt-1 h-9 text-sm"
-          />
-        </div>
-      </CollapsibleCard>
-
-      {/* Heading Tag Level */}
-      <CollapsibleCard title="Settings" icon={Settings} defaultOpen>
-        <div className="space-y-3">
-          <OptionGroup label="Heading Level">
-            {HEADING_TAG_OPTIONS.map((option) => (
-              <OptionButton
-                key={option.value}
-                isActive={currentTag === option.value}
-                onClick={() => updateContent({ tag: option.value })}
-                ariaLabel={`Use ${option.label} tag`}>
-                {option.label}
-              </OptionButton>
-            ))}
-          </OptionGroup>
-        </div>
-      </CollapsibleCard>
-    </div>
+    <SettingsSection>
+      <div>
+        <SettingsLabel htmlFor="post-title-text">Post title</SettingsLabel>
+        <Input
+          id="post-title-text"
+          value={titleValue}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Enter the post title"
+          className="mt-1 h-9 text-sm"
+        />
+      </div>
+      <SettingsChipGroup
+        label="Heading Level"
+        options={[...HEADING_TAG_OPTIONS]}
+        value={currentTag}
+        onChange={(value) => {
+          if (!isPostTitleTag(value)) return;
+          updateContent({ tag: value });
+        }}
+      />
+    </SettingsSection>
   );
 }
 

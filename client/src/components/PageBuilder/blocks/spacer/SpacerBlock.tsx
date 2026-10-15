@@ -1,11 +1,9 @@
 import React from "react";
 import type { BlockConfig } from "@shared/schema-types";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
-import { CollapsibleCard } from "@/components/ui/collapsible-card";
-import { SettingsLabel } from '../../shared';
-import { Space as SpaceIcon, Settings } from "lucide-react";
+import type { DimensionPreset } from "@shared/dimension-presets";
+import { SettingsSection } from '../../shared';
+import { DimensionPresetField } from "../../dimension-preset-field";
+import { Space as SpaceIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { useSettingsState } from "../useSettingsState";
@@ -14,38 +12,91 @@ import { useSettingsState } from "../useSettingsState";
 // TYPES
 // ============================================================================
 
+type SpacerHeight = string | number | null;
+
 type SpacerContent = {
-  height?: number;
+  height?: SpacerHeight;
   anchor?: string;
   className?: string;
 };
 
+const DEFAULT_SPACER_HEIGHT = "100px";
+
+/** Tight / Small / Medium / Large — local to this block, not the shared height list. */
+const SPACER_HEIGHT_PRESETS: readonly DimensionPreset[] = [
+  { value: "24px", label: "Tight" },
+  { value: "48px", label: "Small" },
+  { value: "100px", label: "Medium" },
+  { value: "160px", label: "Large" },
+];
+
 const DEFAULT_CONTENT: SpacerContent = {
-  height: 100,
+  height: DEFAULT_SPACER_HEIGHT,
   anchor: "",
   className: "",
 };
+
+/**
+ * Legacy spacers store a pixel number (100). New writes are CSS lengths ("100px").
+ * Missing or empty is unset so the caller can fall back to 100px.
+ */
+function readSpacerHeight(value: SpacerHeight | undefined): string | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return `${value}px`;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    return value;
+  }
+  return undefined;
+}
+
+function readStyleHeight(height: React.CSSProperties["height"]): string | undefined {
+  if (typeof height === "number" && Number.isFinite(height)) {
+    return `${height}px`;
+  }
+  if (typeof height === "string" && height.trim() !== "") {
+    return height;
+  }
+  return undefined;
+}
+
+/**
+ * Content height first, then a copy of style. Style height wins only when it is
+ * actually set — an absent style height must not wipe the spacer value.
+ */
+function buildSpacerStyle(
+  contentHeight: SpacerHeight | undefined,
+  styles: React.CSSProperties | undefined,
+): React.CSSProperties {
+  const fromContent = readSpacerHeight(contentHeight) ?? DEFAULT_SPACER_HEIGHT;
+  const spacerStyle: React.CSSProperties = {
+    height: fromContent,
+    ...styles,
+  };
+  const fromStyle = readStyleHeight(styles?.height);
+  if (fromStyle !== undefined) {
+    spacerStyle.height = fromStyle;
+  } else {
+    spacerStyle.height = fromContent;
+  }
+  return spacerStyle;
+}
 
 // ============================================================================
 // RENDERER
 // ============================================================================
 
-interface SpacerRendererProps {
+type SpacerRendererProps = {
   content: SpacerContent;
   styles?: React.CSSProperties;
-}
+};
 
 function SpacerRenderer({ content, styles }: SpacerRendererProps) {
-  const height = content?.height ?? 100;
-  
   return (
     <BlockShell
       blockClass="wp-block-spacer"
       className={content?.className}
-      style={{
-        height: `${height}px`,
-        ...styles,
-      }}
+      style={buildSpacerStyle(content?.height, styles)}
       aria-hidden="true"
     />
   );
@@ -55,10 +106,10 @@ function SpacerRenderer({ content, styles }: SpacerRendererProps) {
 // SETTINGS COMPONENT
 // ============================================================================
 
-interface SpacerSettingsProps {
+type SpacerSettingsProps = {
   block: BlockConfig;
   onUpdate?: (updates: Partial<BlockConfig>) => void;
-}
+};
 
 function SpacerSettings({ block, onUpdate }: SpacerSettingsProps) {
   const { content, updateContent } = useSettingsState<SpacerContent>({
@@ -68,39 +119,17 @@ function SpacerSettings({ block, onUpdate }: SpacerSettingsProps) {
   });
 
   return (
-    <div className="space-y-4">
-      {/* Content Card */}
-      <CollapsibleCard title="Content" icon={SpaceIcon} defaultOpen={true}>
-        <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="spacer-height">Height (px)</SettingsLabel>
-            <div className="flex items-center space-x-4">
-              <Slider
-                aria-label="Spacer height in pixels"
-                value={[content?.height || 50]}
-                onValueChange={([value]) => updateContent({ height: value })}
-                max={200}
-                min={10}
-                step={5}
-                className="flex-1"
-              />
-              <Input
-                id="spacer-height"
-                type="number"
-                value={content?.height || 50}
-                onChange={(e) => updateContent({ height: parseInt(e.target.value) || 50 })}
-                className="w-20 h-9"
-              />
-            </div>
-          </div>
-        </div>
-      </CollapsibleCard>
-
-      {/* Settings Card (future extensibility) */}
-      <CollapsibleCard title="Settings" icon={Settings} defaultOpen={false}>
-        <div className="text-npb-text-muted text-xs">No additional settings.</div>
-      </CollapsibleCard>
-    </div>
+    <SettingsSection>
+      <DimensionPresetField
+        label="Height"
+        presets={SPACER_HEIGHT_PRESETS}
+        value={readSpacerHeight(content?.height) ?? DEFAULT_SPACER_HEIGHT}
+        defaultValue={DEFAULT_SPACER_HEIGHT}
+        onChange={(next) =>
+          updateContent({ height: next ?? null } as Partial<SpacerContent>)
+        }
+      />
+    </SettingsSection>
   );
 }
 

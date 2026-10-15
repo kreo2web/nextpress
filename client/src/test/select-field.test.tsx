@@ -1,6 +1,6 @@
 import { describe, expect, it, afterEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { SelectFieldView } from '@shared/select-field-view';
+import { SelectFieldView, selectOptionsWithLabels } from '@shared/select-field-view';
 import { initSelects } from '@shared/select-runtime';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -94,6 +94,43 @@ describe('styled dropdown', () => {
     trigger.click();
     document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     expect(list.hidden).toBe(true);
+  });
+});
+
+describe('empty choice labels', () => {
+  it('drops blank and whitespace labels, and keeps an empty value with a real label', () => {
+    expect(
+      selectOptionsWithLabels([
+        { label: 'Yes', value: 'yes' },
+        { label: '   ', value: 'spaces' },
+        { label: '', value: 'empty' },
+        { label: 'None', value: '' },
+      ]),
+    ).toEqual([
+      { label: 'Yes', value: 'yes' },
+      { label: 'None', value: '' },
+    ]);
+  });
+
+  it('does not render skipped choices in the live list or the native select', () => {
+    const html = renderToStaticMarkup(
+      <SelectFieldView
+        blockId="b3"
+        name="pick"
+        ariaLabel="Pick"
+        options={[
+          { label: 'Yes', value: 'yes' },
+          { label: '   ', value: 'spaces' },
+          { label: '', value: 'empty' },
+          { label: 'None', value: '' },
+        ]}
+      />,
+    );
+    expect(html.match(/role="option"/g)?.length).toBe(2);
+    expect(html).toContain('Yes');
+    expect(html).toContain('None');
+    expect(html).not.toContain('data-value="spaces"');
+    expect(html).not.toContain('data-value="empty"');
   });
 });
 

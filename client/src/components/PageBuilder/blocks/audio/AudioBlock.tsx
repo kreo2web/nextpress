@@ -8,7 +8,7 @@ import { AudioLines as AudioIcon, Settings } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { useSettingsState } from "../useSettingsState";
-import { SettingsLabel } from '../../shared';
+import { SettingsDisclosure, SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
 
 // ============================================================================
@@ -93,7 +93,7 @@ function AudioRenderer({ content, styles }: AudioRendererProps) {
         autoPlay={autoplay}
         loop={loop}
         preload={preload}
-        style={{ display: 'block', width: '100%' }}
+        style={{ display: 'block', width: '100%', maxWidth: '100%' }}
       >
         Your browser does not support the audio element.
       </audio>
@@ -160,8 +160,7 @@ function AudioSettings({ block, onUpdate }: AudioSettingsProps) {
         </div>
       </CollapsibleCard>
 
-      {/* Settings Card */}
-      <CollapsibleCard title="Settings" icon={Settings} defaultOpen={false}>
+      <CollapsibleCard title="Playback" icon={Settings} defaultOpen={false}>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <SettingsLabel htmlFor="audio-controls">Show Controls</SettingsLabel>
@@ -189,12 +188,16 @@ function AudioSettings({ block, onUpdate }: AudioSettingsProps) {
               onCheckedChange={(checked) => updateContent({ loop: checked })}
             />
           </div>
-          
-          <div>
-            <SettingsLabel htmlFor="audio-preload">Preload</SettingsLabel>
-            <Select
-              value={content?.preload || 'none'}
-              onValueChange={(value) => updateContent({ preload: value })}
+
+          <SettingsDisclosure
+            title="Loading"
+            defaultOpen={content?.preload === "auto" || content?.preload === "metadata"}
+          >
+            <div>
+              <SettingsLabel htmlFor="audio-preload">Preload</SettingsLabel>
+              <Select
+                value={content?.preload || 'none'}
+                onValueChange={(value) => updateContent({ preload: value })}
               >
                 <SelectTrigger id="audio-preload" className="h-9 mt-1">
                   <SelectValue />
@@ -206,6 +209,7 @@ function AudioSettings({ block, onUpdate }: AudioSettingsProps) {
                 </SelectContent>
               </Select>
             </div>
+          </SettingsDisclosure>
           
           <div>
             <SettingsLabel htmlFor="audio-align">Alignment</SettingsLabel>

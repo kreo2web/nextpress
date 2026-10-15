@@ -6,7 +6,7 @@ import React from "react";
  * swap from static text to editor is visually seamless. A dashed accent
  * outline marks it as editable without fighting the block's own styles.
  */
-interface InlineTextEditorProps {
+type InlineTextEditorProps = {
   value: string;
   onChange: (value: string) => void;
   /** CSS to mirror the rendered text (font-family, size, weight, color...). */
@@ -17,6 +17,20 @@ interface InlineTextEditorProps {
   /** Min height for multi-line editors (px). */
   minHeight?: number;
   className?: string;
+  /**
+   * Grow a wrapping field to the text height. Off by default so paragraph and
+   * other multiline blocks keep the shared 2-row / 80px field.
+   */
+  growToWrap?: boolean;
+  /** Accessible name for the field (canvas titles, headings, etc.). */
+  ariaLabel?: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
+};
+
+function setEditorHeightFromScroll(el: HTMLTextAreaElement): void {
+  el.style.height = "0px";
+  el.style.height = `${el.scrollHeight}px`;
 }
 
 export function InlineTextEditor({
@@ -27,6 +41,10 @@ export function InlineTextEditor({
   placeholder,
   minHeight = 80,
   className,
+  growToWrap = false,
+  ariaLabel,
+  onFocus,
+  onBlur,
 }: InlineTextEditorProps) {
   const editorStyle: React.CSSProperties = {
     ...style,
@@ -41,6 +59,34 @@ export function InlineTextEditor({
     boxSizing: "border-box",
   };
 
+  if (growToWrap) {
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <textarea
+          value={value}
+          onChange={(e) => {
+            setEditorHeightFromScroll(e.currentTarget);
+            onChange(e.target.value);
+          }}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          ref={(el) => {
+            if (el) setEditorHeightFromScroll(el);
+          }}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          rows={1}
+          style={{
+            ...editorStyle,
+            whiteSpace: "pre-wrap",
+            overflow: "hidden",
+          }}
+          className={className}
+        />
+      </div>
+    );
+  }
+
   if (multiline) {
     const lineCount = value.split("\n").length;
     return (
@@ -48,7 +94,10 @@ export function InlineTextEditor({
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onFocus={onFocus}
+          onBlur={onBlur}
           placeholder={placeholder}
+          aria-label={ariaLabel}
           rows={Math.max(2, Math.min(12, lineCount + 1))}
           style={{ ...editorStyle, minHeight }}
           className={className}
@@ -63,7 +112,10 @@ export function InlineTextEditor({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={onFocus}
+        onBlur={onBlur}
         placeholder={placeholder}
+        aria-label={ariaLabel}
         style={{ ...editorStyle, minHeight: 28, height: "auto" }}
         className={className}
       />

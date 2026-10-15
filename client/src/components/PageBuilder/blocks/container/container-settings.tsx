@@ -7,8 +7,8 @@ import { buildSpacingStyles, readSpacingSides, type SpacingPatch } from "../../s
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Layout, Palette, Ruler } from "lucide-react";
 import { useSettingsState } from "../useSettingsState";
-import { cn } from "@/lib/utils";
 import ColorField, { type ColorTarget } from "../../ColorField";
+import { SettingsChipGroup } from "../../settings-chip-group";
 import {
   type ContainerContent,
   DEFAULT_CONTENT,
@@ -23,12 +23,21 @@ export interface ContainerSettingsProps {
   onUpdate?: (updates: Partial<BlockConfig>) => void;
 }
 
-function settingsChipClass(selected: boolean): string {
-  return cn(
-    "npb-settings-chip flex min-h-10 w-full min-w-0 items-center justify-center px-2 text-xs font-medium focus:outline-none",
-    !selected && "border-[color:var(--npb-coll-header-divider)]",
-    selected && "npb-settings-chip--active",
-  );
+type ContainerHtmlTag = "div" | "section" | "article" | "aside";
+
+const HTML_TAG_OPTIONS: Array<{
+  value: ContainerHtmlTag;
+  label: string;
+  accessibleName: string;
+}> = [
+  { value: "div", label: "Group", accessibleName: "Group (div)" },
+  { value: "section", label: "Section", accessibleName: "Section" },
+  { value: "article", label: "Article", accessibleName: "Article" },
+  { value: "aside", label: "Side note", accessibleName: "Side note" },
+];
+
+function isContainerHtmlTag(value: string): value is ContainerHtmlTag {
+  return value === "div" || value === "section" || value === "article" || value === "aside";
 }
 
 export function ContainerSettings({ block, onUpdate }: ContainerSettingsProps) {
@@ -122,13 +131,6 @@ export function ContainerSettings({ block, onUpdate }: ContainerSettingsProps) {
     mergeTokenEntry(entry);
   };
 
-  const tagOptions = [
-    { value: "div", label: "div" },
-    { value: "section", label: "section" },
-    { value: "article", label: "article" },
-    { value: "aside", label: "aside" },
-  ];
-
   const currentTag = content?.tagName || "div";
 
   const maxW = (styles?.maxWidth as string) || "";
@@ -141,19 +143,15 @@ export function ContainerSettings({ block, onUpdate }: ContainerSettingsProps) {
     <div className="space-y-4">
       <CollapsibleCard title="Structure" icon={Layout} defaultOpen>
         <div className="space-y-3">
-          <Label className="npb-settings-label text-sm font-medium">HTML tag</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {tagOptions.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => updateContent({ tagName: opt.value })}
-                className={settingsChipClass(currentTag === opt.value)}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          <SettingsChipGroup
+            label="HTML tag"
+            options={HTML_TAG_OPTIONS}
+            value={currentTag}
+            onChange={(value) => {
+              if (!isContainerHtmlTag(value)) return;
+              updateContent({ tagName: value });
+            }}
+          />
           <p className="npb-settings-hint-muted text-xs">
             Wrapper classes: use the sidebar <span className="font-semibold">Advanced</span> tab → CSS Classes (same
             field as other blocks).

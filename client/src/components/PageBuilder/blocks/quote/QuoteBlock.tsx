@@ -2,10 +2,9 @@ import React from "react";
 import type { BlockConfig } from "@shared/schema-types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CollapsibleCard } from "@/components/ui/collapsible-card";
-import { SettingsLabel } from '../../shared';
-import { Quote as QuoteIcon, Settings } from "lucide-react";
+import { SettingsLabel, SettingsSection } from '../../shared';
+import { SettingsChipGroup } from "../../settings-chip-group";
+import { Quote as QuoteIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { InlineTextEditor } from "../shared/inline-text-editor";
@@ -29,6 +28,9 @@ type QuoteContent = {
   align?: 'wide' | 'full';
 };
 
+type QuoteTextAlign = NonNullable<QuoteContent['textAlign']>;
+type QuoteWidth = NonNullable<QuoteContent['align']>;
+
 const DEFAULT_CONTENT: QuoteContent = {
   value: '<p>Add a quote</p>',
   citation: '',
@@ -36,6 +38,61 @@ const DEFAULT_CONTENT: QuoteContent = {
   anchor: '',
   className: '',
 };
+
+const QUOTE_ALIGN_OPTIONS = [
+  { value: "default", label: "Default" },
+  { value: "left", label: "Left" },
+  { value: "center", label: "Center" },
+  { value: "right", label: "Right" },
+];
+
+const QUOTE_WIDTH_OPTIONS = [
+  { value: "default", label: "Default" },
+  { value: "wide", label: "Wide" },
+  { value: "full", label: "Full" },
+];
+
+function isQuoteTextAlign(value: string): value is QuoteTextAlign {
+  return value === "left" || value === "center" || value === "right";
+}
+
+function isQuoteWidth(value: string): value is QuoteWidth {
+  return value === "wide" || value === "full";
+}
+
+/**
+ * WHY: Enter must leave a blank paragraph in the saved HTML. The field is
+ * derived from that HTML, so empty `<p>` / `<p><br></p>` stay as empty lines
+ * instead of being stripped on the next render.
+ */
+function quoteParagraphToLine(inner: string): string {
+  const withoutBreaks = inner.replace(/<br\s*\/?>/gi, "");
+  return withoutBreaks.trim() === "" ? "" : inner;
+}
+
+function readQuotePlainText({
+  value,
+  fallbackText,
+}: {
+  value?: string;
+  fallbackText?: string;
+}): string {
+  if (value && value.includes("<p")) {
+    return value
+      .split(/<\/p>/i)
+      .filter((chunk) => /<p/i.test(chunk))
+      .map((chunk) => quoteParagraphToLine(chunk.replace(/<p[^>]*>/i, "")))
+      .join("\n");
+  }
+  return fallbackText || "";
+}
+
+function writeQuoteHtml(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => (line === "" ? "<p><br></p>" : `<p>${sanitizeHtml(line)}</p>`))
+    .join("");
+}
 
 // ============================================================================
 // RENDERER
@@ -66,17 +123,10 @@ function QuoteRenderer({
     ? valueHtmlRaw
     : (legacyText ? `<p>${legacyText}</p>` : '<p>Add a quote</p>');
 
-  const plainText = (() => {
-    const v: string | undefined = valueHtml;
-    if (v && v.includes('<p')) {
-      return v
-        .split(/<\/p>/i)
-        .map((chunk) => chunk.replace(/<p[^>]*>/i, ''))
-        .filter((line) => line !== '')
-        .join('\n');
-    }
-    return content?.text || '';
-  })();
+  const plainText = readQuotePlainText({
+    value: valueHtml,
+    fallbackText: content?.text || "",
+  });
 
   const editorStyle: React.CSSProperties = {
     fontStyle: 'italic',
@@ -116,9 +166,7 @@ function QuoteRenderer({
           <InlineTextEditor
             value={plainText}
             onChange={(text) => {
-              const lines = text.split('\n');
-              const html = lines.map((l) => `<p>${sanitizeHtml(l)}</p>`).join('');
-              onUpdateContent?.({ value: html, text: undefined });
+              onUpdateContent?.({ value: writeQuoteHtml(text), text: undefined });
             }}
             style={editorStyle}
             multiline
@@ -162,94 +210,55 @@ function QuoteSettings({ block, onUpdate }: QuoteSettingsProps) {
   });
 
   return (
-    <div className="space-y-4">
-      {/* Content Card */}
-      <CollapsibleCard title="Content" icon={QuoteIcon} defaultOpen={true}>
-        <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="quote-text">Quote</SettingsLabel>
-            <Textarea
-              id="quote-text"
-              value={(() => {
-                const v: string | undefined = content?.value;
-                if (v && v.includes('<p')) {
-                  // Convert HTML paragraphs to newline-separated text for editing UX
-                  return v
-                    .split(/<\/p>/i)
-                    .map((chunk) => chunk.replace(/<p[^>]*>/i, ''))
-                    .filter((line) => line !== '')
-                    .join('\n');
-                }
-                return content?.text || '';
-              })()}
-              onChange={(e) => {
-                const lines = e.target.value.split('\n');
-                const html = lines.map((l) => `<p>${sanitizeHtml(l)}</p>`).join('');
-                updateContent({ value: html });
-              }}
-              placeholder={`Add your quote...`}
-              rows={4}
-              className="h-32"
-              aria-label="Quote text"
-            />
-          </div>
-          <div>
-            <SettingsLabel htmlFor="quote-author">Citation</SettingsLabel>
-            <Input
-              id="quote-author"
-              value={content?.citation ?? content?.author ?? ''}
-              onChange={(e) => updateContent({ citation: e.target.value })}
-              placeholder="Who said this (optional)"
-              className="h-9"
-              aria-label="Citation"
-            />
-          </div>
-        </div>
-      </CollapsibleCard>
-
-      {/* Settings Card */}
-      <CollapsibleCard title="Settings" icon={Settings} defaultOpen={false}>
-        <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="quote-text-align">Text Align</SettingsLabel>
-            <Select
-              value={readTextAlign({ styles, content }) ?? 'default'}
-              onValueChange={(value) => {
-                // Saved on styles, the one home for alignment; clear the old copy on content too.
-                updateStyles({ textAlign: value === 'default' ? undefined : (value as 'left' | 'center' | 'right') });
-                if (content?.textAlign) updateContent({ textAlign: undefined });
-              }}
-            >
-              <SelectTrigger id="quote-text-align" className="h-9 mt-1">
-                <SelectValue placeholder="Default" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Default</SelectItem>
-                <SelectItem value="left">Left</SelectItem>
-                <SelectItem value="center">Center</SelectItem>
-                <SelectItem value="right">Right</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <SettingsLabel htmlFor="quote-align">Width</SettingsLabel>
-            <Select
-              value={content?.align ?? 'default'}
-              onValueChange={(value) => updateContent({ align: value === 'default' ? undefined : (value as 'wide' | 'full') })}
-            >
-              <SelectTrigger id="quote-align" className="h-9">
-                <SelectValue placeholder="Default" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Default</SelectItem>
-                <SelectItem value="wide">Wide</SelectItem>
-                <SelectItem value="full">Full</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </CollapsibleCard>
-    </div>
+    <SettingsSection>
+      <div>
+        <SettingsLabel htmlFor="quote-text">Quote</SettingsLabel>
+        <Textarea
+          id="quote-text"
+          value={readQuotePlainText({
+            value: content?.value,
+            fallbackText: content?.text || "",
+          })}
+          onChange={(e) => {
+            updateContent({ value: writeQuoteHtml(e.target.value) });
+          }}
+          placeholder={`Add your quote...`}
+          rows={4}
+          className="h-32"
+          aria-label="Quote text"
+        />
+      </div>
+      <div>
+        <SettingsLabel htmlFor="quote-author">Citation</SettingsLabel>
+        <Input
+          id="quote-author"
+          value={content?.citation ?? content?.author ?? ''}
+          onChange={(e) => updateContent({ citation: e.target.value })}
+          placeholder="Who said this (optional)"
+          className="h-9"
+          aria-label="Citation"
+        />
+      </div>
+      <SettingsChipGroup
+        label="Alignment"
+        options={QUOTE_ALIGN_OPTIONS}
+        value={readTextAlign({ styles, content }) ?? "default"}
+        onChange={(value) => {
+          updateStyles({
+            textAlign: isQuoteTextAlign(value) ? value : null,
+          } as Partial<React.CSSProperties>);
+          if (content?.textAlign) updateContent({ textAlign: undefined });
+        }}
+      />
+      <SettingsChipGroup
+        label="Width"
+        options={QUOTE_WIDTH_OPTIONS}
+        value={content?.align ?? "default"}
+        onChange={(value) => {
+          updateContent({ align: isQuoteWidth(value) ? value : undefined });
+        }}
+      />
+    </SettingsSection>
   );
 }
 

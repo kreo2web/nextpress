@@ -2,6 +2,14 @@ import type { CSSProperties, HTMLAttributes } from "react";
 import { FormFieldLabel, formFieldControlId } from "./form-field-label.js";
 import type { SelectOption } from "./form-field-model.js";
 
+/**
+ * Skip blank rows so canvas and published pages show the same list. Empty value
+ * with a real label is still a choice; whitespace-only labels are not.
+ */
+export function selectOptionsWithLabels(options: readonly SelectOption[]): SelectOption[] {
+	return options.filter((option) => option.label.trim() !== "");
+}
+
 export const selectListId = (blockId: string): string => `${formFieldControlId(blockId)}-list`;
 export const selectLabelId = (blockId: string): string => `${formFieldControlId(blockId)}-label`;
 export const selectOptionId = (blockId: string, index: number): string => `${formFieldControlId(blockId)}-opt-${index}`;
@@ -62,7 +70,8 @@ export function SelectFieldView({
 	style,
 	ready = false,
 }: SelectFieldViewProps) {
-	const chosen = options.find((option) => option.value === defaultValue);
+	const choices = selectOptionsWithLabels(options);
+	const chosen = choices.find((option) => option.value === defaultValue);
 	const labelText = label?.trim();
 	return (
 		<div
@@ -90,7 +99,7 @@ export function SelectFieldView({
 						{placeholder}
 					</option>
 				) : null}
-				{options.map((option) => (
+				{choices.map((option) => (
 					<option key={option.value} value={option.value}>
 						{option.label}
 					</option>
@@ -112,7 +121,7 @@ export function SelectFieldView({
 				<Chevron />
 			</button>
 			<ul id={selectListId(blockId)} className="np-select__list" role="listbox" tabIndex={-1} hidden {...(labelText ? { "aria-labelledby": selectLabelId(blockId) } : { "aria-label": ariaLabel })}>
-				{options.map((option, index) => (
+				{choices.map((option, index) => (
 					<li
 						key={option.value}
 						id={selectOptionId(blockId, index)}

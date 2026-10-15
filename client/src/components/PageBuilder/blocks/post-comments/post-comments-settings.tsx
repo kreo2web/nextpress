@@ -58,7 +58,7 @@ export function PostCommentsSettings({
               value={content.commentsPerPage ?? 10}
               onChange={(e) =>
                 updateContent({
-                  commentsPerPage: Math.max(1, Number(e.target.value) || 1),
+                  commentsPerPage: Math.min(100, Math.max(1, Number(e.target.value) || 1)),
                 })
               }
             />

@@ -97,9 +97,6 @@ export function PageShellSettings({
 				targets={[{ kind: "padding", sides: pageSides, defaultSides: resolveShellPadding(DEFAULT_PAGE_SHELL_CONTENT) }]}
 				onCommit={(patch) => updateContent(spacingPairsPatch({ sides: pageSides, patch }))}
 			/>
-			<p className="npb-settings-hint -mt-1 text-xs">
-				Space from the page edge. The column fills the rest of the page.
-			</p>
 			<div className="space-y-2">
 				<SettingsLabel>Colors</SettingsLabel>
 				<FillField
@@ -135,9 +132,6 @@ export function PageShellSettings({
 					}
 				/>
 			</div>
-			<p className="npb-settings-hint-muted text-xs">
-				Open a block, then Advanced, then Screens. Desktop includes the tablet preview. Mobile is the phone.
-			</p>
 			<SettingsDisclosure
 				title="Scrollbar"
 				defaultOpen={content.scrollbar?.look === "custom" || content.scrollbar?.look === "hidden"}

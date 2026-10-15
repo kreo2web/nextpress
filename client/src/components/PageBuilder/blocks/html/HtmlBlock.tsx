@@ -48,17 +48,20 @@ function HtmlRenderer({ content, styles, isPreview }: HtmlRendererProps) {
 
   return (
     <BlockShell blockClass="wp-block-html" className={content?.className} style={styles}>
-      <div style={{
-        backgroundColor: '#f8f9fa',
-        padding: '1em',
-        borderRadius: '4px',
-        border: '1px solid #e9ecef',
-        fontFamily: 'Monaco, Consolas, "Andale Mono", "DejaVu Sans Mono", monospace',
-        fontSize: '14px',
-        lineHeight: '1.4',
-        whiteSpace: 'pre-wrap',
-        color: '#6c757d',
-      }}>
+      <p className="text-xs text-npb-text-muted mb-1">This is the source.</p>
+      <div
+        className="bg-npb-surface-inset border border-npb-border-default text-npb-text-muted"
+        style={{
+          padding: '1em',
+          borderRadius: '4px',
+          fontFamily: 'Monaco, Consolas, "Andale Mono", "DejaVu Sans Mono", monospace',
+          fontSize: '14px',
+          lineHeight: '1.4',
+          whiteSpace: 'pre-wrap',
+          overflowX: 'auto',
+          maxWidth: '100%',
+        }}
+      >
         {htmlContent || 'Enter custom HTML...'}
       </div>
     </BlockShell>
@@ -100,8 +103,8 @@ function HtmlSettings({ block, onUpdate }: HtmlSettingsProps) {
                 fontSize: '14px',
               }}
             />
-            <p className="text-sm text-npb-text-muted mt-2">
-              Be careful when adding custom HTML. Make sure it's from a trusted source and won't break your site.
+            <p className="text-xs text-npb-text-muted mt-2">
+              Scripts are removed.
             </p>
           </div>
         </div>

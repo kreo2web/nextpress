@@ -1,10 +1,11 @@
 import React from "react";
-import type { BlockConfig } from "@shared/schema-types";
+import type { BlockConfig, TokenEntry } from "@shared/schema-types";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { SettingsLabel } from '../../shared';
+import ColorField from "../../ColorField";
 import { Minus as MinusIcon, Settings } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { useSettingsState } from "../useSettingsState";
@@ -13,11 +14,22 @@ import { useSettingsState } from "../useSettingsState";
 // TYPES
 // ============================================================================
 
+type DividerLineStyle = "solid" | "dashed" | "dotted";
+
 type DividerContent = {
-  style?: string;
+  style?: DividerLineStyle;
   color?: string;
   width?: number;
 };
+
+function readDividerLineStyle(style: string | undefined): DividerLineStyle {
+  if (style === "solid" || style === "dashed" || style === "dotted") return style;
+  return "solid";
+}
+
+function readLineColor(color: string | undefined): string | undefined {
+  return typeof color === "string" && color.trim() !== "" ? color : undefined;
+}
 
 const DEFAULT_CONTENT: DividerContent = {
   style: 'solid',
@@ -39,7 +51,7 @@ function DividerRenderer({ content, styles }: DividerRendererProps) {
     <div style={{ padding: styles?.padding, margin: styles?.margin }}>
       <hr
         style={{
-          borderStyle: content?.style as any,
+          borderStyle: readDividerLineStyle(content?.style),
           borderWidth: '1px 0 0 0',
           borderColor: content?.color,
           width: `${content?.width || 100}%`,
@@ -66,6 +78,12 @@ function DividerSettings({ block, onUpdate }: DividerSettingsProps) {
     defaultContent: DEFAULT_CONTENT,
   });
 
+  const pickLineColor = (entry: TokenEntry) => {
+    if (typeof entry.style === "string" && entry.style.trim() !== "") {
+      updateContent({ color: entry.style });
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Content Card */}
@@ -74,8 +92,8 @@ function DividerSettings({ block, onUpdate }: DividerSettingsProps) {
           <div>
             <SettingsLabel htmlFor="divider-style">Line Style</SettingsLabel>
             <Select
-              value={content?.style || 'solid'}
-              onValueChange={(value) => updateContent({ style: value })}
+              value={readDividerLineStyle(content?.style)}
+              onValueChange={(value) => updateContent({ style: readDividerLineStyle(value) })}
             >
               <SelectTrigger id="divider-style" className="h-9">
                 <SelectValue />
@@ -87,23 +105,20 @@ function DividerSettings({ block, onUpdate }: DividerSettingsProps) {
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <SettingsLabel htmlFor="divider-color">Color</SettingsLabel>
-            <div className="flex gap-3 mt-1">
-              <Input
-                id="divider-color"
-                type="color"
-                value={content?.color || '#cccccc'}
-                onChange={(e) => updateContent({ color: e.target.value })}
-                className="w-12 h-9 p-1 border-npb-border-default"
-              />
-              <Input
-                value={content?.color || '#cccccc'}
-                onChange={(e) => updateContent({ color: e.target.value })}
-                placeholder="#cccccc"
-                className="flex-1 h-9 text-sm"
-              />
-            </div>
+          <div className="space-y-2">
+            <SettingsLabel>Line</SettingsLabel>
+            <ColorField
+              ariaLabel="Line"
+              targets={[
+                {
+                  property: "color",
+                  label: "Line",
+                  styleValue: readLineColor(content?.color),
+                },
+              ]}
+              onChange={pickLineColor}
+              onTheme={() => updateContent({ color: null } as Partial<DividerContent>)}
+            />
           </div>
         </div>
       </CollapsibleCard>

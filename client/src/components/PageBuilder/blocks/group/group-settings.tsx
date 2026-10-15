@@ -3,8 +3,8 @@ import type { BlockConfig } from "@shared/schema-types";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Brackets, LayoutTemplate } from "lucide-react";
 import { useSettingsState } from "../useSettingsState";
-import { type GroupSemanticContent, DEFAULT_SEMANTIC_CONTENT, LAYOUT_PRESETS } from "./group-model";
-import { FLEX_STARTER_STYLES, matchFlexStarterKey } from "@shared/auto-layout-model";
+import { type GroupSemanticContent, DEFAULT_SEMANTIC_CONTENT } from "./group-model";
+import { FLEX_STARTER_STYLES, matchFlexStarterKey, type FlexStarterKey } from "@shared/auto-layout-model";
 import { SettingsChipGroup } from "../../settings-chip-group";
 
 export interface GroupSettingsProps {
@@ -24,11 +24,18 @@ const HTML_TAG_OPTIONS = [
 ] as const;
 
 const STARTER_OPTIONS = [
-	{ value: "column", label: "Stack", accessibleName: "Vertical stack" },
+	{ value: "column", label: "Column", accessibleName: "Vertical stack" },
 	{ value: "row", label: "Row", accessibleName: "Horizontal" },
 	{ value: "grid2", label: "Grid 2", accessibleName: "Grid 2 columns" },
 	{ value: "grid3", label: "Grid 3", accessibleName: "Grid 3 columns" },
 ] as const;
+
+const STARTER_HINTS: Record<FlexStarterKey, string> = {
+	column: "Blocks sit one under another.",
+	row: "Blocks sit in a line and wrap on a small screen.",
+	grid2: "Two equal columns.",
+	grid3: "Three equal columns.",
+};
 
 /**
  * Group Content tab: semantic tag + style starters. Fine-tune lives on Style → Layout.
@@ -67,8 +74,13 @@ export function GroupSettings({ block, onUpdate }: GroupSettingsProps) {
 					onChange={applyStarter}
 				/>
 				<p className="npb-settings-hint-muted mt-2 text-xs">
-					Writes layout styles. Fine-tune on the Style tab.{" "}
-					{LAYOUT_PRESETS.default?.description}
+					Writes layout styles. Fine-tune on the Style tab.
+					{matchedStarter ? (
+						<>
+							<br />
+							{STARTER_HINTS[matchedStarter]}
+						</>
+					) : null}
 				</p>
 				{starterDrift ? (
 					<p className="npb-settings-hint mt-2 text-xs">

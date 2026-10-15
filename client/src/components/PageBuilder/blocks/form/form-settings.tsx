@@ -43,6 +43,9 @@ export function FormSettings({ block, onUpdate }: FormSettingsProps): JSX.Elemen
 					onChange={(event) => updateContent({ successMessage: event.target.value })}
 					rows={3}
 				/>
+				<p className="npb-settings-hint-muted mt-1.5 text-xs">
+					Shown after the form is sent.
+				</p>
 			</div>
 			<p className="npb-settings-hint-muted text-xs">
 				Add fields and a button from "Form fields" in the block list. Turn on "Sends the form" on the button

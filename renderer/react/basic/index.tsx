@@ -211,6 +211,23 @@ export function ParagraphBlock(block: BlockConfig) {
 	);
 }
 
+/** Icon-only hides the label; screen readers need aria-label from title or the hidden text. */
+function buttonIconOnlyAriaLabel({
+	iconOnly,
+	title,
+	text,
+}: {
+	iconOnly: boolean;
+	title: string;
+	text: string;
+}): string | undefined {
+	if (!iconOnly) return undefined;
+	const accessibleName = title.trim();
+	if (accessibleName) return accessibleName;
+	const buttonText = text.trim();
+	return buttonText || undefined;
+}
+
 /**
  * Button Block Component
  * Renders a single button with link support
@@ -226,7 +243,13 @@ export function ButtonBlock(block: BlockConfig) {
 	const variant = content.variant as string | undefined;
 	const icon = content.icon as IconData;
 	const iconPosition = (content.iconPosition as string) || "left";
-	const iconOnly = content.iconOnly as boolean | undefined;
+	const iconOnly = Boolean(content.iconOnly);
+	const accessibleTitle = typeof content.title === "string" ? content.title : "";
+	const ariaLabel = buttonIconOnlyAriaLabel({
+		iconOnly,
+		title: accessibleTitle,
+		text,
+	});
 
 	const iconSize = typeof content.iconSize === "string" && content.iconSize.trim() ? content.iconSize.trim() : undefined;
 	const iconElement = renderSsrIcon(icon, { size: iconSize ?? ((icon?.size as number) || 16), color: "currentColor" });
@@ -269,7 +292,12 @@ export function ButtonBlock(block: BlockConfig) {
 	if (content.action === "submit") {
 		return (
 			<div className={shellClassName} style={shellStyles}>
-				<button type="submit" className={buttonClassName || undefined} style={buttonStyle}>
+				<button
+					type="submit"
+					className={buttonClassName || undefined}
+					style={buttonStyle}
+					aria-label={ariaLabel}
+				>
 					{buttonChildren}
 				</button>
 			</div>
@@ -286,6 +314,7 @@ export function ButtonBlock(block: BlockConfig) {
 					className={buttonClassName || undefined}
 					style={buttonStyle}
 					{...attributes}
+					aria-label={ariaLabel}
 				>
 					{buttonChildren}
 				</a>
@@ -300,6 +329,7 @@ export function ButtonBlock(block: BlockConfig) {
 				className={buttonClassName || undefined}
 				style={buttonStyle}
 				{...attributes}
+				aria-label={ariaLabel}
 			>
 				{buttonChildren}
 			</button>

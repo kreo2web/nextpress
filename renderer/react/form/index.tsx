@@ -2,7 +2,7 @@ import * as React from "react";
 import type { BlockConfig } from "@shared/schema-types";
 import { getRenderProps } from "../render-helpers";
 import { FormFieldLabel, formFieldControlId } from "@shared/form-field-label";
-import { SelectFieldView } from "@shared/select-field-view";
+import { SelectFieldView, selectOptionsWithLabels } from "@shared/select-field-view";
 import {
 	DEFAULT_FORM_FIELD_STYLES,
 	DEFAULT_INPUT_CONTENT,
@@ -84,6 +84,9 @@ export function SelectBlock(block: BlockConfig) {
 	const content = { ...DEFAULT_SELECT_CONTENT, ...parsed };
 	const name = content.name || "choice";
 	const placeholder = content.placeholder ?? DEFAULT_SELECT_CONTENT.placeholder;
+	const rawOptions = content.options?.length
+		? content.options
+		: (DEFAULT_SELECT_CONTENT.options ?? []);
 	return (
 		<SelectFieldView
 			blockId={block.id}
@@ -94,7 +97,7 @@ export function SelectBlock(block: BlockConfig) {
 			required={content.required ?? false}
 			disabled={content.disabled ?? false}
 			ariaLabel={content.ariaLabel || placeholder || name}
-			options={content.options?.length ? content.options : DEFAULT_SELECT_CONTENT.options!}
+			options={selectOptionsWithLabels(rawOptions)}
 			className={["wp-block-select", className].filter(Boolean).join(" ")}
 			wrapperAttributes={attributes}
 			controlClassName={content.className}

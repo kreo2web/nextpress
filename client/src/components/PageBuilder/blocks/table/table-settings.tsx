@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { SettingsLabel } from "../../shared";
-import { Plus, Trash2, Table as TableIcon, Settings, Sparkles } from "lucide-react";
+import { Plus, Trash2, Table as TableIcon, Settings, Palette } from "lucide-react";
 import { useSettingsState } from "../useSettingsState";
 import {
   type TableData,
@@ -138,7 +138,7 @@ export function TableSettings({ block, onUpdate }: TableSettingsProps) {
   return (
     <div className="space-y-4">
       {/* Quick Setup Card */}
-      <CollapsibleCard title="Table Layout" icon={TableIcon} defaultOpen={true}>
+      <CollapsibleCard title="Rows and columns" icon={TableIcon} defaultOpen={true}>
         <div className="space-y-4">
           <div>
             <SettingsLabel>Grid Presets</SettingsLabel>
@@ -205,7 +205,7 @@ export function TableSettings({ block, onUpdate }: TableSettingsProps) {
       </CollapsibleCard>
 
       {/* Style & Display Options Card */}
-      <CollapsibleCard title="Styles & Options" icon={Sparkles} defaultOpen={false}>
+      <CollapsibleCard title="Look" icon={Palette} defaultOpen={false}>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <SettingsLabel htmlFor="table-striped">Striped rows</SettingsLabel>
@@ -335,13 +335,14 @@ export function TableSettings({ block, onUpdate }: TableSettingsProps) {
                     ))}
                   </div>
                   <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => removeRow("body", rowIndex)}
-                    className="text-red-600 p-1 h-7 w-7"
-                    title="Delete row"
+                    className="h-9 w-9 shrink-0 p-0"
+                    aria-label={`Remove row ${rowIndex + 1}`}
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               ))}

@@ -1,5 +1,6 @@
 import type { BlockConfig } from '@shared/schema-types';
-import { SettingsLabel } from '../../shared';
+import { SettingsDisclosure, SettingsLabel } from '../../shared';
+import { SettingsChipGroup } from '../../settings-chip-group';
 import { useSettingsState } from '../useSettingsState';
 import { Input } from '@/components/ui/input';
 import {
@@ -13,6 +14,38 @@ import { Switch } from '@/components/ui/switch';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
 import { LayoutList, Settings } from 'lucide-react';
 import { type PostListContent, DEFAULT_CONTENT } from './post-list-model';
+
+type PostListLayout = NonNullable<PostListContent['layout']>;
+type PostListOpenIn = NonNullable<PostListContent['openIn']>;
+type PostListOrderBy = NonNullable<PostListContent['orderBy']>;
+type PostListOrder = NonNullable<PostListContent['order']>;
+
+const LAYOUT_OPTIONS = [
+  { value: 'grid', label: 'Grid' },
+  { value: 'list', label: 'List' },
+  { value: 'cards', label: 'Cards' },
+];
+
+const OPEN_IN_OPTIONS = [
+  { value: 'overlay', label: 'In a layer' },
+  { value: 'page', label: 'On its page' },
+];
+
+function isPostListLayout(value: string): value is PostListLayout {
+  return value === 'grid' || value === 'list' || value === 'cards';
+}
+
+function isPostListOpenIn(value: string): value is PostListOpenIn {
+  return value === 'overlay' || value === 'page';
+}
+
+function isPostListOrderBy(value: string): value is PostListOrderBy {
+  return value === 'date' || value === 'title';
+}
+
+function isPostListOrder(value: string): value is PostListOrder {
+  return value === 'asc' || value === 'desc';
+}
 
 export function PostListSettings({
   block,
@@ -31,37 +64,26 @@ export function PostListSettings({
     <div className="space-y-4">
       <CollapsibleCard title="Layout" icon={LayoutList} defaultOpen={true}>
         <div className="space-y-4">
-          <div>
-            <SettingsLabel htmlFor="pl-layout">Layout</SettingsLabel>
-            <Select
-              value={content.layout ?? 'grid'}
-              onValueChange={(v) => updateContent({ layout: v as any })}>
-              <SelectTrigger id="pl-layout" className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="grid">Grid</SelectItem>
-                <SelectItem value="list">List</SelectItem>
-                <SelectItem value="cards">Cards</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <SettingsLabel htmlFor="pl-open">Open posts</SettingsLabel>
-            <Select
-              value={content.openIn ?? 'overlay'}
-              onValueChange={(v) =>
-                updateContent({ openIn: v as 'overlay' | 'page' })
-              }>
-              <SelectTrigger id="pl-open" className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="overlay">Overlay</SelectItem>
-                <SelectItem value="page">Full page</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <SettingsChipGroup
+            label="Layout"
+            options={LAYOUT_OPTIONS}
+            value={content.layout ?? 'grid'}
+            onChange={(value) => {
+              if (isPostListLayout(value)) {
+                updateContent({ layout: value });
+              }
+            }}
+          />
+          <SettingsChipGroup
+            label="Open posts"
+            options={OPEN_IN_OPTIONS}
+            value={content.openIn ?? 'overlay'}
+            onChange={(value) => {
+              if (isPostListOpenIn(value)) {
+                updateContent({ openIn: value });
+              }
+            }}
+          />
           <div>
             <SettingsLabel htmlFor="pl-count">Posts per page</SettingsLabel>
             <Input
@@ -73,7 +95,7 @@ export function PostListSettings({
               value={content.postsPerPage ?? 6}
               onChange={(e) =>
                 updateContent({
-                  postsPerPage: Math.max(1, Number(e.target.value) || 1),
+                  postsPerPage: Math.min(50, Math.max(1, Number(e.target.value) || 1)),
                 })
               }
             />
@@ -121,20 +143,14 @@ export function PostListSettings({
       <CollapsibleCard title="Query" icon={Settings} defaultOpen={false}>
         <div className="space-y-4">
           <div>
-            <SettingsLabel htmlFor="pl-blog">Blog ID (optional)</SettingsLabel>
-            <Input
-              id="pl-blog"
-              className="h-9"
-              value={content.blogId ?? ''}
-              onChange={(e) => updateContent({ blogId: e.target.value })}
-              placeholder="Filter by blog ID"
-            />
-          </div>
-          <div>
             <SettingsLabel htmlFor="pl-orderby">Order by</SettingsLabel>
             <Select
               value={content.orderBy ?? 'date'}
-              onValueChange={(v) => updateContent({ orderBy: v as any })}>
+              onValueChange={(v) => {
+                if (isPostListOrderBy(v)) {
+                  updateContent({ orderBy: v });
+                }
+              }}>
               <SelectTrigger id="pl-orderby" className="h-9">
                 <SelectValue />
               </SelectTrigger>
@@ -148,7 +164,11 @@ export function PostListSettings({
             <SettingsLabel htmlFor="pl-order">Order</SettingsLabel>
             <Select
               value={content.order ?? 'desc'}
-              onValueChange={(v) => updateContent({ order: v as any })}>
+              onValueChange={(v) => {
+                if (isPostListOrder(v)) {
+                  updateContent({ order: v });
+                }
+              }}>
               <SelectTrigger id="pl-order" className="h-9">
                 <SelectValue />
               </SelectTrigger>
@@ -158,6 +178,20 @@ export function PostListSettings({
               </SelectContent>
             </Select>
           </div>
+          <SettingsDisclosure
+            title="Which blog"
+            defaultOpen={Boolean(content.blogId)}>
+            <div>
+              <SettingsLabel htmlFor="pl-blog">Blog</SettingsLabel>
+              <Input
+                id="pl-blog"
+                className="h-9"
+                value={content.blogId ?? ''}
+                onChange={(e) => updateContent({ blogId: e.target.value })}
+                placeholder="Optional"
+              />
+            </div>
+          </SettingsDisclosure>
         </div>
       </CollapsibleCard>
     </div>
