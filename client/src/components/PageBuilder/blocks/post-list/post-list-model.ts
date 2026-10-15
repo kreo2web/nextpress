@@ -3,9 +3,12 @@
  * preview/date helpers. No React here — see `post-list-settings.tsx` for the UI.
  */
 
+export type PostListMore = 'none' | 'show-more' | 'pages';
+
 export type PostListContent = {
   layout?: 'grid' | 'list' | 'cards';
   postsPerPage?: number;
+  morePosts?: PostListMore;
   showExcerpt?: boolean;
   showFeaturedImage?: boolean;
   showDate?: boolean;
@@ -31,6 +34,7 @@ export type PostItem = {
 export const DEFAULT_CONTENT: PostListContent = {
   layout: 'grid',
   postsPerPage: 6,
+  morePosts: 'show-more',
   showExcerpt: true,
   showFeaturedImage: true,
   showDate: true,
@@ -55,6 +59,55 @@ export function buildPlaceholderPosts(count: number): PostItem[] {
     publishedAt: new Date().toISOString(),
     author: { name: 'Author Name' },
   }));
+}
+
+type PostApiRow = {
+  id?: string | number;
+  title?: string;
+  slug?: string;
+  excerpt?: string;
+  featuredImage?: string;
+  featured_image?: string;
+  publishedAt?: string;
+  published_at?: string;
+  createdAt?: string;
+  author?: { name?: string };
+  authorName?: string;
+};
+
+type PostsListResponse = {
+  posts?: PostApiRow[];
+  total?: number;
+  total_pages?: number;
+};
+
+/** Map a public or admin posts payload into cards plus page totals. */
+export function readPostListResponse(json: PostsListResponse | PostApiRow[]): {
+  items: PostItem[];
+  total: number;
+  totalPages: number;
+} {
+  const payload: PostsListResponse = Array.isArray(json) ? { posts: json } : json;
+  const rows = Array.isArray(payload.posts) ? payload.posts : [];
+  const items: PostItem[] = rows.map((row) => ({
+    id: row.id ?? "",
+    title: row.title ?? "Untitled",
+    slug: row.slug ?? "",
+    excerpt: row.excerpt ?? "",
+    featuredImage: row.featuredImage ?? row.featured_image ?? "",
+    publishedAt: row.publishedAt ?? row.published_at ?? row.createdAt ?? "",
+    author: row.author
+      ? { name: row.author.name ?? "Unknown" }
+      : row.authorName
+        ? { name: row.authorName }
+        : undefined,
+  }));
+  const total = typeof payload.total === "number" ? payload.total : items.length;
+  const totalPages =
+    typeof payload.total_pages === "number" && payload.total_pages > 0
+      ? payload.total_pages
+      : Math.max(1, Math.ceil(total / Math.max(1, items.length)) || 1);
+  return { items, total, totalPages };
 }
 
 /** Formats an ISO date string to a readable locale date. */

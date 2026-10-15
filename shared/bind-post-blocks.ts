@@ -28,6 +28,7 @@ export type BindablePostDocument = {
 	id?: string;
 	authorId?: string | null;
 	title?: string | null;
+	slug?: string | null;
 	excerpt?: string | null;
 	featuredImage?: string | null;
 	publishedAt?: string | Date | null;
@@ -151,10 +152,15 @@ function bindOneBlock({
 			(typeof data.text === "string" && data.text.trim()) ||
 			(typeof post.excerpt === "string" ? post.excerpt : "") ||
 			"";
+		const slug = typeof post.slug === "string" ? post.slug.trim() : "";
 		return {
 			...block,
 			children,
-			content: { kind: "text", value: text } as BlockContent,
+			content: asStructured({
+				...data,
+				text,
+				postHref: slug ? `/post/${slug}` : "",
+			}),
 		};
 	}
 

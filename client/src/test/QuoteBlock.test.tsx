@@ -65,7 +65,7 @@ describe("QuoteBlock", () => {
         content: {
           kind: "structured",
           data: {
-            value: "<p>First</p><p></p><p>Second</p>",
+            value: "<p>First</p><p><br></p><p>Second</p>",
             citation: "",
           },
         },
@@ -113,7 +113,7 @@ describe("QuoteBlock", () => {
 
       const updated = onChange.mock.calls[0][0] as BlockConfig;
       expect(readStructuredValue(updated.content)).toBe(
-        "<p>First</p><p></p><p>Second</p>",
+        "<p>First</p><p><br></p><p>Second</p>",
       );
 
       rerender(
@@ -132,7 +132,7 @@ describe("QuoteBlock", () => {
       expect(screen.queryByText("Settings")).not.toBeInTheDocument();
       expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
       expect(screen.getByRole("radiogroup", { name: "Alignment" })).toBeInTheDocument();
-      expect(screen.getByRole("radiogroup", { name: "Width" })).toBeInTheDocument();
+      expect(screen.queryByRole("radiogroup", { name: "Width" })).not.toBeInTheDocument();
     });
 
     it("clears alignment with null and drops an old content.textAlign", () => {
@@ -185,46 +185,5 @@ describe("QuoteBlock", () => {
       });
     });
 
-    it("writes wide and full on content.align, and Default clears it", () => {
-      const onUpdate = vi.fn();
-      render(<QuoteSettings block={createQuoteBlock()} onUpdate={onUpdate} />);
-      const width = screen.getByRole("radiogroup", { name: "Width" });
-
-      fireEvent.click(within(width).getByRole("radio", { name: "Wide" }));
-      expect(onUpdate).toHaveBeenCalledWith({
-        content: {
-          kind: "structured",
-          data: {
-            value: "<p>Add a quote</p>",
-            citation: "",
-            align: "wide",
-          },
-        },
-      });
-
-      fireEvent.click(within(width).getByRole("radio", { name: "Full" }));
-      expect(onUpdate).toHaveBeenCalledWith({
-        content: {
-          kind: "structured",
-          data: {
-            value: "<p>Add a quote</p>",
-            citation: "",
-            align: "full",
-          },
-        },
-      });
-
-      fireEvent.click(within(width).getByRole("radio", { name: "Default" }));
-      expect(onUpdate).toHaveBeenCalledWith({
-        content: {
-          kind: "structured",
-          data: {
-            value: "<p>Add a quote</p>",
-            citation: "",
-            align: null,
-          },
-        },
-      });
-    });
   });
 });

@@ -67,6 +67,12 @@ import { MaxWidthPositionField } from "./max-width-position-field";
 import { ChildPinCard } from "./child-pin-card";
 import { parentAllowsChildPin, readResizeFromLength } from "@shared/auto-layout-model";
 import {
+  IMAGE_ASPECT_PRESETS,
+  IMAGE_FIT_PRESETS,
+  isImageAspectPreset,
+  readImageFit,
+} from "@shared/image-frame";
+import {
 	readContainerLayoutFromBlock,
 	getContainerSiblingStackDirection,
 	getContainerParentDisplayMode,
@@ -385,17 +391,18 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
     const showTypographyStyles = [
       "heading",
       "core/heading",
+      "post/title",
       "text",
       "core/paragraph",
       "button",
       "core/button",
     ].includes(block.name);
-    const showFlowTextAlign = ["heading", "core/heading", "text", "core/paragraph", "core/pullquote"].includes(
+    const showFlowTextAlign = ["heading", "core/heading", "post/title", "text", "core/paragraph", "core/pullquote"].includes(
       block.name,
     );
     const showButtonLabelAlign = ["button", "core/button"].includes(block.name);
     const isButtonBlock = ["button", "core/button"].includes(block.name);
-    const prefersTextColor = ["heading", "core/heading", "text", "core/paragraph", "core/pullquote", "core/quote"].includes(block.name);
+    const prefersTextColor = ["heading", "core/heading", "post/title", "text", "core/paragraph", "core/pullquote", "core/quote"].includes(block.name);
     const isFormFieldBlock = ["core/input", "core/textarea", "core/select"].includes(block.name);
     // Progressive disclosure: a card opens by itself only when it already holds saved values,
     // so nobody has to hunt for what they changed. Everything else waits for a click.
@@ -415,7 +422,7 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
     });
     const hasDimensions = anyStyleSet({
       styles: styleNow,
-      keys: ["width", "maxWidth", "minHeight", "height", "objectFit"],
+      keys: ["width", "maxWidth", "minHeight", "height", "objectFit", "aspectRatio"],
     });
     const hasMaxSize = anyStyleSet({ styles: styleNow, keys: ["maxWidth", "minHeight"] });
     const hasBorder = anyStyleSet({ styles: styleNow, keys: ["border", "borderRadius"] });
@@ -745,30 +752,31 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
               />
             </div>
             {block.name === "core/image" && (
-              <div>
-                <SettingsLabel>Object fit</SettingsLabel>
-                <Select
-                  value={(block.styles?.objectFit as string) || "contain"}
-                  onValueChange={(value) =>
-                    updateStyles({ objectFit: value as CSSProperties["objectFit"] })
+              <div className="space-y-4">
+                <SettingsChipGroup
+                  label="Fit"
+                  ariaLabel="Fit"
+                  options={IMAGE_FIT_PRESETS}
+                  value={readImageFit(block.styles?.objectFit) ?? "contain"}
+                  onChange={(value) => {
+                    const fit = readImageFit(value);
+                    if (fit) updateStyles({ objectFit: fit });
+                  }}
+                />
+                <SettingsChipGroup
+                  label="Aspect"
+                  ariaLabel="Aspect"
+                  options={[...IMAGE_ASPECT_PRESETS]}
+                  value={
+                    isImageAspectPreset(String(block.styles?.aspectRatio ?? "auto"))
+                      ? String(block.styles?.aspectRatio ?? "auto")
+                      : "auto"
                   }
-                >
-                  <SelectTrigger
-                    className={cn(
-                      "mt-2 h-9 w-full rounded-none text-sm focus-visible:outline-none",
-                      "npb-settings-select-trigger",
-                    )}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="contain">Contain</SelectItem>
-                    <SelectItem value="cover">Cover</SelectItem>
-                    <SelectItem value="fill">Fill</SelectItem>
-                    <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="scale-down">Scale down</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(value) => {
+                    if (!isImageAspectPreset(value)) return;
+                    updateStyles({ aspectRatio: value === "auto" ? undefined : value });
+                  }}
+                />
               </div>
             )}
         </CollapsibleCard>

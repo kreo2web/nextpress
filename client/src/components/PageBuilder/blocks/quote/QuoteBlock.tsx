@@ -29,7 +29,6 @@ type QuoteContent = {
 };
 
 type QuoteTextAlign = NonNullable<QuoteContent['textAlign']>;
-type QuoteWidth = NonNullable<QuoteContent['align']>;
 
 const DEFAULT_CONTENT: QuoteContent = {
   value: '<p>Add a quote</p>',
@@ -46,18 +45,8 @@ const QUOTE_ALIGN_OPTIONS = [
   { value: "right", label: "Right" },
 ];
 
-const QUOTE_WIDTH_OPTIONS = [
-  { value: "default", label: "Default" },
-  { value: "wide", label: "Wide" },
-  { value: "full", label: "Full" },
-];
-
 function isQuoteTextAlign(value: string): value is QuoteTextAlign {
   return value === "left" || value === "center" || value === "right";
-}
-
-function isQuoteWidth(value: string): value is QuoteWidth {
-  return value === "wide" || value === "full";
 }
 
 /**
@@ -248,14 +237,6 @@ function QuoteSettings({ block, onUpdate }: QuoteSettingsProps) {
             textAlign: isQuoteTextAlign(value) ? value : null,
           } as Partial<React.CSSProperties>);
           if (content?.textAlign) updateContent({ textAlign: undefined });
-        }}
-      />
-      <SettingsChipGroup
-        label="Width"
-        options={QUOTE_WIDTH_OPTIONS}
-        value={content?.align ?? "default"}
-        onChange={(value) => {
-          updateContent({ align: isQuoteWidth(value) ? value : undefined });
         }}
       />
     </SettingsSection>

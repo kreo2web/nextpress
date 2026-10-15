@@ -280,7 +280,7 @@ export function GallerySettings({ block, onUpdate }: GallerySettingsProps) {
         </div>
       </CollapsibleCard>
 
-      <CollapsibleCard title="Links & image size" icon={Settings} defaultOpen={false}>
+      <CollapsibleCard title="Links" icon={Settings} defaultOpen={false}>
         <div className="space-y-4">
           <div>
             <Label htmlFor="gallery-link-to">Link to</Label>
@@ -294,25 +294,6 @@ export function GallerySettings({ block, onUpdate }: GallerySettingsProps) {
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
                 <SelectItem value="media">Media File</SelectItem>
-                <SelectItem value="attachment">Attachment Page</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="gallery-size">Image Size</Label>
-            <Select
-              value={galleryData?.sizeSlug || "large"}
-              onValueChange={(value) => updateContent({ sizeSlug: value })}
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="thumbnail">Thumbnail</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="large">Large</SelectItem>
-                <SelectItem value="full">Full</SelectItem>
               </SelectContent>
             </Select>
           </div>

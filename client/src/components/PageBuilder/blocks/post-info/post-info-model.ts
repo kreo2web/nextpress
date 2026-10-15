@@ -84,21 +84,7 @@ export function formatRelativeTime(date: Date): string {
   return 'just now';
 }
 
-/** Format a date string according to the specified format. */
-export function formatDate(
-  isoDate: string,
-  format: 'short' | 'long' | 'relative',
-): string {
-  const date = new Date(isoDate);
-  if (isNaN(date.getTime())) return 'Invalid date';
-  if (format === 'relative') return formatRelativeTime(date);
-  const month = format === 'short' ? 'short' : 'long';
-  return date.toLocaleDateString('en-US', {
-    month,
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
+export { formatPostInfoDate as formatDate } from "@shared/post-info-date";
 
 /** Estimate read time from word count (~200 words/min). */
 export function computeReadTime(wordCount: number | undefined): string {

@@ -4,8 +4,11 @@ import { getRenderProps, parseStructuredContent } from "../render-helpers";
 import { isSafePublicMediaUrl } from "@shared/bind-post-list";
 import { readBoundHeadings } from "@shared/page-headings";
 import { normalizeWebsiteUrl, normalizeXProfileUrl } from "@shared/safe-http-url";
+import { formatPostInfoDate, readPostInfoDateFormat } from "@shared/post-info-date";
 
+export { PostExcerptBlock } from "./excerpt";
 export { PostCommentsBlock } from "./comments";
+export { PostListBlock } from "./list";
 
 /**
  * Post Author Box — SSR placeholder.
@@ -98,15 +101,10 @@ export function PostInfoBlock(block: BlockConfig) {
 	const tags = Array.isArray(data.tags)
 		? data.tags.filter((item): item is string => typeof item === "string")
 		: [];
+	const dateFormat = readPostInfoDateFormat(data.dateFormat);
 	if (showDate) {
 		if (publishedAt) {
-			items.push(
-				new Date(publishedAt).toLocaleDateString(undefined, {
-					year: "numeric",
-					month: "long",
-					day: "numeric",
-				}),
-			);
+			items.push(formatPostInfoDate(publishedAt, dateFormat));
 		} else if (!hasBoundMeta) {
 			items.push("January 15, 2025");
 		}
@@ -176,10 +174,19 @@ export function PostNavigationBlock(block: BlockConfig) {
 		);
 	}
 
+	const showThumbnail = data.showThumbnail === true;
 	const prevHref = typeof prev?.slug === "string" ? `/post/${prev.slug}` : "#";
 	const nextHref = typeof next?.slug === "string" ? `/post/${next.slug}` : "#";
 	const prevTitle = typeof prev?.title === "string" ? prev.title : "Previous Post Title";
 	const nextTitle = typeof next?.title === "string" ? next.title : "Next Post Title";
+	const prevImage =
+		typeof prev?.featuredImage === "string" && isSafePublicMediaUrl(prev.featuredImage)
+			? prev.featuredImage
+			: "";
+	const nextImage =
+		typeof next?.featuredImage === "string" && isSafePublicMediaUrl(next.featuredImage)
+			? next.featuredImage
+			: "";
 
 	return (
 		<nav
@@ -199,7 +206,16 @@ export function PostNavigationBlock(block: BlockConfig) {
 					style={{ textDecoration: "none", color: "var(--npb-accent)" }}
 				>
 					{showLabel && <small style={{ display: "block", color: "var(--npb-text-secondary)" }}>{prevLabel}</small>}
-					<span>{prevTitle}</span>
+					<span style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+						{showThumbnail && prevImage ? (
+							<img
+								src={prevImage}
+								alt=""
+								style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
+							/>
+						) : null}
+						<span>{prevTitle}</span>
+					</span>
 				</a>
 			) : <span />}
 			{(!isBound || next) ? (
@@ -209,7 +225,16 @@ export function PostNavigationBlock(block: BlockConfig) {
 					style={{ textDecoration: "none", color: "var(--npb-accent)", textAlign: "right" }}
 				>
 					{showLabel && <small style={{ display: "block", color: "var(--npb-text-secondary)" }}>{nextLabel}</small>}
-					<span>{nextTitle}</span>
+					<span style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px" }}>
+						<span>{nextTitle}</span>
+						{showThumbnail && nextImage ? (
+							<img
+								src={nextImage}
+								alt=""
+								style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
+							/>
+						) : null}
+					</span>
 				</a>
 			) : <span />}
 		</nav>
@@ -266,92 +291,6 @@ export function PostTocBlock(block: BlockConfig) {
 				</ListTag>
 			)}
 		</nav>
-	);
-}
-
-/**
- * Post List — published posts when bound; otherwise empty (no dummy titles).
- */
-export function PostListBlock(block: BlockConfig) {
-	const { style, className, attributes } = getRenderProps(block);
-	const data = parseStructuredContent(block.content);
-	const layout = (data.layout as string) || "grid";
-	const showExcerpt = data.showExcerpt !== false;
-	const showFeaturedImage = data.showFeaturedImage !== false;
-	const showDate = data.showDate !== false;
-	const showAuthor = data.showAuthor !== false;
-	const openIn = data.openIn === "page" ? "page" : "overlay";
-	const posts = Array.isArray(data.posts) ? data.posts : [];
-	const isGrid = layout === "grid" || layout === "cards";
-	const layoutClass =
-		layout === "list" ? "np-post-list--list" : layout === "cards" ? "np-post-list--cards" : "np-post-list--grid";
-
-	const mergedClassName = ["wp-block-post-list", "np-post-list", layoutClass, className]
-		.filter(Boolean)
-		.join(" ");
-
-	if (posts.length === 0) {
-		return (
-			<div className={mergedClassName || undefined} style={style} {...attributes}>
-				<p className="np-post-list__empty" style={{ margin: 0, color: "var(--npb-text-muted)", textAlign: "center", padding: "2rem 0" }}>
-					No published posts yet.
-				</p>
-			</div>
-		);
-	}
-
-	return (
-		<div
-			className={mergedClassName || undefined}
-			style={style}
-			data-np-open={openIn}
-			{...attributes}
-		>
-			{posts.map((raw) => {
-				const post = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-				const slug = typeof post.slug === "string" ? post.slug : "";
-				const title = typeof post.title === "string" ? post.title : "Untitled";
-				const excerpt = typeof post.excerpt === "string" ? post.excerpt : "";
-				const image = typeof post.featuredImage === "string" ? post.featuredImage : "";
-				const publishedAt = typeof post.publishedAt === "string" ? post.publishedAt : "";
-				const authorName = typeof post.authorName === "string" ? post.authorName : "";
-				const href = slug ? `/post/${slug}` : "#";
-				return (
-					<article key={slug || title} className="np-post-list__card">
-						<a
-							className="np-post-list__link"
-							href={href}
-							data-np-post-slug={slug}
-							data-np-open={openIn}
-							style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: isGrid ? "column" : "row", gap: isGrid ? 0 : "1rem" }}
-						>
-							{showFeaturedImage && image && isSafePublicMediaUrl(image) ? (
-								<img className="np-post-list__image" src={image} alt="" />
-							) : null}
-							<div className="np-post-list__body">
-								<strong className="np-post-list__title">{title}</strong>
-								{showExcerpt && excerpt ? (
-									<p className="np-post-list__excerpt">{excerpt}</p>
-								) : null}
-								{(showDate || showAuthor) && (publishedAt || authorName) ? (
-									<small className="np-post-list__meta">
-										{showDate && publishedAt
-											? new Date(publishedAt).toLocaleDateString(undefined, {
-													year: "numeric",
-													month: "short",
-													day: "numeric",
-												})
-											: null}
-										{showDate && showAuthor && publishedAt && authorName ? " · " : null}
-										{showAuthor ? authorName : null}
-									</small>
-								) : null}
-							</div>
-						</a>
-					</article>
-				);
-			})}
-		</div>
 	);
 }
 

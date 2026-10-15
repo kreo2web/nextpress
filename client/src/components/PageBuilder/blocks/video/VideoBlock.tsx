@@ -9,7 +9,7 @@ import {
   buildYouTubeEmbedUrl,
 } from "./video-model";
 import { VideoSettings } from "./video-settings";
-import { readVideoPlayback, videoElementStyle } from "@shared/video-playback";
+import { readVideoPlayback, videoElementStyle, videoWrapperStyle, youtubeEmbedFrameStyle } from "@shared/video-playback";
 
 // ============================================================================
 // RENDERER
@@ -61,9 +61,6 @@ function VideoRenderer({ content, styles }: VideoRendererProps) {
       className || '',
     ].filter(Boolean).join(' ');
 
-    const aspectWidth = 16;
-    const aspectHeight = 9;
-    const paddingBottom = `${(aspectHeight / aspectWidth) * 100}%`;
     const hasExplicitHeight = typeof styles?.height === 'string' && styles.height !== '';
 
     return (
@@ -76,12 +73,7 @@ function VideoRenderer({ content, styles }: VideoRendererProps) {
       >
         <div
           className="wp-block-embed__wrapper"
-          style={{
-            position: 'relative',
-            width: '100%',
-            height: hasExplicitHeight ? '100%' : 0,
-            paddingBottom: hasExplicitHeight ? undefined : paddingBottom,
-          }}
+          style={youtubeEmbedFrameStyle({ hasExplicitHeight })}
         >
           <iframe
             src={youTubeEmbedUrl}
@@ -103,7 +95,7 @@ function VideoRenderer({ content, styles }: VideoRendererProps) {
       as="figure"
       blockClass="wp-block-video"
       className={classes || undefined}
-      style={{ ...styles }}
+      style={videoWrapperStyle({ styles, objectFit: playback.objectFit })}
       id={anchor}
     >
       <video

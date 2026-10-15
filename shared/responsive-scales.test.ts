@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	FLUID_HEADING_CSS,
+	GLOBAL_BODY_TYPE_CSS,
 	MIN_FORM_FONT_SIZE,
 	MIN_TOUCH_TARGET_PX,
 	PROSE_MAX_WIDTH,
@@ -34,5 +35,10 @@ describe("responsive-scales", () => {
 		expect(MIN_FORM_FONT_SIZE).toBe("16px");
 		expect(FLUID_HEADING_CSS).toContain("clamp(");
 		expect(FLUID_HEADING_CSS).toContain("wp-block-post-title");
+		expect(FLUID_HEADING_CSS).toContain("cqw");
+		expect(FLUID_HEADING_CSS).toContain("text-wrap: balance");
+		expect(FLUID_HEADING_CSS).toContain("h6.wp-block-heading");
+		expect(GLOBAL_BODY_TYPE_CSS).toContain("text-wrap: pretty");
+		expect(GLOBAL_BODY_TYPE_CSS).toContain(".wp-block-paragraph");
 	});
 });

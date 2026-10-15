@@ -307,7 +307,7 @@ function PostTocSettings({ block, onUpdate }: PostTocSettingsProps) {
         />
       </div>
       <div>
-        <SettingsLabel htmlFor="toc-depth">Max Heading Depth</SettingsLabel>
+        <SettingsLabel htmlFor="toc-depth">Include headings through</SettingsLabel>
         <Select
           value={String(content?.maxDepth ?? 3)}
           onValueChange={(val) => updateContent({ maxDepth: Number(val) })}>

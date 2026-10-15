@@ -3,7 +3,7 @@ import type { BlockConfig } from "@shared/schema-types";
 import { Input } from "@/components/ui/input";
 import { AlignLeft } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
-import { FormFieldLabel, formFieldControlId } from "@shared/form-field-label";
+import { FormFieldLabel, formFieldControlId, formFieldHelpId, readFormFieldHelp } from "@shared/form-field-label";
 import { BlockShell } from "../shared/block-shell";
 import { SettingsLabel } from "../../shared";
 import {
@@ -23,12 +23,14 @@ function TextareaRenderer({ content, styles, blockId }: TextareaRendererProps) {
 	const name = content?.name || "message";
 	const ariaLabel = content?.ariaLabel || content?.placeholder || name;
 	const rows = content?.rows ?? 4;
+	const controlId = formFieldControlId(blockId);
+	const help = readFormFieldHelp(content?.helpText);
 
 	return (
 		<BlockShell blockClass="wp-block-textarea">
-			<FormFieldLabel label={content?.label} htmlFor={formFieldControlId(blockId)} required={content?.required} />
+			<FormFieldLabel label={content?.label} htmlFor={controlId} required={content?.required} help={content?.helpText} />
 			<textarea
-				id={formFieldControlId(blockId)}
+				id={controlId}
 				name={name}
 				rows={rows}
 				defaultValue={content?.defaultValue ?? ""}
@@ -36,6 +38,7 @@ function TextareaRenderer({ content, styles, blockId }: TextareaRendererProps) {
 				required={content?.required ?? false}
 				disabled={content?.disabled ?? false}
 				aria-label={ariaLabel}
+				aria-describedby={help ? formFieldHelpId(controlId) : undefined}
 				className={["wp-block-textarea__control", content?.className].filter(Boolean).join(" ")}
 				style={{
 					...DEFAULT_FORM_FIELD_STYLES,

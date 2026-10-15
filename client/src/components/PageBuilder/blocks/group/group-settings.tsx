@@ -13,14 +13,14 @@ export interface GroupSettingsProps {
 }
 
 const HTML_TAG_OPTIONS = [
-	{ value: "div", label: "div" },
-	{ value: "section", label: "section" },
-	{ value: "article", label: "article" },
-	{ value: "main", label: "main" },
-	{ value: "header", label: "header" },
-	{ value: "footer", label: "footer" },
-	{ value: "aside", label: "aside" },
-	{ value: "nav", label: "nav" },
+	{ value: "div", label: "Group" },
+	{ value: "section", label: "Section" },
+	{ value: "article", label: "Article" },
+	{ value: "main", label: "Main" },
+	{ value: "header", label: "Header" },
+	{ value: "footer", label: "Footer" },
+	{ value: "aside", label: "Side note" },
+	{ value: "nav", label: "Nav" },
 ] as const;
 
 const STARTER_OPTIONS = [

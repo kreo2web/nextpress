@@ -1,7 +1,6 @@
 import React from "react";
 import type { BlockConfig, BlockContent } from "@shared/schema-types";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { SettingsLabel, SettingsSection } from '../../shared';
 import { Type } from 'lucide-react';
 import { createBlockDefinition } from "../createBlockDefinition";
@@ -154,17 +153,6 @@ function TextSettings({ block, onUpdate }: TextSettingsProps) {
             />
           </div>
           
-          <div className="flex items-center justify-between">
-            <SettingsLabel htmlFor="paragraph-dropcap">Drop cap</SettingsLabel>
-            <Switch
-              id="paragraph-dropcap"
-              checked={Boolean(content?.dropCap)}
-              onCheckedChange={(checked) => updateContent({ dropCap: checked })}
-            />
-          </div>
-          <p className="text-npb-text-muted text-xs">
-            Saved on this paragraph. The published page does not draw a drop cap yet.
-          </p>
         </div>
       </SettingsSection>
     </div>

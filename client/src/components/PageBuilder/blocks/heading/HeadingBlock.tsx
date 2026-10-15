@@ -39,26 +39,6 @@ const DEFAULT_CONTENT: HeadingContent = {
 
 const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
 
-/** Default font sizes per heading level — Tailwind's CSS reset strips browser defaults */
-const HEADING_FONT_SIZES: Record<number, string> = {
-  1: "2.5rem",
-  2: "2rem",
-  3: "1.75rem",
-  4: "1.5rem",
-  5: "1.25rem",
-  6: "1rem",
-};
-
-/** Font weights per heading level — heavier for more prominent headings */
-const HEADING_FONT_WEIGHTS: Record<number, string> = {
-  1: "800",
-  2: "700",
-  3: "700",
-  4: "600",
-  5: "600",
-  6: "600",
-};
-
 // ============================================================================
 // UTILITIES
 // ============================================================================
@@ -94,8 +74,6 @@ function HeadingRenderer({
   const textAlign = readTextAlign({ styles, content });
   const mergedStyles: React.CSSProperties = {
     color: "var(--npb-text-primary)",
-    fontSize: HEADING_FONT_SIZES[level],
-    fontWeight: HEADING_FONT_WEIGHTS[level],
     ...styles,
     ...(textAlign ? { textAlign } : {}),
   };
@@ -165,7 +143,7 @@ interface HeadingSettingsProps {
 }
 
 function LegacyHeadingSettings({ block, onUpdate }: HeadingSettingsProps) {
-  const { accessor, content, updateContent } = useSettingsState<HeadingContent>({
+  const { content, updateContent } = useSettingsState<HeadingContent>({
     block,
     onUpdate,
     defaultContent: DEFAULT_CONTENT,
@@ -183,15 +161,6 @@ function LegacyHeadingSettings({ block, onUpdate }: HeadingSettingsProps) {
             isActive={currentLevel === level}
             onClick={() => {
               updateContent({ level });
-              if (!accessor) {
-                onUpdate?.({
-                  styles: {
-                    ...block.styles,
-                    fontSize: HEADING_FONT_SIZES[level],
-                    fontWeight: HEADING_FONT_WEIGHTS[level],
-                  },
-                });
-              }
             }}
             ariaLabel={`Heading level ${level}`}
           >

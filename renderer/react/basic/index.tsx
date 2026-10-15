@@ -8,6 +8,7 @@ import { PROSE_MAX_WIDTH } from "@shared/responsive-scales";
 import { readTextAlign } from "@shared/text-align";
 import { headingAnchorId } from "@shared/page-headings";
 import { buttonsGroupStyle } from "@shared/buttons-group-style";
+import { buttonsItemLinkStyle } from "@shared/buttons-item-look";
 import {
 	effectiveIconGlyphColor,
 } from "@shared/icon-block-visuals";
@@ -92,24 +93,6 @@ function renderSsrIcon(icon: IconData, overrides?: { size?: number | string; col
 	);
 }
 
-const HEADING_FONT_SIZES: Record<number, string> = {
-	1: "2.5rem",
-	2: "2rem",
-	3: "1.75rem",
-	4: "1.5rem",
-	5: "1.25rem",
-	6: "1rem",
-};
-
-const HEADING_FONT_WEIGHTS: Record<number, string> = {
-	1: "800",
-	2: "700",
-	3: "700",
-	4: "600",
-	5: "600",
-	6: "600",
-};
-
 /**
  * Heading Block Component
  * Renders heading elements (h1-h6) with optional styling
@@ -129,8 +112,6 @@ export function HeadingBlock(block: BlockConfig) {
 		.join(" ");
 
 	const mergedStyle: React.CSSProperties = {
-		fontSize: HEADING_FONT_SIZES[level],
-		fontWeight: HEADING_FONT_WEIGHTS[level],
 		color: "var(--npb-text-primary)",
 		...style,
 		...(textAlign
@@ -389,13 +370,7 @@ export function ButtonsBlock(block: BlockConfig) {
 				const hasIcon = iconElement !== null;
 
 				const btnStyle: React.CSSProperties = {
-					display: "inline-flex",
-					alignItems: "center",
-					justifyContent: "center",
-					maxWidth: "100%",
-					whiteSpace: "normal",
-					overflowWrap: "anywhere",
-					width: orientation === "vertical" ? "100%" : undefined,
+					...buttonsItemLinkStyle({ item: button, orientation }),
 					...(hasIcon ? { gap: hasIcon && !btnIconOnly ? "6px" : undefined } : {}),
 				};
 

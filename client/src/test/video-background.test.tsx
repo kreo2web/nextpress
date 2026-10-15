@@ -62,7 +62,13 @@ describe('published video', () => {
   it('puts the block styles on the wrapper only, so margins are not doubled', () => {
     const html = renderPublished(videoBlock({}, { margin: '24px', border: '1px solid red' }));
     expect(html.match(/margin:24px/g)).toHaveLength(1);
-    expect(html).toMatch(/<video[^>]*style="display:block;width:100%;height:auto"/);
+    expect(html).toMatch(/<video[^>]*style="display:block;width:100%;max-width:100%;height:auto"/);
+  });
+
+  it('keeps a 16:9 crop box when Fit is set and no height is saved', () => {
+    const html = renderPublished(videoBlock({ objectFit: 'cover' }));
+    expect(html).toContain('aspect-ratio:16 / 9');
+    expect(html).toContain('object-fit:cover');
   });
 });
 

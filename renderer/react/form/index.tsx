@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { BlockConfig } from "@shared/schema-types";
 import { getRenderProps } from "../render-helpers";
-import { FormFieldLabel, formFieldControlId } from "@shared/form-field-label";
+import { FormFieldLabel, formFieldControlId, formFieldHelpId, readFormFieldHelp } from "@shared/form-field-label";
 import { SelectFieldView, selectOptionsWithLabels } from "@shared/select-field-view";
 import {
 	DEFAULT_FORM_FIELD_STYLES,
@@ -23,12 +23,14 @@ export function InputBlock(block: BlockConfig) {
 	const name = content.name || "field";
 	const placeholder = content.placeholder ?? DEFAULT_INPUT_CONTENT.placeholder;
 	const ariaLabel = content.ariaLabel || placeholder || name;
+	const controlId = formFieldControlId(block.id);
+	const help = readFormFieldHelp(content.helpText);
 
 	return (
 		<div className={["wp-block-input", className].filter(Boolean).join(" ")} {...attributes}>
-			<FormFieldLabel label={content.label} htmlFor={formFieldControlId(block.id)} required={content.required} />
+			<FormFieldLabel label={content.label} htmlFor={controlId} required={content.required} help={content.helpText} />
 			<input
-				id={formFieldControlId(block.id)}
+				id={controlId}
 				type={type}
 				name={name}
 				defaultValue={content.defaultValue ?? ""}
@@ -36,6 +38,7 @@ export function InputBlock(block: BlockConfig) {
 				required={content.required ?? false}
 				disabled={content.disabled ?? false}
 				aria-label={ariaLabel}
+				aria-describedby={help ? formFieldHelpId(controlId) : undefined}
 				className={["wp-block-input__control", content.className].filter(Boolean).join(" ")}
 				style={{ ...DEFAULT_FORM_FIELD_STYLES, ...style }}
 			/>
@@ -52,12 +55,14 @@ export function TextareaBlock(block: BlockConfig) {
 	const placeholder = content.placeholder ?? DEFAULT_TEXTAREA_CONTENT.placeholder;
 	const ariaLabel = content.ariaLabel || placeholder || name;
 	const rows = content.rows ?? 4;
+	const controlId = formFieldControlId(block.id);
+	const help = readFormFieldHelp(content.helpText);
 
 	return (
 		<div className={["wp-block-textarea", className].filter(Boolean).join(" ")} {...attributes}>
-			<FormFieldLabel label={content.label} htmlFor={formFieldControlId(block.id)} required={content.required} />
+			<FormFieldLabel label={content.label} htmlFor={controlId} required={content.required} help={content.helpText} />
 			<textarea
-				id={formFieldControlId(block.id)}
+				id={controlId}
 				name={name}
 				rows={rows}
 				defaultValue={content.defaultValue ?? ""}
@@ -65,6 +70,7 @@ export function TextareaBlock(block: BlockConfig) {
 				required={content.required ?? false}
 				disabled={content.disabled ?? false}
 				aria-label={ariaLabel}
+				aria-describedby={help ? formFieldHelpId(controlId) : undefined}
 				className={["wp-block-textarea__control", content.className].filter(Boolean).join(" ")}
 				style={{
 					...DEFAULT_FORM_FIELD_STYLES,
@@ -92,6 +98,7 @@ export function SelectBlock(block: BlockConfig) {
 			blockId={block.id}
 			name={name}
 			label={content.label}
+			help={content.helpText}
 			placeholder={placeholder}
 			defaultValue={content.defaultValue ?? ""}
 			required={content.required ?? false}

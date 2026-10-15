@@ -2,7 +2,7 @@ import React from "react";
 import type { BlockConfig } from "@shared/schema-types";
 import { TextCursorInput } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
-import { FormFieldLabel, formFieldControlId } from "@shared/form-field-label";
+import { FormFieldLabel, formFieldControlId, formFieldHelpId, readFormFieldHelp } from "@shared/form-field-label";
 import { BlockShell } from "../shared/block-shell";
 import {
 	DEFAULT_FORM_FIELD_STYLES,
@@ -21,12 +21,14 @@ function InputRenderer({ content, styles, blockId }: InputRendererProps) {
 	const type = content?.type ?? "text";
 	const name = content?.name || "field";
 	const ariaLabel = content?.ariaLabel || content?.placeholder || name;
+	const controlId = formFieldControlId(blockId);
+	const help = readFormFieldHelp(content?.helpText);
 
 	return (
 		<BlockShell blockClass="wp-block-input">
-			<FormFieldLabel label={content?.label} htmlFor={formFieldControlId(blockId)} required={content?.required} />
+			<FormFieldLabel label={content?.label} htmlFor={controlId} required={content?.required} help={content?.helpText} />
 			<input
-				id={formFieldControlId(blockId)}
+				id={controlId}
 				type={type}
 				name={name}
 				defaultValue={content?.defaultValue ?? ""}
@@ -34,6 +36,7 @@ function InputRenderer({ content, styles, blockId }: InputRendererProps) {
 				required={content?.required ?? false}
 				disabled={content?.disabled ?? false}
 				aria-label={ariaLabel}
+				aria-describedby={help ? formFieldHelpId(controlId) : undefined}
 				className={["wp-block-input__control", content?.className].filter(Boolean).join(" ")}
 				style={{
 					...DEFAULT_FORM_FIELD_STYLES,

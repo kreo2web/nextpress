@@ -18,10 +18,12 @@ const listBlock = (data: Record<string, unknown> = {}): BlockConfig => ({
 });
 
 describe("bind-post-list", () => {
-	it("defaults to grid layout and overlay details", () => {
+	it("defaults to grid layout, overlay details, and Show more", () => {
 		const content = readPostListContent(listBlock().content);
 		expect(content.layout).toBe("grid");
 		expect(content.openIn).toBe("overlay");
+		expect(content.morePosts).toBe("show-more");
+		expect(content.hasMore).toBe(false);
 		expect(content.posts).toEqual([]);
 	});
 
@@ -43,8 +45,18 @@ describe("bind-post-list", () => {
 				authorName: "Mira",
 			},
 		];
-		const bound = bindPostListBlock({ block: listBlock(), posts });
-		expect(readPostListContent(bound.content).posts).toEqual(posts);
+		const bound = bindPostListBlock({
+			block: listBlock(),
+			posts,
+			page: 2,
+			hasMore: true,
+			totalPages: 4,
+		});
+		const content = readPostListContent(bound.content);
+		expect(content.posts).toEqual(posts);
+		expect(content.page).toBe(2);
+		expect(content.hasMore).toBe(true);
+		expect(content.totalPages).toBe(4);
 	});
 
 	it("rewrites nested post lists", () => {

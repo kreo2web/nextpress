@@ -25,6 +25,7 @@ describe("bindPostBlocks", () => {
 		id: "post-1",
 		authorId: "user-1",
 		title: "First Post",
+		slug: "first-post",
 		excerpt: "A short summary",
 		featuredImage: "https://cdn.example/hero.jpg",
 		publishedAt: "2026-01-02T00:00:00.000Z",
@@ -51,13 +52,41 @@ describe("bindPostBlocks", () => {
 			level: 1,
 		});
 		expect(bound[1]?.content).toMatchObject({
-			kind: "text",
-			value: "Custom excerpt",
+			kind: "structured",
+			data: {
+				text: "Custom excerpt",
+				postHref: "/post/first-post",
+			},
 		});
 		expect(bound[2]?.content).toMatchObject({
 			kind: "media",
 			url: "https://cdn.example/hero.jpg",
 			mediaType: "image",
+		});
+	});
+
+	it("keeps excerpt length and read-more on the public payload", () => {
+		const bound = bindPostBlocks({
+			blocks: [
+				block("post/excerpt", {
+					text: "Custom excerpt",
+					maxLength: 80,
+					showReadMore: true,
+					readMoreText: "Keep reading",
+				}),
+			],
+			post,
+		});
+
+		expect(bound[0]?.content).toMatchObject({
+			kind: "structured",
+			data: {
+				text: "Custom excerpt",
+				maxLength: 80,
+				showReadMore: true,
+				readMoreText: "Keep reading",
+				postHref: "/post/first-post",
+			},
 		});
 	});
 

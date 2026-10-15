@@ -5,6 +5,7 @@ import { createBlockDefinition } from "../createBlockDefinition";
 import { useImageResize } from "./use-image-resize";
 import { type ImageContent, DEFAULT_CONTENT } from "./image-model";
 import { ImageSettings } from "./image-settings";
+import { imageFrame } from "@shared/image-frame";
 
 const positivePx = (value: string | undefined): number | undefined => {
   if (!value || !/^\d+(\.\d+)?$/.test(value.trim())) return undefined;
@@ -82,34 +83,34 @@ function ImageRenderer({
 
   if (!url) return null;
 
+  const intrinsicWidth = positivePx(content?.intrinsicWidth);
+  const intrinsicHeight = positivePx(content?.intrinsicHeight);
+  const frame = imageFrame({
+    objectFit: content?.objectFit,
+    aspectRatio: content?.aspectRatio,
+    intrinsicWidth,
+    intrinsicHeight,
+    styles,
+  });
   const wrapperClasses = [
     "wp-block-image",
     sizeSlug ? `size-${sizeSlug}` : "",
     align ? `align${align}` : "",
     styles?.width || styles?.height ? "is-resized" : "",
+    frame.cropInFrame ? "is-cropped" : "",
     className || "",
   ]
     .filter(Boolean)
     .join(" ");
-
-  const intrinsicWidth = positivePx(content?.intrinsicWidth);
-  const intrinsicHeight = positivePx(content?.intrinsicHeight);
-  const imgEl = (
+  const picture = (
     <img
       ref={showHandles ? imgRef : undefined}
       src={url}
       alt={alt}
-      width={intrinsicWidth}
-      height={intrinsicHeight}
+      width={frame.cropInFrame ? undefined : intrinsicWidth}
+      height={frame.cropInFrame ? undefined : intrinsicHeight}
       decoding="async"
-      style={{
-        ...styles,
-        maxWidth: styles?.maxWidth ?? "100%",
-        height: styles?.height ?? "auto",
-        ...(intrinsicWidth && intrinsicHeight
-          ? { aspectRatio: `${intrinsicWidth} / ${intrinsicHeight}` }
-          : {}),
-      }}
+      style={frame.imageStyle}
       draggable={false}
       onLoad={(event) => {
         if (isPreview || content?.intrinsicWidth) return;
@@ -119,6 +120,13 @@ function ImageRenderer({
         }
       }}
     />
+  );
+  const imgEl = frame.cropInFrame ? (
+    <div style={{ aspectRatio: frame.frameRatio, width: "100%", overflow: "hidden" }}>
+      {picture}
+    </div>
+  ) : (
+    picture
   );
 
   const linkHref =
@@ -139,7 +147,14 @@ function ImageRenderer({
   return (
     <figure
       className={wrapperClasses}
-      style={{ padding: styles?.padding, margin: styles?.margin, position: "relative" }}
+      style={{
+        padding: styles?.padding,
+        margin: styles?.margin,
+        position: "relative",
+        ...(frame.cropInFrame
+          ? { width: styles?.width ?? "100%", maxWidth: styles?.maxWidth ?? "100%" }
+          : {}),
+      }}
     >
       {contentEl}
       {caption ? <figcaption className="wp-element-caption">{caption}</figcaption> : null}

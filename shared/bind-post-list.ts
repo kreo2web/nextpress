@@ -2,6 +2,7 @@ import type { BlockConfig, BlockContent } from "./schema-types";
 import { readBlockContentData } from "./read-block-content";
 
 export type PostListOpenIn = "overlay" | "page";
+export type PostListMore = "none" | "show-more" | "pages";
 
 export type BoundPostListItem = {
 	id: string;
@@ -26,11 +27,37 @@ export type PostListContentShape = {
 	order?: string;
 	openIn?: PostListOpenIn;
 	className?: string;
+	morePosts?: PostListMore;
+	page?: number;
+	hasMore?: boolean;
+	totalPages?: number;
 	posts?: BoundPostListItem[];
 };
 
 const asStructured = (data: Record<string, unknown>): BlockContent =>
 	({ kind: "structured", data }) as BlockContent;
+
+/** Extra posts: hide them, a Show more chip, or numbered pages. */
+export function readPostListMore(value: unknown): PostListMore {
+	if (value === "none" || value === "pages") return value;
+	return "show-more";
+}
+
+/** `?npPage=` for numbered lists. Anything else is page 1. */
+export function readListPage(value: unknown): number {
+	const raw = Array.isArray(value) ? value[0] : value;
+	const n = Number(raw);
+	if (!Number.isFinite(n) || n < 1) return 1;
+	return Math.min(999, Math.floor(n));
+}
+
+export function postListPageHref(page: number): string {
+	return `?npPage=${Math.max(1, page)}`;
+}
+
+export function postListPublicSort(orderBy: string): string {
+	return orderBy === "title" ? "title" : "createdAt";
+}
 
 /** Overlay hash used by the grid so back/close restores the index. */
 export function postOverlayHash(slug: string): string {
@@ -78,7 +105,13 @@ export function readPostListContent(content: unknown): Required<
 		| "openIn"
 		| "className"
 	>
-> & { posts: BoundPostListItem[] } {
+> & {
+	morePosts: PostListMore;
+	page: number;
+	hasMore: boolean;
+	totalPages: number;
+	posts: BoundPostListItem[];
+} {
 	const data = readBlockContentData(content) as PostListContentShape;
 	const openIn = data.openIn === "page" ? "page" : "overlay";
 	const layout =
@@ -90,6 +123,7 @@ export function readPostListContent(content: unknown): Required<
 				return Boolean(item && typeof item === "object" && typeof item.slug === "string");
 			})
 		: [];
+	const totalPages = Math.max(1, Number(data.totalPages) || 1);
 	return {
 		layout,
 		postsPerPage: Math.max(1, Number(data.postsPerPage) || 6),
@@ -103,6 +137,10 @@ export function readPostListContent(content: unknown): Required<
 		order: data.order === "asc" ? "asc" : "desc",
 		openIn,
 		className: typeof data.className === "string" ? data.className : "",
+		morePosts: readPostListMore(data.morePosts),
+		page: readListPage(data.page),
+		hasMore: data.hasMore === true || (Number(data.page) || 1) < totalPages,
+		totalPages,
 		posts,
 	};
 }
@@ -111,15 +149,27 @@ export function readPostListContent(content: unknown): Required<
 export function bindPostListBlock({
 	block,
 	posts,
+	page,
+	hasMore,
+	totalPages,
 }: {
 	block: BlockConfig;
 	posts: BoundPostListItem[];
+	page?: number;
+	hasMore?: boolean;
+	totalPages?: number;
 }): BlockConfig {
 	if (block.name !== "post/list") return block;
 	const data = readBlockContentData(block.content);
 	return {
 		...block,
-		content: asStructured({ ...data, posts }),
+		content: asStructured({
+			...data,
+			posts,
+			page: page ?? 1,
+			hasMore: Boolean(hasMore),
+			totalPages: totalPages ?? 1,
+		}),
 	};
 }
 

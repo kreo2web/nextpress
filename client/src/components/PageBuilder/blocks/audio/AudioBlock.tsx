@@ -23,6 +23,7 @@ type AudioContent = {
   caption?: string;
   controls?: boolean;
   autoplay?: boolean;
+  muted?: boolean;
   loop?: boolean;
   preload?: string;
   align?: 'default' | 'wide' | 'full';
@@ -91,6 +92,7 @@ function AudioRenderer({ content, styles }: AudioRendererProps) {
         src={audioUrl}
         controls={controls}
         autoPlay={autoplay}
+        muted={autoplay}
         loop={loop}
         preload={preload}
         style={{ display: 'block', width: '100%', maxWidth: '100%' }}
@@ -176,7 +178,9 @@ function AudioSettings({ block, onUpdate }: AudioSettingsProps) {
             <Switch
               id="audio-autoplay"
               checked={Boolean(content?.autoplay)}
-              onCheckedChange={(checked) => updateContent({ autoplay: checked })}
+              onCheckedChange={(checked) =>
+                updateContent(checked ? { autoplay: true, muted: true } : { autoplay: false })
+              }
             />
           </div>
           
@@ -211,22 +215,6 @@ function AudioSettings({ block, onUpdate }: AudioSettingsProps) {
             </div>
           </SettingsDisclosure>
           
-          <div>
-            <SettingsLabel htmlFor="audio-align">Alignment</SettingsLabel>
-            <Select
-              value={content?.align || 'default'}
-              onValueChange={(value) => updateContent({ align: value === 'default' ? undefined : value as any })}
-            >
-              <SelectTrigger id="audio-align" className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Default</SelectItem>
-                <SelectItem value="wide">Wide</SelectItem>
-                <SelectItem value="full">Full</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </CollapsibleCard>
 

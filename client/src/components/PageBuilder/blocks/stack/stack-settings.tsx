@@ -81,7 +81,7 @@ export function StackSettings({ block, onUpdate }: StackSettingsProps) {
 			{isOverlay ? (
 				<CollapsibleCard title="Layers" icon={Layers} defaultOpen={children.length > 0}>
 					<p className="npb-settings-hint-muted mb-2 text-xs">
-						Back to front. Click to select. Arrows restack.
+						Back to front. Click to select. Arrows restack. A layer can fill the space behind the others — select it, then Style → Layer size.
 					</p>
 					{children.length === 0 ? (
 						<p className="npb-settings-hint-muted text-xs">

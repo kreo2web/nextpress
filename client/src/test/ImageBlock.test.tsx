@@ -6,9 +6,11 @@ import { getBlockComponent } from "../../../renderer/react/render-helpers";
 function imageBlock({
   name = "core/image",
   content,
+  styles = {},
 }: {
   name?: "core/image" | "post/featured-image";
   content: BlockContent;
+  styles?: BlockConfig["styles"];
 }): BlockConfig {
   return {
     id: "img-1",
@@ -18,7 +20,7 @@ function imageBlock({
     label: "Image",
     category: "media",
     content,
-    styles: {},
+    styles,
     settings: {},
   };
 }
@@ -116,6 +118,23 @@ describe("published ImageBlock", () => {
 
     expect(html).toContain("aspect-ratio:21/9");
     expect(html).toContain("object-fit:contain");
+    expect(html).toContain("overflow:hidden");
+  });
+
+  it("crops to a Style-tab aspect chip", () => {
+    const html = renderPublished(
+      imageBlock({
+        content: {
+          kind: "media",
+          mediaType: "image",
+          url: "/uploads/pic.jpg",
+        },
+        styles: { aspectRatio: "1/1", objectFit: "cover" },
+      }),
+    );
+
+    expect(html).toContain("aspect-ratio:1/1");
+    expect(html).toContain("object-fit:cover");
     expect(html).toContain("overflow:hidden");
   });
 });

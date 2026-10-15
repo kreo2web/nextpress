@@ -285,7 +285,10 @@ export function HeaderSettings({
 				</div>
 			</CollapsibleCard>
 
-			<CollapsibleCard title="Brand" defaultOpen={true}>
+			<CollapsibleCard
+				title="Brand"
+				defaultOpen={content.brand.kind === "logo" || Boolean(content.brand.logoUrl)}
+			>
 				<SettingsChipGroup
 					label="Kind"
 					ariaLabel="Brand kind"

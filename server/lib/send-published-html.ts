@@ -6,6 +6,7 @@ import type { Deps } from "../routes/shared/deps";
 import { buildPublishedPageHtml } from "../routes/shared/build-published-page-html";
 import { resolveSiteThemeSettings } from "../routes/shared/resolve-site-theme-settings";
 import { bindPublishedPostLists } from "./bind-published-post-lists";
+import { readListPage } from "@shared/bind-post-list";
 import { resolvePageTemplateParts, templatePartsStamp } from "./template-parts";
 import { canonicalUrlWithoutQuery, publishedPageCache, publishedPageCacheKey } from "./published-page-cache";
 import {
@@ -168,6 +169,7 @@ export async function sendPublishedHtml({
 				models,
 				siteId,
 				blocks: prepared.blocks,
+				listPage: readListPage(res.req?.query?.npPage),
 			})
 		: prepared.blocks;
 

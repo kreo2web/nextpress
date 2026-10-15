@@ -317,19 +317,37 @@ function PostProgressSettings({
           </div>
 
           <div>
-            <SettingsLabel htmlFor="progress-height">Height (px)</SettingsLabel>
-            <Input
-              id="progress-height"
-              type="number"
-              min={2}
-              max={12}
-              value={content?.height ?? DEFAULT_CONTENT.height}
-              onChange={(e) => {
-                const val = Math.max(2, Math.min(12, Number(e.target.value)));
-                updateContent({ height: val });
+            <SettingsChipGroup
+              label="Thickness"
+              options={[
+                { value: "2", label: "Thin" },
+                { value: "3", label: "Medium" },
+                { value: "4", label: "Large" },
+                { value: "6", label: "XL" },
+              ]}
+              value={String(content?.height ?? DEFAULT_CONTENT.height)}
+              onChange={(val) => {
+                const parsed = Number(val);
+                if (Number.isFinite(parsed)) {
+                  updateContent({ height: Math.max(2, Math.min(12, parsed)) });
+                }
               }}
-              className="mt-1 h-9 text-sm"
             />
+            {![2, 3, 4, 6].includes(content?.height ?? DEFAULT_CONTENT.height) ? (
+              <Input
+                id="progress-height"
+                type="number"
+                min={2}
+                max={12}
+                value={content?.height ?? DEFAULT_CONTENT.height}
+                onChange={(e) => {
+                  const val = Math.max(2, Math.min(12, Number(e.target.value)));
+                  updateContent({ height: val });
+                }}
+                className="mt-2 h-9 text-sm"
+                aria-label="Custom bar thickness"
+              />
+            ) : null}
           </div>
         </div>
       </CollapsibleCard>

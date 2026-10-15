@@ -3,13 +3,7 @@ import { SettingsLabel, SettingsSection } from '../../shared';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { SettingsChipGroup } from '../../settings-chip-group';
 import { useSettingsState } from '../useSettingsState';
 import { MediaUrlField } from '../shared/media-url-field';
 import { usePostDocument } from '../../PageContext';
@@ -242,28 +236,35 @@ export function PostAuthorBoxSettings({
             </div>
           </div>
 
-          <div>
-            <SettingsLabel>Layout</SettingsLabel>
-            <Select
-              value={currentLayout}
-              onValueChange={(val) =>
-                updateContent({ layout: val as 'horizontal' | 'vertical' })
-              }>
-              <SelectTrigger className="mt-1 h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LAYOUT_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <SettingsChipGroup
+            label="Layout"
+            options={[...LAYOUT_OPTIONS]}
+            value={currentLayout}
+            onChange={(val) => {
+              if (val === 'horizontal' || val === 'vertical') {
+                updateContent({ layout: val });
+              }
+            }}
+          />
 
           <div>
-            <SettingsLabel htmlFor="avatar-size">Avatar Size (px)</SettingsLabel>
+            <SettingsChipGroup
+              label="Photo size"
+              options={[
+                { value: '32', label: 'Small' },
+                { value: '64', label: 'Medium' },
+                { value: '96', label: 'Large' },
+              ]}
+              value={String(currentAvatarSize)}
+              onChange={(val) => {
+                const parsed = parseInt(val, 10);
+                if (!Number.isNaN(parsed)) {
+                  updateContent({
+                    avatarSize: Math.max(AVATAR_SIZE_MIN, Math.min(AVATAR_SIZE_MAX, parsed)),
+                  });
+                }
+              }}
+            />
             <Input
               id="avatar-size"
               type="number"
@@ -273,14 +274,13 @@ export function PostAuthorBoxSettings({
               onChange={(e) => {
                 const parsed = parseInt(e.target.value, 10);
                 if (!Number.isNaN(parsed)) {
-                  const clamped = Math.max(
-                    AVATAR_SIZE_MIN,
-                    Math.min(AVATAR_SIZE_MAX, parsed),
-                  );
-                  updateContent({ avatarSize: clamped });
+                  updateContent({
+                    avatarSize: Math.max(AVATAR_SIZE_MIN, Math.min(AVATAR_SIZE_MAX, parsed)),
+                  });
                 }
               }}
-              className="mt-1 h-9 text-sm"
+              className="mt-2 h-9 text-sm"
+              aria-label="Custom photo size"
             />
           </div>
 

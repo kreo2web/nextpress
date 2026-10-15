@@ -18,6 +18,8 @@ type ButtonItem = {
   rel?: string;
   title?: string;
   className?: string;
+  look?: string;
+  size?: string;
 };
 
 type ButtonsData = {
@@ -95,6 +97,7 @@ describe("ButtonsBlock", () => {
       expect(screen.getByRole("radio", { name: "Space between" })).toBeInTheDocument();
       expect(screen.getByRole("radio", { name: "Row" })).toBeInTheDocument();
       expect(screen.getByRole("radio", { name: "Stack" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Look" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Same window" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "New window" })).toBeInTheDocument();
 
@@ -138,6 +141,20 @@ describe("ButtonsBlock", () => {
       expect(readStructuredData(onUpdate.mock.calls.at(-1)?.[0].content).orientation).toBe(
         "horizontal",
       );
+    });
+
+    it("writes look and size onto the chip", async () => {
+      const onUpdate = vi.fn();
+      render(<ButtonsSettings block={createButtonsBlock()} onUpdate={onUpdate} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Look" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Ghost button" }));
+      expect(readStructuredData(onUpdate.mock.calls.at(-1)?.[0].content).buttons?.[0]?.look).toBe(
+        "ghost",
+      );
+
+      fireEvent.click(screen.getByRole("radio", { name: "SM" }));
+      expect(readStructuredData(onUpdate.mock.calls.at(-1)?.[0].content).buttons?.[0]?.size).toBe("sm");
     });
 
     it("stores linkTarget as _self | _blank", () => {

@@ -3,12 +3,11 @@ import type { BlockConfig, BlockContent } from "@shared/schema-types";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
-import { Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Settings, Link } from "lucide-react";
+import { Image as ImageIcon, Link } from "lucide-react";
 import { useSettingsState } from "../useSettingsState";
 import { SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
 import { LinkUrlField, LinkTargetSelect } from "../shared/link-settings";
-import { SettingsChipGroup } from "../../settings-chip-group";
 import { type ImageContent, DEFAULT_CONTENT } from "./image-model";
 
 type ImageSettingsProps = {
@@ -16,45 +15,7 @@ type ImageSettingsProps = {
   onUpdate?: (updates: Partial<BlockConfig>) => void;
 };
 
-type FigureWidth = NonNullable<ImageContent["align"]>;
-type ImageSizeSlug = NonNullable<ImageContent["sizeSlug"]>;
 type ImageLinkDestination = "none" | "media" | "custom";
-
-const FIGURE_WIDTH_OPTIONS = [
-  { value: "", label: "Default", icon: AlignCenter, accessibleName: "Figure width Default" },
-  { value: "left", label: "Left", icon: AlignLeft, accessibleName: "Figure width Left" },
-  { value: "center", label: "Center", icon: AlignCenter, accessibleName: "Figure width Center" },
-  { value: "right", label: "Right", icon: AlignRight, accessibleName: "Figure width Right" },
-  { value: "wide", label: "Wide", icon: Maximize, accessibleName: "Figure width Wide" },
-  { value: "full", label: "Full", icon: Maximize, accessibleName: "Figure width Full" },
-];
-
-const IMAGE_SIZE_OPTIONS = [
-  { value: "thumbnail", label: "Thumbnail" },
-  { value: "medium", label: "Medium" },
-  { value: "large", label: "Large" },
-  { value: "full", label: "Full" },
-];
-
-function isFigureWidth(value: string): value is FigureWidth {
-  return (
-    value === "" ||
-    value === "left" ||
-    value === "center" ||
-    value === "right" ||
-    value === "wide" ||
-    value === "full"
-  );
-}
-
-function isImageSizeSlug(value: string): value is ImageSizeSlug {
-  return (
-    value === "thumbnail" ||
-    value === "medium" ||
-    value === "large" ||
-    value === "full"
-  );
-}
 
 function isImageLinkDestination(value: string): value is ImageLinkDestination {
   return value === "none" || value === "media" || value === "custom";
@@ -84,8 +45,6 @@ export function ImageSettings({ block, onUpdate }: ImageSettingsProps) {
     }
   };
 
-  const currentAlign = content?.align || '';
-  const currentSize = content?.sizeSlug || 'full';
   const imageUrl = content?.kind === 'media' ? content.url : '';
   const storedLinkDestination = content?.linkDestination || 'none';
   const hasDeadAttachmentLink = storedLinkDestination === 'attachment';
@@ -161,51 +120,10 @@ export function ImageSettings({ block, onUpdate }: ImageSettingsProps) {
         </div>
       </CollapsibleCard>
 
-      <CollapsibleCard
-        title="Figure layout"
-        icon={Settings}
-        defaultOpen={false}
-      >
-        <div className="space-y-4">
-          {/* Block width in the editor (use Style → Position in container for flex placement) */}
-          <div>
-            <SettingsLabel>Figure width</SettingsLabel>
-            <p className="text-xs text-npb-text-muted mt-1 mb-2">
-              How wide the image sits in the layout. This is not text alignment; use{" "}
-              <span className="font-semibold">Style → Position in container</span> to nudge the block left, center, or
-              right among siblings.
-            </p>
-            <SettingsChipGroup
-              label=""
-              ariaLabel="Figure width"
-              options={FIGURE_WIDTH_OPTIONS}
-              value={currentAlign}
-              onChange={(value) => {
-                if (isFigureWidth(value)) {
-                  updateContent({ align: value });
-                }
-              }}
-            />
-          </div>
-
-          <SettingsChipGroup
-            label="Image Size"
-            ariaLabel="Image Size"
-            options={IMAGE_SIZE_OPTIONS}
-            value={currentSize}
-            onChange={(value) => {
-              if (isImageSizeSlug(value)) {
-                updateContent({ sizeSlug: value });
-              }
-            }}
-          />
-
-          <p className="text-xs text-npb-text-muted">
-            Width, height, max size, and object fit live under the sidebar <span className="font-semibold">Style</span>{" "}
-            tab (Layout &amp; Dimensions).
-          </p>
-        </div>
-      </CollapsibleCard>
+      <p className="text-xs text-npb-text-muted">
+        Width, height, max size, and object fit live under the sidebar <span className="font-semibold">Style</span>{" "}
+        tab.
+      </p>
 
       <CollapsibleCard
         title="Link Settings"

@@ -36,10 +36,10 @@ export const WIDTH_PRESETS: ReadonlyArray<{ value: string; label: string }> = [
 /** Min-height presets map to CSS (schema stays raw `styles.minHeight`). */
 export const MIN_HEIGHT_PRESETS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "__auto__", label: "Auto" },
-  { value: "10rem", label: "SM" },
-  { value: "20rem", label: "MD" },
-  { value: "32rem", label: "LG" },
-  { value: "100dvh", label: "Full" },
+  { value: "10rem", label: "Short" },
+  { value: "20rem", label: "Medium" },
+  { value: "32rem", label: "Tall" },
+  { value: "100dvh", label: "Full screen" },
 ] as const;
 
 export const MAX_WIDTH_VALUES = new Set(MAX_WIDTH_PRESETS.map((p) => p.value));

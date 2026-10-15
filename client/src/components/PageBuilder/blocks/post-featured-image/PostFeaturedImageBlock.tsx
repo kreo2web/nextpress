@@ -10,6 +10,7 @@ import { BlockShell } from '../shared/block-shell';
 import { MediaUrlField } from '../shared/media-url-field';
 import { usePostDocument } from '../../PageContext';
 import { SettingsChipGroup } from '../../settings-chip-group';
+import { IMAGE_ASPECT_PRESETS, isImageAspectPreset } from '@shared/image-frame';
 
 // ============================================================================
 // TYPES
@@ -41,21 +42,8 @@ const FIT_OPTIONS: { value: FeaturedImageFit; label: string; accessibleName: str
   { value: 'fill', label: 'Stretch', accessibleName: 'Stretch' },
 ];
 
-const ASPECT_OPTIONS = [
-  { value: '16/9', label: 'Wide', accessibleName: 'Wide 16 by 9' },
-  { value: '4/3', label: 'Standard', accessibleName: 'Standard 4 by 3' },
-  { value: '1/1', label: 'Square', accessibleName: 'Square 1 by 1' },
-  { value: '3/2', label: 'Tall', accessibleName: 'Tall 3 by 2' },
-  { value: '21/9', label: 'Cinema', accessibleName: 'Cinema 21 by 9' },
-  { value: 'auto', label: 'Natural', accessibleName: 'Natural auto' },
-] as const;
-
 function isFeaturedImageFit(value: string): value is FeaturedImageFit {
   return value === 'cover' || value === 'contain' || value === 'fill';
-}
-
-function isAspectRatio(value: string): boolean {
-  return ASPECT_OPTIONS.some((option) => option.value === value);
 }
 
 /** Frame opens itself only when fit or ratio is no longer the factory default. */
@@ -186,7 +174,7 @@ function PostFeaturedImageRenderer({
   return (
     <BlockShell as="figure" blockClass="wp-block-post-featured-image" className={className} style={styles}>
       <div
-        className="relative w-full"
+        className="relative w-full overflow-hidden"
         style={{ aspectRatio }}
         onMouseEnter={() => isEditor && setIsHovered(true)}
         onMouseLeave={() => isEditor && setIsHovered(false)}>
@@ -298,10 +286,10 @@ function PostFeaturedImageSettings({
           <SettingsChipGroup
             label="Aspect"
             ariaLabel="Aspect"
-            options={[...ASPECT_OPTIONS]}
+            options={[...IMAGE_ASPECT_PRESETS]}
             value={content?.aspectRatio || '16/9'}
             onChange={(value) => {
-              if (isAspectRatio(value)) {
+              if (isImageAspectPreset(value)) {
                 updateContent({ aspectRatio: value });
               }
             }}

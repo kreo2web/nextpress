@@ -64,8 +64,34 @@ export function videoElementStyle({
 	return {
 		display: "block",
 		width: "100%",
+		maxWidth: "100%",
 		height: hasHeight || objectFit ? "100%" : "auto",
 		...(objectFit ? { objectFit } : {}),
+	};
+}
+
+/** When Fit is set, the figure is the 16:9 crop box. Natural video keeps its own ratio. */
+export function videoWrapperStyle({
+	styles,
+	objectFit,
+}: {
+	styles?: CSSProperties;
+	objectFit?: VideoFit;
+}): CSSProperties {
+	const hasHeight = typeof styles?.height === "string" && styles.height !== "";
+	return {
+		...styles,
+		...(objectFit && !hasHeight ? { aspectRatio: "16 / 9", overflow: "hidden" } : {}),
+	};
+}
+
+/** 16:9 box for a YouTube iframe. Same on the canvas and the published page. */
+export function youtubeEmbedFrameStyle({ hasExplicitHeight }: { hasExplicitHeight: boolean }): CSSProperties {
+	return {
+		position: "relative",
+		width: "100%",
+		height: hasExplicitHeight ? "100%" : undefined,
+		aspectRatio: hasExplicitHeight ? undefined : "16 / 9",
 	};
 }
 

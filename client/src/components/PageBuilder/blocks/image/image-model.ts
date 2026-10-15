@@ -31,6 +31,8 @@ export type ImageContent = {
   /** Pixel size of the file, so the page can hold the box before the picture arrives. */
   intrinsicWidth?: string;
   intrinsicHeight?: string;
+  objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
+  aspectRatio?: string;
 };
 
 export const DEFAULT_CONTENT: ImageContent = {

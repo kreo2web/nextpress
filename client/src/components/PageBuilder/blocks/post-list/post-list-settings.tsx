@@ -16,6 +16,7 @@ import { LayoutList, Settings } from 'lucide-react';
 import { type PostListContent, DEFAULT_CONTENT } from './post-list-model';
 
 type PostListLayout = NonNullable<PostListContent['layout']>;
+type PostListMore = NonNullable<PostListContent['morePosts']>;
 type PostListOpenIn = NonNullable<PostListContent['openIn']>;
 type PostListOrderBy = NonNullable<PostListContent['orderBy']>;
 type PostListOrder = NonNullable<PostListContent['order']>;
@@ -31,12 +32,22 @@ const OPEN_IN_OPTIONS = [
   { value: 'page', label: 'On its page' },
 ];
 
+const MORE_POSTS_OPTIONS = [
+  { value: 'show-more', label: 'Show more' },
+  { value: 'pages', label: 'Pages' },
+  { value: 'none', label: 'First page only' },
+];
+
 function isPostListLayout(value: string): value is PostListLayout {
   return value === 'grid' || value === 'list' || value === 'cards';
 }
 
 function isPostListOpenIn(value: string): value is PostListOpenIn {
   return value === 'overlay' || value === 'page';
+}
+
+function isPostListMore(value: string): value is PostListMore {
+  return value === 'show-more' || value === 'pages' || value === 'none';
 }
 
 function isPostListOrderBy(value: string): value is PostListOrderBy {
@@ -100,6 +111,16 @@ export function PostListSettings({
               }
             />
           </div>
+          <SettingsChipGroup
+            label="Extra posts"
+            options={MORE_POSTS_OPTIONS}
+            value={content.morePosts ?? 'show-more'}
+            onChange={(value) => {
+              if (isPostListMore(value)) {
+                updateContent({ morePosts: value });
+              }
+            }}
+          />
         </div>
       </CollapsibleCard>
 

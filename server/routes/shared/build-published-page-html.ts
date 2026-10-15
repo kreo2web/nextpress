@@ -171,6 +171,7 @@ export function buildPublishedPageHtml({
 	}
 	if (documentHasBlockName({ blocks, name: "post/list" })) {
 		bodyParts.push(`<script src="/vendor/post-list-overlay.js"></script>`);
+		bodyParts.push(`<script src="/vendor/post-list-more.js"></script>`);
 	}
 	const bodyScripts = bodyParts.join("\n");
 

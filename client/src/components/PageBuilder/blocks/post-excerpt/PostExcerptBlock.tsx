@@ -11,6 +11,11 @@ import { useSettingsState } from '../useSettingsState';
 import { createBlockDefinition } from '../createBlockDefinition';
 import { BlockShell } from '../shared/block-shell';
 import { usePostDocument } from '../../PageContext';
+import {
+  DEFAULT_EXCERPT_MAX_LENGTH,
+  DEFAULT_READ_MORE_TEXT,
+  truncateExcerpt,
+} from '@shared/excerpt-display';
 
 // ============================================================================
 // TYPES
@@ -30,38 +35,15 @@ export type PostExcerptContent = {
 
 const DEFAULT_CONTENT: PostExcerptContent = {
   text: 'This is a brief summary of the post content that gives readers a preview of what to expect...',
-  maxLength: 200,
+  maxLength: DEFAULT_EXCERPT_MAX_LENGTH,
   showReadMore: true,
-  readMoreText: 'Read More',
+  readMoreText: DEFAULT_READ_MORE_TEXT,
   className: '',
 };
 
 const MAX_LENGTH_MIN = 50;
 const MAX_LENGTH_MAX = 500;
 const MAX_LENGTH_STEP = 10;
-
-// ============================================================================
-// UTILITIES
-// ============================================================================
-
-/**
- * Truncate text to a given character limit, breaking at the nearest word boundary.
- * Appends ellipsis when text is actually truncated.
- */
-function truncateText(
-  text: string,
-  maxLength: number,
-): { truncated: string; wasTruncated: boolean } {
-  if (!text || text.length <= maxLength) {
-    return { truncated: text || '', wasTruncated: false };
-  }
-
-  const sliced = text.slice(0, maxLength);
-  const lastSpace = sliced.lastIndexOf(' ');
-  const breakpoint = lastSpace > 0 ? lastSpace : maxLength;
-
-  return { truncated: sliced.slice(0, breakpoint) + '…', wasTruncated: true };
-}
 
 // ============================================================================
 // RENDERER
@@ -86,9 +68,9 @@ function PostExcerptRenderer({ content, styles, onTextChange }: PostExcerptRende
       : postDocument?.excerpt || raw;
   const maxLength = content?.maxLength ?? DEFAULT_CONTENT.maxLength!;
   const showReadMore = content?.showReadMore ?? true;
-  const readMoreText = content?.readMoreText || 'Read More';
+  const readMoreText = content?.readMoreText || DEFAULT_READ_MORE_TEXT;
 
-  const { truncated } = truncateText(text, maxLength);
+  const { truncated } = truncateExcerpt({ text, maxLength });
 
   return (
     <BlockShell blockClass="wp-block-post-excerpt" className={content?.className} style={styles}>
@@ -150,7 +132,7 @@ function PostExcerptSettings({ block, onUpdate }: PostExcerptSettingsProps) {
   const currentMaxLength =
     content?.maxLength ?? DEFAULT_CONTENT.maxLength!;
   const currentShowReadMore = content?.showReadMore ?? true;
-  const currentReadMoreText = content?.readMoreText || 'Read More';
+  const currentReadMoreText = content?.readMoreText || DEFAULT_READ_MORE_TEXT;
   const excerptText =
     content?.text && content.text !== DEFAULT_CONTENT.text
       ? content.text

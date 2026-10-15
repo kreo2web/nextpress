@@ -68,9 +68,10 @@ describe('Block Editing', () => {
       fireEvent.click(h4Button);
 
       expect(mockOnUpdate).toHaveBeenCalledWith({
-        styles: {
-          fontSize: '1.5rem',
-          fontWeight: '600',
+        content: {
+          kind: 'text',
+          value: 'Test',
+          level: 4,
         },
       });
     });
@@ -441,9 +442,11 @@ describe('Block Editing', () => {
       fireEvent.click(h5Button);
 
       expect(mockOnUpdate).toHaveBeenCalledWith({
-        styles: {
-          fontSize: '1.25rem',
-          fontWeight: '600',
+        content: {
+          kind: 'text',
+          value: 'Test',
+          level: 5,
+          textAlign: 'left',
         },
       });
     });

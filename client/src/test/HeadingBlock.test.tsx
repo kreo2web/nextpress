@@ -202,20 +202,22 @@ describe('HeadingBlock', () => {
       fireEvent.click(h3Button)
       
       expect(mockOnUpdate).toHaveBeenCalledWith({
-        styles: {
-          fontSize: '1.75rem',
-          fontWeight: '700',
-        }
+        content: {
+          kind: 'text',
+          value: 'Test',
+          level: 3,
+        },
       })
 
       const h4Button = screen.getByLabelText('Heading level 4')
       fireEvent.click(h4Button)
 
       expect(mockOnUpdate).toHaveBeenCalledWith({
-        styles: {
-          fontSize: '1.5rem',
-          fontWeight: '600',
-        }
+        content: {
+          kind: 'text',
+          value: 'Test',
+          level: 4,
+        },
       })
     })
 

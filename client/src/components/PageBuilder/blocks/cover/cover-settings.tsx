@@ -191,6 +191,46 @@ export function CoverSettings({ block, onUpdate }: CoverSettingsProps) {
 
       <CollapsibleCard title="Layout & overlay" icon={Settings} defaultOpen={false}>
         <div className="space-y-4">
+          {blockData?.backgroundType === 'image' && blockData?.url ? (
+            <div>
+              <SettingsLabel>Focus</SettingsLabel>
+              <p className="npb-settings-hint-muted mt-1 mb-2 text-xs">
+                Click the part that should stay in view.
+              </p>
+              <button
+                type="button"
+                aria-label="Choose which part of the photo stays in view"
+                className="relative block w-full overflow-hidden rounded-lg border border-npb-border-default"
+                style={{ aspectRatio: "16 / 9" }}
+                onClick={(event) => {
+                  const box = event.currentTarget.getBoundingClientRect();
+                  const width = box.width || 1;
+                  const height = box.height || 1;
+                  const x = Math.min(1, Math.max(0, (event.clientX - box.left) / width));
+                  const y = Math.min(1, Math.max(0, (event.clientY - box.top) / height));
+                  updateContent({ focalPoint: { x, y } });
+                }}
+              >
+                <img
+                  src={blockData.url}
+                  alt=""
+                  className="pointer-events-none h-full w-full object-cover"
+                  style={{
+                    objectPosition: `${(blockData.focalPoint?.x ?? 0.5) * 100}% ${(blockData.focalPoint?.y ?? 0.5) * 100}%`,
+                  }}
+                />
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-npb-accent shadow"
+                  style={{
+                    left: `${(blockData.focalPoint?.x ?? 0.5) * 100}%`,
+                    top: `${(blockData.focalPoint?.y ?? 0.5) * 100}%`,
+                  }}
+                />
+              </button>
+            </div>
+          ) : null}
+
           {blockData?.backgroundType === 'image' && (
             <div className="flex items-center justify-between">
               <SettingsLabel htmlFor="cover-parallax">Fixed Background</SettingsLabel>

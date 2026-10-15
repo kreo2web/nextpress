@@ -94,6 +94,21 @@ export function FormFieldSettings<T extends FormFieldBase>({
 					className="h-9"
 				/>
 			</div>
+			<div>
+				<SettingsLabel htmlFor="form-field-help">Help</SettingsLabel>
+				<Input
+					id="form-field-help"
+					value={content?.helpText ?? ""}
+					onChange={(e) =>
+						updateContent({ helpText: e.target.value } as Partial<T>)
+					}
+					placeholder="Shown under the label"
+					className="h-9"
+				/>
+				<p className="npb-settings-hint-muted mt-1.5 text-xs">
+					Stays visible while people type. Placeholder does not.
+				</p>
+			</div>
 			{extraFields?.({ content, updateContent })}
 			<div className="flex items-center justify-between gap-3">
 				<SettingsLabel htmlFor="form-field-required">Required</SettingsLabel>

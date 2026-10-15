@@ -74,7 +74,7 @@ export const BLOCK_COMPONENTS: Record<string, React.FC<BlockConfig>> = {
 	"core/form": FormBlock,
 
 	// Post blocks (core component aliases)
-	"post/excerpt": BasicBlocks.ParagraphBlock,
+	"post/excerpt": PostBlocks.PostExcerptBlock,
 	"post/title": BasicBlocks.HeadingBlock,
 	"post/featured-image": MediaBlocks.ImageBlock,
 

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FormFieldSettings } from "@/components/PageBuilder/blocks/form/form-field-settings";
@@ -42,6 +42,7 @@ describe("FormFieldSettings", () => {
 
 		expect(screen.getByLabelText("Label")).toBeInTheDocument();
 		expect(screen.getByLabelText("Placeholder")).toBeInTheDocument();
+		expect(screen.getByLabelText("Help")).toBeInTheDocument();
 		expect(screen.getByLabelText("Required")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "More" })).toBeInTheDocument();
 		expect(screen.queryByText("Field name")).not.toBeInTheDocument();
@@ -88,6 +89,23 @@ describe("FormFieldSettings", () => {
 
 		expect(screen.getByLabelText("Answer name")).toHaveValue("email");
 		expect(screen.getByLabelText("Default value")).toHaveValue("hi");
+	});
+
+	it("writes help text onto the field", () => {
+		const onUpdate = vi.fn();
+		render(
+			<FormFieldSettings
+				block={createInputBlock({ label: "Email" })}
+				defaultContent={DEFAULT_INPUT_CONTENT}
+				onUpdate={onUpdate}
+			/>,
+		);
+
+		fireEvent.change(screen.getByLabelText("Help"), { target: { value: "We never share this" } });
+		const last = onUpdate.mock.calls.at(-1)?.[0] as { content?: { kind?: string; data?: { helpText?: string } } };
+		expect(last?.content?.kind === "structured" ? last.content.data?.helpText : undefined).toBe(
+			"We never share this",
+		);
 	});
 
 	it("keeps type and required in the main group for a text field", () => {

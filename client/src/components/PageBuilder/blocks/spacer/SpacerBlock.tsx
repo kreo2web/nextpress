@@ -129,6 +129,9 @@ function SpacerSettings({ block, onUpdate }: SpacerSettingsProps) {
           updateContent({ height: next ?? null } as Partial<SpacerContent>)
         }
       />
+      <p className="npb-settings-hint-muted text-xs">
+        Style height wins if both are set.
+      </p>
     </SettingsSection>
   );
 }

@@ -6,6 +6,8 @@ export type FormFieldBase = {
 	/** Visible text above the field, and the name of this answer in form submissions. */
 	label?: string;
 	placeholder?: string;
+	/** Stays under the label while people type. Placeholder does not. */
+	helpText?: string;
 	defaultValue?: string;
 	required?: boolean;
 	disabled?: boolean;

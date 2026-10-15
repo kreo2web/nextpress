@@ -3,7 +3,8 @@ import type { BlockConfig } from "@shared/schema-types";
 import { buildGalleryRenderModel } from "@shared/gallery-render";
 import { sanitizeHtml } from "@shared/sanitize-html";
 import { isYouTubeUrl, buildYouTubeEmbedUrl } from "@shared/video-embed";
-import { readVideoPlayback, videoElementStyle } from "@shared/video-playback";
+import { readVideoPlayback, videoElementStyle, videoWrapperStyle, youtubeEmbedFrameStyle } from "@shared/video-playback";
+import { imageFrame } from "@shared/image-frame";
 import { getRenderProps, parseMediaContent, parseStructuredContent, renderChildBlocks } from "../render-helpers";
 import { mediaTextAlignItems, mediaTextPaneBasis } from "@shared/media-text-layout";
 
@@ -34,14 +35,6 @@ export function ImageBlock(block: BlockConfig) {
 		intrinsicPx(content.intrinsicWidth as number | string | undefined) ?? intrinsicPx(width);
 	const intrinsicHeight =
 		intrinsicPx(content.intrinsicHeight as number | string | undefined) ?? intrinsicPx(height);
-	const objectFit = content.objectFit as string | undefined;
-	const rawAspectRatio = content.aspectRatio;
-	const contentAspectRatio =
-		typeof rawAspectRatio === "string" ? rawAspectRatio.trim() : "";
-	const explicitAspectRatio =
-		contentAspectRatio !== "" && contentAspectRatio !== "auto"
-			? contentAspectRatio
-			: undefined;
 	const href = content.href as string | undefined;
 	const linkTarget = (content.linkTarget as string) || (content.target as string) || undefined;
 	const linkDestination = content.linkDestination as string | undefined;
@@ -53,33 +46,24 @@ export function ImageBlock(block: BlockConfig) {
 	}
 
 	const align = typeof content.align === "string" && content.align ? `align${content.align}` : "";
-	const mergedClassName = ["wp-block-image", align, className]
-		.filter(Boolean)
-		.join(" ");
-
-	const cropInFrame = Boolean(objectFit && explicitAspectRatio);
+	const frame = imageFrame({
+		objectFit: content.objectFit,
+		aspectRatio: content.aspectRatio,
+		intrinsicWidth,
+		intrinsicHeight,
+		styles: style,
+	});
+	const { cropInFrame, frameRatio } = frame;
 	const imageStyle: React.CSSProperties = cropInFrame
-		? {
-				width: "100%",
-				height: "100%",
-				objectFit: objectFit as React.CSSProperties["objectFit"],
-				display: "block",
-			}
+		? frame.imageStyle
 		: {
-				...style,
-				maxWidth: style.maxWidth ?? "100%",
-				height: style.height ?? "auto",
-				...(explicitAspectRatio
-					? { aspectRatio: explicitAspectRatio }
-					: intrinsicWidth && intrinsicHeight
-						? { aspectRatio: `${intrinsicWidth} / ${intrinsicHeight}` }
-						: {}),
+				...frame.imageStyle,
 				...(width && intrinsicWidth == null ? { width } : {}),
 				...(height && intrinsicHeight == null ? { height } : {}),
-				...(objectFit
-					? { objectFit: objectFit as React.CSSProperties["objectFit"] }
-					: {}),
 			};
+	const mergedClassName = ["wp-block-image", align, cropInFrame ? "is-cropped" : "", className]
+		.filter(Boolean)
+		.join(" ");
 
 	const imageAlt = alt.trim();
 	const img = (
@@ -94,7 +78,7 @@ export function ImageBlock(block: BlockConfig) {
 		/>
 	);
 	const image = cropInFrame ? (
-		<div style={{ aspectRatio: explicitAspectRatio, width: "100%", overflow: "hidden" }}>
+		<div style={{ aspectRatio: frameRatio, width: "100%", overflow: "hidden" }}>
 			{img}
 		</div>
 	) : (
@@ -180,20 +164,12 @@ export function VideoBlock(block: BlockConfig) {
 			.filter(Boolean)
 			.join(" ");
 
-		const aspectWidth = 16;
-		const aspectHeight = 9;
-		const paddingBottom = `${(aspectHeight / aspectWidth) * 100}%`;
 		const hasExplicitHeight = typeof style?.height === "string" && style.height !== "";
 
 		const iframeEmbed = (
 			<div
 				className="wp-block-embed__wrapper"
-				style={{
-					position: "relative",
-					width: "100%",
-					height: hasExplicitHeight ? "100%" : 0,
-					paddingBottom: hasExplicitHeight ? undefined : paddingBottom,
-				}}
+				style={youtubeEmbedFrameStyle({ hasExplicitHeight })}
 			>
 				<iframe
 					src={embedUrl}
@@ -245,9 +221,11 @@ export function VideoBlock(block: BlockConfig) {
 		</video>
 	);
 
+	const videoBoxStyle = videoWrapperStyle({ styles: style, objectFit: playback.objectFit });
+
 	if (caption) {
 		return (
-			<figure className={mergedClassName || undefined} style={style} {...attributes}>
+			<figure className={mergedClassName || undefined} style={videoBoxStyle} {...attributes}>
 				{video}
 				<figcaption className="wp-element-caption">{caption}</figcaption>
 			</figure>
@@ -255,7 +233,7 @@ export function VideoBlock(block: BlockConfig) {
 	}
 
 	return (
-		<div className={mergedClassName || undefined} style={style} {...attributes}>
+		<div className={mergedClassName || undefined} style={videoBoxStyle} {...attributes}>
 			{video}
 		</div>
 	);
@@ -290,6 +268,7 @@ export function AudioBlock(block: BlockConfig) {
 			src={url}
 			controls={controls !== false}
 			autoPlay={autoplay}
+			muted={Boolean(autoplay)}
 			loop={loop}
 			style={{
 				...style,

@@ -322,14 +322,13 @@ function ListSettings({ block, onUpdate }: ListSettingsProps) {
             <div className="space-y-2">
               <SettingsLabel htmlFor="list-type-ordered">Numbering Type</SettingsLabel>
               <Select
-                value={content?.type ?? 'default'}
-                onValueChange={(value) => updateContent({ type: value === 'default' ? undefined : value })}
+                value={content?.type ?? '1'}
+                onValueChange={(value) => updateContent({ type: value === '1' ? undefined : value })}
               >
                 <SelectTrigger id="list-type-ordered" className="h-9">
                   <SelectValue placeholder="Default (1,2,3)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="default">Default (1,2,3)</SelectItem>
                   <SelectItem value="1">1,2,3</SelectItem>
                   <SelectItem value="a">a,b,c</SelectItem>
                   <SelectItem value="A">A,B,C</SelectItem>

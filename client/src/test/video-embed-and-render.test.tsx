@@ -71,6 +71,9 @@ describe("renderer/react/media VideoBlock", () => {
     expect(iframe).not.toBeNull();
     expect(iframe?.getAttribute("src")).toContain("https://www.youtube.com/embed/dQw4w9WgXcQ");
     expect(container.textContent).toContain("A cool YouTube video");
+    const wrapper = container.querySelector(".wp-block-embed__wrapper") as HTMLElement | null;
+    expect(wrapper?.style.aspectRatio).toBe("16 / 9");
+    expect(wrapper?.style.paddingBottom).toBe("");
   });
 
   it("renders a standard HTML5 video tag for direct MP4 URLs", () => {

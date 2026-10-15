@@ -572,6 +572,7 @@ export const BLOCK_DEFINITIONS: Record<BlockName, BlockDefinitionMeta> = {
 			structured({
 				layout: "grid",
 				postsPerPage: 6,
+				morePosts: "show-more",
 				showExcerpt: true,
 				showFeaturedImage: true,
 				showDate: true,

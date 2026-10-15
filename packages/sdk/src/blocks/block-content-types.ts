@@ -118,6 +118,8 @@ export type TableContent = {
 export type PostListContent = {
 	layout?: string;
 	postsPerPage?: number;
+	/** Extra posts: hide them, Show more, or numbered pages. */
+	morePosts?: "none" | "show-more" | "pages";
 	showExcerpt?: boolean;
 	showFeaturedImage?: boolean;
 	showDate?: boolean;

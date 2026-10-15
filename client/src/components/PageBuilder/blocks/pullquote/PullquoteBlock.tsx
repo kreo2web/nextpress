@@ -84,7 +84,7 @@ function PullquoteRenderer({
         <div className="space-y-2">
           <blockquote
             style={{
-              fontSize: '1.5em',
+              fontSize: styles?.fontSize ?? '1.5em',
               lineHeight: '1.6',
               fontStyle: 'italic',
               margin: 0,
@@ -94,7 +94,7 @@ function PullquoteRenderer({
             <InlineTextEditor
               value={quotePlainText(value)}
               onChange={(text) => onUpdateContent?.({ value: quoteHtmlFromPlain(text) })}
-              style={{ fontSize: '1.5em', lineHeight: '1.6', fontStyle: 'italic', color: 'inherit' }}
+              style={{ fontSize: styles?.fontSize ?? '1.5em', lineHeight: '1.6', fontStyle: 'italic', color: 'inherit' }}
               multiline
               placeholder="Enter your quote here..."
             />
@@ -110,7 +110,7 @@ function PullquoteRenderer({
         <>
           <blockquote
             style={{
-              fontSize: '1.5em',
+              fontSize: styles?.fontSize ?? '1.5em',
               lineHeight: '1.6',
               fontStyle: 'italic',
               margin: 0,

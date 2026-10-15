@@ -6,6 +6,7 @@ import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Image as ImageIcon, Settings, Link } from "lucide-react";
 import { useSettingsState } from "../useSettingsState";
 import { SettingsLabel } from '../../shared';
+import { SettingsDisclosure } from "../../shared/settings-disclosure";
 import { MediaUrlField } from "../shared/media-url-field";
 import { LinkUrlField, LinkTargetSelect } from "../shared/link-settings";
 import { SettingsChipGroup } from "../../settings-chip-group";
@@ -210,7 +211,7 @@ export function MediaTextSettings({ block, onUpdate }: MediaTextSettingsProps) {
           </div>
 
           <div className="flex items-center justify-between">
-            <SettingsLabel htmlFor="image-fill">Image fill</SettingsLabel>
+            <SettingsLabel htmlFor="image-fill">Crop to fill</SettingsLabel>
             <Switch
               id="image-fill"
               checked={Boolean(blockData?.imageFill)}
@@ -247,7 +248,7 @@ export function MediaTextSettings({ block, onUpdate }: MediaTextSettingsProps) {
             onChange={({ target }) => updateContent({ linkTarget: target })}
           />
 
-          <div>
+          <SettingsDisclosure title="Rel" defaultOpen={Boolean(blockData?.rel)}>
             <SettingsLabel htmlFor="media-rel">Rel</SettingsLabel>
             <Input
               id="media-rel"
@@ -256,7 +257,7 @@ export function MediaTextSettings({ block, onUpdate }: MediaTextSettingsProps) {
               placeholder="noopener noreferrer"
               className="h-9 mt-1"
             />
-          </div>
+          </SettingsDisclosure>
 
           <div>
             <SettingsLabel htmlFor="media-title">Title</SettingsLabel>

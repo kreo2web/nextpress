@@ -33,13 +33,6 @@ const HEADING_TAG_OPTIONS = [
   { value: 'h3' as const, label: 'H3' },
 ] as const;
 
-/** Same type scale as HeadingBlock — Tailwind preflight strips UA heading defaults. */
-const POST_TITLE_TYPE: Record<NonNullable<PostTitleContent['tag']>, { fontSize: string; fontWeight: string }> = {
-  h1: { fontSize: '2.5rem', fontWeight: '800' },
-  h2: { fontSize: '2rem', fontWeight: '700' },
-  h3: { fontSize: '1.75rem', fontWeight: '700' },
-};
-
 function isPostTitleTag(value: string): value is NonNullable<PostTitleContent['tag']> {
   return value === 'h1' || value === 'h2' || value === 'h3';
 }
@@ -69,7 +62,6 @@ function PostTitleRenderer({ content, styles, onTextChange }: PostTitleRendererP
   const headingId = headingAnchorId({ text }) || undefined;
   const mergedStyles: React.CSSProperties = {
     color: 'var(--npb-text-primary)',
-    ...POST_TITLE_TYPE[tag],
     ...styles,
   };
 

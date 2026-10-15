@@ -33,6 +33,7 @@ function SelectRenderer({ content, styles, blockId }: SelectRendererProps) {
 				blockId={blockId}
 				name={name}
 				label={content?.label}
+				help={content?.helpText}
 				placeholder={content?.placeholder}
 				defaultValue={content?.defaultValue ?? ""}
 				required={content?.required ?? false}

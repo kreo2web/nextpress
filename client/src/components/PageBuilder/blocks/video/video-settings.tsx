@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
-import { Video as VideoIcon, Maximize, Settings, Clapperboard } from "lucide-react";
+import { Video as VideoIcon, Settings, Clapperboard } from "lucide-react";
 import { useSettingsState } from "../useSettingsState";
 import { SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
@@ -28,16 +28,6 @@ const FIT_OPTIONS = [
   { value: "contain", label: "Whole video" },
 ];
 
-const FIGURE_WIDTH_OPTIONS = [
-  { value: "default", label: "Default" },
-  { value: "wide", label: "Wide" },
-  { value: "full", label: "Full" },
-];
-
-function isVideoFigureWidth(value: string): value is "default" | "wide" | "full" {
-  return value === "default" || value === "wide" || value === "full";
-}
-
 interface VideoSettingsProps {
   block: BlockConfig;
   onUpdate?: (updates: Partial<BlockConfig>) => void;
@@ -50,7 +40,6 @@ export function VideoSettings({ block, onUpdate }: VideoSettingsProps) {
     defaultContent: DEFAULT_CONTENT,
   });
 
-  const currentAlign = content?.align || "default";
   const playback = readVideoPlayback(content);
   const videoUrl = content?.kind === 'media' ? content.url : '';
 
@@ -208,29 +197,6 @@ export function VideoSettings({ block, onUpdate }: VideoSettingsProps) {
         </div>
       </CollapsibleCard>
 
-      <CollapsibleCard title="Figure layout" icon={Maximize} defaultOpen={false}>
-        <div className="space-y-3">
-          <div>
-            <SettingsLabel>Figure width</SettingsLabel>
-            <p className="text-xs text-npb-text-muted mt-1 mb-2">
-              Wide and full presets. Use the sidebar <span className="font-semibold">Style</span> tab for exact width
-              and height.
-            </p>
-            <SettingsChipGroup
-              label=""
-              ariaLabel="Figure width"
-              options={FIGURE_WIDTH_OPTIONS}
-              value={currentAlign}
-              onChange={(value) => {
-                if (!isVideoFigureWidth(value)) return;
-                updateContent({
-                  align: value === "default" ? undefined : value,
-                });
-              }}
-            />
-          </div>
-        </div>
-      </CollapsibleCard>
     </div>
   );
 }

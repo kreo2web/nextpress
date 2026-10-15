@@ -87,13 +87,11 @@ export const PageTemplate = (
           padding: ${options.hasPageShell ? '0' : options.padding || '2rem 1rem'};
         }
         
-        /* WordPress block styles */
-        h1 { font-size: 2.5rem; font-weight: 800; }
-        h2 { font-size: 2rem; font-weight: 700; }
-        h3 { font-size: 1.75rem; font-weight: 700; }
-        h4 { font-size: 1.5rem; font-weight: 600; }
-        h5 { font-size: 1.25rem; font-weight: 600; }
-        h6 { font-size: 1rem; font-weight: 600; }
+        /* Type size lives in PUBLISH_BLOCK_CSS so canvas and publish share one scale. */
+        h1, h2, h3, h4, h5, h6 {
+          text-wrap: balance;
+          overflow-wrap: break-word;
+        }
         
         .wp-block-heading {
           margin: 1.5em 0 1em;

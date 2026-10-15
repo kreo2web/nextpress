@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import React from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
 import { createBlockDefinition } from '../createBlockDefinition';
 import {
   LayoutList,
@@ -13,6 +13,7 @@ import {
   DEFAULT_CONTENT,
   buildPlaceholderPosts,
   formatDate,
+  readPostListResponse,
 } from './post-list-model';
 import { PostListSettings } from './post-list-settings';
 import { openOverlayHash, PostListOverlay } from './post-list-overlay';
@@ -49,17 +50,34 @@ function PostListRenderer({
 }) {
   const cfg = { ...DEFAULT_CONTENT, ...content } as Required<PostListContent>;
   const shouldFetchReal = isPreview || !!cfg.blogId;
+  const more = cfg.morePosts ?? 'show-more';
+  const [pagesShown, setPagesShown] = useState(1);
+  const [listPage, setListPage] = useState(1);
+  const perPage =
+    more === 'show-more' ? Math.min(50, cfg.postsPerPage * pagesShown) : cfg.postsPerPage;
+  const page = more === 'pages' ? listPage : 1;
 
   // In the editor the list must name the site being edited (drafts are listed per site); visitors
   // are matched by the page's address instead.
   const editorSiteId = useOptionalActiveSite()?.activeSiteId ?? '';
   const siteIdHint = isPreview ? readVisitorSiteIdHint() : editorSiteId;
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['posts', isPreview ? 'public' : 'admin', siteIdHint, cfg.blogId, cfg.category, cfg.postsPerPage, cfg.orderBy, cfg.order],
+    queryKey: [
+      'posts',
+      isPreview ? 'public' : 'admin',
+      siteIdHint,
+      cfg.blogId,
+      cfg.category,
+      perPage,
+      page,
+      cfg.orderBy,
+      cfg.order,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams({
-        per_page: String(cfg.postsPerPage),
+        per_page: String(perPage),
       });
+      if (more === 'pages') params.set('page', String(page));
       if (!isPreview) params.set('status', 'any');
       if (cfg.blogId) params.set(isPreview ? 'blogId' : 'blog_id', cfg.blogId);
       if (cfg.category) params.set('category', cfg.category);
@@ -84,29 +102,20 @@ function PostListRenderer({
           )
         : await fetch(appendSiteIdToUrl(`/api/posts?${params.toString()}`, editorSiteId), { credentials: 'include' });
       if (!res.ok) throw new Error(`Failed to fetch posts (${res.status})`);
-      const json = await res.json();
-      const items: PostItem[] = (
-        Array.isArray(json) ? json : (json.posts ?? [])
-      ).map((p: any) => ({
-        id: p.id,
-        title: p.title ?? 'Untitled',
-        slug: p.slug ?? '',
-        excerpt: p.excerpt ?? '',
-        featuredImage: p.featuredImage ?? p.featured_image ?? '',
-        publishedAt: p.publishedAt ?? p.published_at ?? p.createdAt ?? '',
-        author: p.author ? { name: p.author.name ?? 'Unknown' } : undefined,
-      }));
-      return items;
+      return readPostListResponse(await res.json());
     },
     enabled: shouldFetchReal && (isPreview || !!editorSiteId),
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 
-  const posts: PostItem[] = data ?? buildPlaceholderPosts(cfg.postsPerPage);
+  const posts: PostItem[] = data?.items ?? buildPlaceholderPosts(cfg.postsPerPage);
+  const total = data?.total ?? posts.length;
+  const totalPages = data?.totalPages ?? 1;
 
   const wrapperClass = ['np-post-list', cfg.className].filter(Boolean).join(' ');
 
-  if (isLoading)
+  if (isLoading && !data)
     return (
       <div className={wrapperClass} style={styles}>
         <p className="text-sm text-npb-text-muted py-8 text-center">Loading posts…</p>
@@ -151,6 +160,37 @@ function PostListRenderer({
           />
         ))}
       </div>
+      {shouldFetchReal && more === 'show-more' && posts.length < total ? (
+        <div className="flex justify-center pt-3">
+          <button
+            type="button"
+            className="h-9 rounded-lg border border-npb-border-default px-4 text-sm"
+            onClick={() => setPagesShown((count) => count + 1)}>
+            Show more
+          </button>
+        </div>
+      ) : null}
+      {shouldFetchReal && more === 'pages' && totalPages > 1 ? (
+        <nav className="flex items-center justify-center gap-3 pt-3 text-sm" aria-label="Post list pages">
+          <button
+            type="button"
+            className="h-9 rounded-lg border border-npb-border-default px-3 disabled:opacity-50"
+            disabled={listPage <= 1}
+            onClick={() => setListPage((current) => Math.max(1, current - 1))}>
+            Previous
+          </button>
+          <span className="text-npb-text-muted">
+            Page {listPage} of {totalPages}
+          </span>
+          <button
+            type="button"
+            className="h-9 rounded-lg border border-npb-border-default px-3 disabled:opacity-50"
+            disabled={listPage >= totalPages}
+            onClick={() => setListPage((current) => current + 1)}>
+            Next
+          </button>
+        </nav>
+      ) : null}
       {isPreview && cfg.openIn !== 'page' ? <PostListOverlay enabled /> : null}
     </div>
   );

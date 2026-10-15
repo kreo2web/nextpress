@@ -1,5 +1,5 @@
 import type { CSSProperties, HTMLAttributes } from "react";
-import { FormFieldLabel, formFieldControlId } from "./form-field-label.js";
+import { FormFieldLabel, formFieldControlId, formFieldHelpId, readFormFieldHelp } from "./form-field-label.js";
 import type { SelectOption } from "./form-field-model.js";
 
 /**
@@ -18,6 +18,7 @@ type SelectFieldViewProps = {
 	blockId: string;
 	name: string;
 	label?: string;
+	help?: string;
 	placeholder?: string;
 	defaultValue?: string;
 	required?: boolean;
@@ -58,6 +59,7 @@ export function SelectFieldView({
 	blockId,
 	name,
 	label,
+	help,
 	placeholder,
 	defaultValue = "",
 	required = false,
@@ -73,24 +75,27 @@ export function SelectFieldView({
 	const choices = selectOptionsWithLabels(options);
 	const chosen = choices.find((option) => option.value === defaultValue);
 	const labelText = label?.trim();
+	const helpText = readFormFieldHelp(help);
+	const controlId = formFieldControlId(blockId);
 	return (
 		<div
 			{...wrapperAttributes}
 			className={["np-select", ready ? "is-ready" : "", className].filter(Boolean).join(" ")}
 			data-np-select=""
 		>
-			{labelText ? (
+			{labelText || helpText ? (
 				<span id={selectLabelId(blockId)} className="np-select__label-wrap">
-					<FormFieldLabel label={labelText} htmlFor={formFieldControlId(blockId)} required={required} />
+					<FormFieldLabel label={labelText} htmlFor={controlId} required={required} help={help} />
 				</span>
 			) : null}
 			<select
-				id={formFieldControlId(blockId)}
+				id={controlId}
 				name={name}
 				defaultValue={defaultValue}
 				required={required}
 				disabled={disabled}
 				aria-label={ariaLabel}
+				aria-describedby={helpText ? formFieldHelpId(controlId) : undefined}
 				className={["wp-block-select__control", "np-select__native", controlClassName].filter(Boolean).join(" ")}
 				style={style}
 			>

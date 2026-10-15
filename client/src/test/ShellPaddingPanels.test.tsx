@@ -45,14 +45,10 @@ describe('page shell padding panel', () => {
     expect(saved.paddingBlock).toBeUndefined();
   });
 
-  it('offers a content position only while the column is narrower than the page', async () => {
-    const user = userEvent.setup();
+  it('does not offer content position until the column can actually move', () => {
     const onUpdate = vi.fn();
     const { rerender } = render(<PageShellSettings block={shell({ containerWidth: '960px' })} onUpdate={onUpdate} />);
-    const position = screen.getByRole('radiogroup', { name: 'Content position' });
-    expect(within(position).getByRole('radio', { name: 'Center' })).toHaveAttribute('aria-checked', 'true');
-    await user.click(within(position).getByRole('radio', { name: 'Left' }));
-    expect(lastContent(onUpdate).contentAlign).toBe('left');
+    expect(screen.queryByRole('radiogroup', { name: 'Content position' })).toBeNull();
     rerender(<PageShellSettings block={shell({ containerWidth: '100%' })} onUpdate={onUpdate} />);
     expect(screen.queryByRole('radiogroup', { name: 'Content position' })).toBeNull();
   });

@@ -325,7 +325,7 @@ export function PullquoteBlock(block: BlockConfig) {
 			}}
 			{...attributes}
 		>
-			<blockquote style={{ fontSize: "1.5em", lineHeight: 1.6, fontStyle: "italic", margin: 0, padding: 0, overflowWrap: "break-word" }}>
+			<blockquote style={{ fontSize: style.fontSize ?? "1.5em", lineHeight: 1.6, fontStyle: "italic", margin: 0, padding: 0, overflowWrap: "break-word" }}>
 				<div dangerouslySetInnerHTML={{ __html: sanitizeHtml(valueHtml) }} />
 			</blockquote>
 			{citation ? (
