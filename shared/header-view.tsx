@@ -176,12 +176,14 @@ export function HeaderBar({
 	blocks?: React.ReactNode;
 }) {
 	const slots = visibleHeaderSlots(content);
-	const hasMenu = headerCollapsesToMenu(content.variant);
+	const hasMenu = headerCollapsesToMenu(content.variant) && content.navPhoneMenu !== false;
 	return (
 		<header
 			className={headerBarClassName({
 				sticky: content.sticky,
 				variant: content.variant,
+				matchPagePadding: content.matchPagePadding,
+				navPhoneMenu: content.navPhoneMenu,
 			})}
 			onClick={(event) => {
 				if (!disableLinks) return;

@@ -30,12 +30,26 @@ export function HeaderScreenSettings({
 				onChange={pick("brandShowOn")}
 			/>
 			{slots.showNav ? (
-				<SettingsChipGroup
-					label="Links"
-					options={chipOptions()}
-					value={content.navShowOn ?? "all"}
-					onChange={pick("navShowOn")}
-				/>
+				<>
+					<SettingsChipGroup
+						label="Links"
+						options={chipOptions()}
+						value={content.navShowOn ?? "all"}
+						onChange={pick("navShowOn")}
+					/>
+					<SettingsChipGroup
+						label="On a phone"
+						options={[
+							{ value: "menu", label: "Menu" },
+							{ value: "links", label: "Links" },
+						]}
+						value={content.navPhoneMenu === false ? "links" : "menu"}
+						onChange={(value) => onChange({ navPhoneMenu: value !== "links" })}
+					/>
+					<p className="npb-settings-hint-muted -mt-2 text-xs">
+						Menu hides the links behind a button. Links keeps them in the bar.
+					</p>
+				</>
 			) : null}
 			{slots.showActions ? (
 				<SettingsChipGroup

@@ -233,6 +233,11 @@ export type HeaderContent = {
 	navShowOn?: ScreenShow;
 	actionsShowOn?: ScreenShow;
 	blocksShowOn?: ScreenShow;
+	/**
+	 * Layouts with links fold into a menu on a phone. Set false to keep the links in the bar.
+	 * Unset means the menu (current default).
+	 */
+	navPhoneMenu?: boolean;
 } & HeaderSpacing;
 
 export type HeaderProgress = {
@@ -576,6 +581,7 @@ export function readHeaderContent(content: BlockContent | undefined): HeaderCont
 		navShowOn: readScreenShow(typeof data.navShowOn === "string" ? data.navShowOn : undefined),
 		actionsShowOn: readScreenShow(typeof data.actionsShowOn === "string" ? data.actionsShowOn : undefined),
 		blocksShowOn: readScreenShow(typeof data.blocksShowOn === "string" ? data.blocksShowOn : undefined),
+		navPhoneMenu: data.navPhoneMenu !== false,
 		...readHeaderSpacing(data),
 	};
 }
@@ -670,12 +676,15 @@ export function headerBarClassName({
 	sticky,
 	variant,
 	matchPagePadding,
+	navPhoneMenu,
 }: {
 	sticky: boolean;
 	variant?: HeaderVariant;
 	matchPagePadding?: boolean;
+	navPhoneMenu?: boolean;
 }): string {
-	const noMenu = variant !== undefined && !headerCollapsesToMenu(variant);
+	const foldToMenu = headerCollapsesToMenu(variant ?? "links-and-actions") && navPhoneMenu !== false;
+	const noMenu = !foldToMenu;
 	return [
 		"wp-block-header",
 		sticky ? "is-sticky" : "",

@@ -10,6 +10,7 @@ ${FLUID_HEADING_CSS}
 
 .wp-block-markdown p {
   margin: 0 0 1rem;
+  overflow-wrap: break-word;
 }
 .wp-block-markdown h1,
 .wp-block-markdown h2,
@@ -67,16 +68,24 @@ ${FLUID_HEADING_CSS}
   background: #f3f4f6;
   border-radius: 0.375rem;
 }
+.wp-block-markdown {
+  max-width: 100%;
+  overflow-x: auto;
+}
 .wp-block-markdown table {
   width: 100%;
   border-collapse: collapse;
   margin: 0 0 1rem;
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
 }
 .wp-block-markdown th,
 .wp-block-markdown td {
   border: 1px solid #e5e7eb;
   padding: 0.5rem 1rem;
   text-align: left;
+  overflow-wrap: break-word;
 }
 
 /* Prose readability. Inside the page column the words follow that column, or a 65-character cap leaves a wide empty side. */
@@ -186,18 +195,49 @@ figure.wp-block-embed {
   font-size: 16px;
 }
 
-/* Media + text stack on mobile */
-.wp-block-media-text.is-stacked-on-mobile {
-  display: grid;
-  grid-template-columns: 1fr;
+/* Media + text: row on desktop, stack on a phone only when asked */
+.wp-block-media-text {
+  display: flex;
+  gap: 20px;
 }
-.wp-block-media-text.is-stacked-on-mobile.has-media-on-the-right .wp-block-media-text__media {
-  order: -1;
+.wp-block-media-text__content,
+.wp-block-media-text__media {
+  min-width: 0;
 }
 .wp-block-media-text__media img {
   max-width: 100%;
   height: auto;
   display: block;
+}
+.wp-block-image.alignleft {
+  float: left;
+  margin-right: 1rem;
+  margin-bottom: 0.5rem;
+  max-width: min(50%, 100%);
+}
+.wp-block-image.alignright {
+  float: right;
+  margin-left: 1rem;
+  margin-bottom: 0.5rem;
+  max-width: min(50%, 100%);
+}
+.wp-block-image.aligncenter {
+  display: table;
+  margin-left: auto;
+  margin-right: auto;
+}
+.wp-block-image.alignwide,
+.wp-block-image.alignfull {
+  width: 100%;
+  max-width: 100%;
+}
+.wp-block-post-author-box__links a {
+  color: var(--npb-accent, #007cba);
+}
+.wp-block-file__content-wrapper,
+.wp-block-file .file-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Cover */
@@ -210,6 +250,21 @@ figure.wp-block-embed {
 .wp-block-preformatted {
   overflow-x: auto;
   max-width: 100%;
+  box-sizing: border-box;
+}
+.wp-block-code .flex-1 {
+  min-width: 0;
+}
+
+/* Pasted HTML stays inside the column */
+.wp-block-html {
+  max-width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+.wp-block-pullquote {
+  overflow-wrap: break-word;
 }
 
 /* Table scroll on narrow viewports */
@@ -217,6 +272,33 @@ figure.wp-block-embed {
   overflow-x: auto;
   max-width: 100%;
   display: block;
+}
+.wp-block-table th,
+.wp-block-table td {
+  overflow-wrap: break-word;
+}
+.wp-block-table:not(.has-fixed-layout) th,
+.wp-block-table:not(.has-fixed-layout) td {
+  min-width: 6rem;
+}
+
+.wp-block-input,
+.wp-block-textarea,
+.wp-block-select,
+.np-select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.wp-block-form {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.np-post-list__title,
+.np-post-list__excerpt {
+  overflow-wrap: break-word;
 }
 
 /* Video / audio fluid */
@@ -786,6 +868,7 @@ figure.wp-block-embed {
   outline-offset: 2px;
 }
 .np-select__value {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -824,7 +907,7 @@ figure.wp-block-embed {
 }
 .np-select__option {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
   padding: 8px 10px;
@@ -832,6 +915,8 @@ figure.wp-block-embed {
   font-size: 0.9375rem;
   line-height: 1.35;
   cursor: pointer;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 .np-select__option.is-active {
   background: rgba(0, 0, 0, 0.06);
@@ -883,16 +968,26 @@ ${GALLERY_PUBLISH_CSS}
     max-width: 100% !important;
   }
 
-  .wp-block-media-text.is-stacked-on-mobile,
-  .wp-block-media-text:not(.has-media-on-the-right):not(.is-image-fill) {
-    display: grid;
-    grid-template-columns: 1fr;
+  .wp-block-media-text.is-stacked-on-mobile {
+    flex-direction: column;
   }
-}
-
-@media (max-width: 640px) {
+  .wp-block-media-text.is-stacked-on-mobile.has-media-on-the-right .wp-block-media-text__media {
+    order: -1;
+  }
   .wp-block-gallery .blocks-gallery-grid {
     grid-template-columns: 1fr !important;
+  }
+  .wp-block-post-author-box {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  .wp-block-group__inner-container {
+    grid-template-columns: 1fr !important;
+  }
+  .wp-block-form.is-horizontal,
+  .wp-block-form.is-horizontal .wp-block-form__fields {
+    flex-direction: column !important;
+    align-items: stretch !important;
   }
 }
 
@@ -975,19 +1070,30 @@ ${GALLERY_PUBLISH_CSS}
 /** Container-query rules for editor canvas — @media does not fire when only inner div shrinks. */
 export const EDITOR_CANVAS_CONTAINER_CSS = `
 @container npb-canvas (max-width: 768px) {
-  .npb-canvas-page .wp-block-container,
-  .npb-canvas-page .wp-block-group {
-    padding: 16px !important;
-  }
   .npb-canvas-page .wp-block-columns {
     flex-direction: column !important;
   }
-  .npb-canvas-page .wp-block-media-text.is-stacked-on-mobile,
-  .npb-canvas-page .wp-block-media-text {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
+  .npb-canvas-page .wp-block-media-text.is-stacked-on-mobile {
+    flex-direction: column !important;
+  }
+  .npb-canvas-page .wp-block-media-text.is-stacked-on-mobile.has-media-on-the-right .wp-block-media-text__media {
+    order: -1;
   }
   .npb-canvas-page .wp-block-gallery .blocks-gallery-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .npb-canvas-page .wp-block-group__inner-container {
+    grid-template-columns: 1fr !important;
+  }
+  .npb-canvas-page .wp-block-form.is-horizontal,
+  .npb-canvas-page .wp-block-form.is-horizontal .wp-block-form__fields {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .npb-canvas-page .np-post-list--grid,
+  .npb-canvas-page .np-post-list--cards,
+  .npb-canvas-page .np-post-list__items--grid,
+  .npb-canvas-page .np-post-list__items--cards {
     grid-template-columns: 1fr !important;
   }
   .npb-canvas-page .wp-block-table {

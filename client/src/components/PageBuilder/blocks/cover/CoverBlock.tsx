@@ -69,7 +69,7 @@ function CoverRenderer({ content, styles }: CoverRendererProps) {
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        minHeight: `${minHeight}px`,
+        minHeight: minHeight === 400 ? (styles?.minHeight ?? 'clamp(240px, 50vh, 400px)') : `${minHeight}px`,
         overflow: 'hidden',
       }}
     >
@@ -78,6 +78,7 @@ function CoverRenderer({ content, styles }: CoverRendererProps) {
           autoPlay
           muted
           loop
+          playsInline
           style={{
             position: 'absolute',
             top: 0,
@@ -113,8 +114,9 @@ function CoverRenderer({ content, styles }: CoverRendererProps) {
           flex: 1,
           width: '100%',
           minHeight: 0,
-          padding: '1.25em 2.375em',
+          padding: '1.25em clamp(1rem, 4vw, 2.375em)',
           color: 'white',
+          overflowWrap: 'anywhere',
           ...contentAlignment,
         }}
       >

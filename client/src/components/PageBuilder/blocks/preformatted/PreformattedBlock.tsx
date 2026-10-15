@@ -53,6 +53,7 @@ function PreformattedRenderer({
     border: '1px solid #e9ecef',
     borderRadius: '4px',
     margin: '1em 0',
+    boxSizing: 'border-box',
     ...styles,
     maxWidth:
       typeof savedMaxWidth === "string" && savedMaxWidth.trim() !== ""

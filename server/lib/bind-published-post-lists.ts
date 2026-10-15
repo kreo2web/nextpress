@@ -8,7 +8,7 @@ import {
 } from "@shared/bind-post-list";
 import { attachPostAuthor } from "./attach-post-author";
 import { toModelOrderBy } from "@shared/content-list-query";
-import { enrichPostForApi } from "@shared/posts/post-other";
+import { enrichPostForApi, postHasCategory } from "@shared/posts/post-other";
 
 type PostRow = {
 	id: string;
@@ -81,6 +81,7 @@ async function walk({
 				models,
 				siteBlogIds,
 				blogId: content.blogId,
+				category: content.category,
 				limit: content.postsPerPage,
 				orderBy: content.orderBy,
 				order: content.order,
@@ -96,6 +97,7 @@ async function loadPublishedListItems({
 	models,
 	siteBlogIds,
 	blogId,
+	category,
 	limit,
 	orderBy,
 	order,
@@ -103,6 +105,7 @@ async function loadPublishedListItems({
 	models: BindModels;
 	siteBlogIds: string[];
 	blogId: string;
+	category: string;
 	limit: number;
 	orderBy: string;
 	order: string;
@@ -111,13 +114,14 @@ async function loadPublishedListItems({
 	if (allowed.length === 0) return [];
 
 	const sortField = orderBy === "title" ? "title" : "createdAt";
+	const fetchLimit = category.trim() ? Math.min(500, Math.max(limit * 8, 80)) : limit;
 	const rows = await models.posts.findManyWhere(
 		[
 			{ where: "status", equals: "publish" },
 			{ where: "blogId", in: allowed },
 		],
 		{
-			limit,
+			limit: fetchLimit,
 			orderBy: toModelOrderBy({
 				sort: sortField,
 				order: order === "asc" ? "asc" : "desc",
@@ -128,6 +132,7 @@ async function loadPublishedListItems({
 	const items: BoundPostListItem[] = [];
 	for (const row of rows) {
 		const enriched = enrichPostForApi(row as Post);
+		if (!postHasCategory(enriched, category)) continue;
 		const withAuthor = await attachPostAuthor({ models, post: enriched });
 		items.push({
 			id: row.id,
@@ -138,6 +143,7 @@ async function loadPublishedListItems({
 			publishedAt: toIso(row.publishedAt ?? row.createdAt),
 			authorName: withAuthor.author?.name ?? "",
 		});
+		if (items.length >= limit) break;
 	}
 	return items;
 }

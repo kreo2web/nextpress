@@ -13,6 +13,7 @@ import {
   mergeAuthorDisplay,
   useAuthorData,
 } from './post-author-box-model';
+import { normalizeWebsiteUrl, normalizeXProfileUrl } from '@shared/safe-http-url';
 
 function boundAuthorFromContent(content: PostAuthorBoxContent): AuthorData | null {
   if (!content?.name && !content?.avatar && !content?.bio) return null;
@@ -52,6 +53,8 @@ function PostAuthorBoxRenderer({
     merged.name || merged.avatar || merged.bio ? merged : PLACEHOLDER_AUTHOR;
 
   const isVertical = layout === 'vertical';
+  const websiteUrl = normalizeWebsiteUrl(content?.websiteUrl ?? '');
+  const xUrl = normalizeXProfileUrl(content?.xUrl ?? '');
 
   const avatarElement = showAvatar && (
     <div
@@ -82,6 +85,26 @@ function PostAuthorBoxRenderer({
       {showBio && (
         <p className="text-sm text-npb-text-secondary mt-1 leading-relaxed">
           {displayData.bio || 'No bio available.'}
+        </p>
+      )}
+      {(websiteUrl || xUrl) && (
+        <p className="mt-2 flex flex-wrap gap-3 text-sm">
+          {websiteUrl ? (
+            <a
+              href={websiteUrl}
+              rel="noopener noreferrer"
+              className="text-npb-accent underline-offset-2 hover:underline">
+              Website
+            </a>
+          ) : null}
+          {xUrl ? (
+            <a
+              href={xUrl}
+              rel="noopener noreferrer"
+              className="text-npb-accent underline-offset-2 hover:underline">
+              X
+            </a>
+          ) : null}
         </p>
       )}
     </div>

@@ -6,6 +6,7 @@ import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { type MediaTextContent, type MediaTextData, DEFAULT_CONTENT, DEFAULT_DATA } from './media-text-model';
 import { MediaTextSettings } from './media-text-settings';
+import { mediaTextAlignItems, mediaTextPaneBasis } from '@shared/media-text-layout';
 
 // ============================================================================
 // RENDERER
@@ -24,7 +25,7 @@ function MediaTextRenderer({ content, styles }: MediaTextRendererProps) {
     mediaAlt,
     mediaPosition = 'left',
     mediaWidth = 50,
-    isStackedOnMobile = false,
+    isStackedOnMobile = true,
     imageFill = false,
     verticalAlignment = 'center',
     href,
@@ -45,7 +46,8 @@ function MediaTextRenderer({ content, styles }: MediaTextRendererProps) {
     .filter(Boolean)
     .join(' ');
 
-  const alignItems = verticalAlignment === 'top' ? 'flex-start' : verticalAlignment === 'bottom' ? 'flex-end' : 'center';
+  const alignItems = mediaTextAlignItems(verticalAlignment);
+  const paneBasis = mediaTextPaneBasis(mediaWidth);
 
   const mediaStyle: React.CSSProperties = imageFill
     ? { backgroundImage: mediaUrl ? `url(${mediaUrl})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -56,11 +58,11 @@ function MediaTextRenderer({ content, styles }: MediaTextRendererProps) {
   );
 
   const mediaContent = href ? (
-    <a href={href} target={linkTarget} rel={rel} title={title} className="wp-block-media-text__media" style={{ ...mediaStyle, flexBasis: `${mediaWidth}%` }}>
+    <a href={href} target={linkTarget} rel={rel} title={title} className="wp-block-media-text__media" style={{ ...mediaStyle, flexBasis: paneBasis.media, minWidth: 0 }}>
       {mediaInner}
     </a>
   ) : (
-    <div className="wp-block-media-text__media" style={{ ...mediaStyle, flexBasis: `${mediaWidth}%` }}>
+    <div className="wp-block-media-text__media" style={{ ...mediaStyle, flexBasis: paneBasis.media, minWidth: 0 }}>
       {mediaInner}
     </div>
   );
@@ -75,11 +77,11 @@ function MediaTextRenderer({ content, styles }: MediaTextRendererProps) {
       {mediaPosition === 'left' ? (
         <>
           {mediaContent}
-          <div className="wp-block-media-text__content" style={{ flexBasis: `${100 - (mediaWidth || 50)}%` }} dangerouslySetInnerHTML={{ __html: sanitizeHtml(textContent || '<p>Add text…</p>') }} />
+          <div className="wp-block-media-text__content" style={{ flexBasis: paneBasis.text, minWidth: 0 }} dangerouslySetInnerHTML={{ __html: sanitizeHtml(textContent || '<p>Add text…</p>') }} />
         </>
       ) : (
         <>
-          <div className="wp-block-media-text__content" style={{ flexBasis: `${100 - (mediaWidth || 50)}%` }} dangerouslySetInnerHTML={{ __html: sanitizeHtml(textContent || '<p>Add text…</p>') }} />
+          <div className="wp-block-media-text__content" style={{ flexBasis: paneBasis.text, minWidth: 0 }} dangerouslySetInnerHTML={{ __html: sanitizeHtml(textContent || '<p>Add text…</p>') }} />
           {mediaContent}
         </>
       )}

@@ -2,6 +2,12 @@ import type { BlockConfig, BlockContent } from "./schema-types";
 import { mergeAuthorDisplay, type AuthorDisplay } from "./author-display";
 import { parsePostOther } from "./posts/post-other";
 import { headingLevelFromTag, readBlockContentData } from "./read-block-content";
+import {
+	collectHeadingsFromBlocks,
+	headingAnchorId,
+	stripHeadingText,
+	type PageHeading,
+} from "./page-headings";
 
 export type BoundComment = {
 	id: string;
@@ -77,19 +83,34 @@ export function bindPostBlocks({
 	blocks: BlockConfig[];
 	post: BindablePostDocument;
 }): BlockConfig[] {
-	return blocks.map((block) => bindOneBlock({ block, post }));
+	const headings = collectHeadingsFromBlocks(blocks);
+	return bindPostTree({ blocks, post, headings });
+}
+
+function bindPostTree({
+	blocks,
+	post,
+	headings,
+}: {
+	blocks: BlockConfig[];
+	post: BindablePostDocument;
+	headings: PageHeading[];
+}): BlockConfig[] {
+	return blocks.map((block) => bindOneBlock({ block, post, headings }));
 }
 
 function bindOneBlock({
 	block,
 	post,
+	headings,
 }: {
 	block: BlockConfig;
 	post: BindablePostDocument;
+	headings: PageHeading[];
 }): BlockConfig {
 	const data = readBlockContentData(block.content);
 	const children = Array.isArray(block.children)
-		? bindPostBlocks({ blocks: block.children, post })
+		? bindPostTree({ blocks: block.children, post, headings })
 		: block.children;
 
 	if (block.name === "post/title") {
@@ -98,10 +119,30 @@ function bindOneBlock({
 			(typeof post.title === "string" ? post.title : "") ||
 			"";
 		const level = headingLevelFromTag(data.tag ?? data.level, 1);
+		const anchor = headingAnchorId({
+			text,
+			anchor: typeof data.anchor === "string" ? data.anchor : undefined,
+		});
 		return {
 			...block,
 			children,
-			content: { kind: "text", value: text, level } as BlockContent,
+			content: { kind: "text", value: text, level, ...(anchor ? { anchor } : {}) } as BlockContent,
+		};
+	}
+
+	if (block.name === "core/heading" && block.content?.kind === "text") {
+		const text = stripHeadingText(block.content.value ?? "");
+		const anchor = headingAnchorId({
+			text,
+			anchor: typeof block.content.anchor === "string" ? block.content.anchor : undefined,
+		});
+		if (!anchor || block.content.anchor === anchor) {
+			return children === block.children ? block : { ...block, children };
+		}
+		return {
+			...block,
+			children,
+			content: { ...block.content, anchor },
 		};
 	}
 
@@ -208,6 +249,18 @@ function bindOneBlock({
 					post,
 				),
 			),
+		};
+	}
+
+	if (block.name === "post/toc") {
+		const maxDepth = typeof data.maxDepth === "number" && data.maxDepth >= 1 ? data.maxDepth : 3;
+		return {
+			...block,
+			children,
+			content: asStructured({
+				...data,
+				headings: headings.filter((entry) => entry.level <= maxDepth),
+			}),
 		};
 	}
 

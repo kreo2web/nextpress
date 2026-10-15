@@ -10,6 +10,7 @@ import { Plus, Trash2, SquareMousePointer } from 'lucide-react';
 import { createBlockDefinition } from '../createBlockDefinition';
 import { BlockShell } from '../shared/block-shell';
 import { useSettingsState } from '../useSettingsState';
+import { buttonsGroupStyle } from '@shared/buttons-group-style';
 
 // ============================================================================
 // TYPES
@@ -118,15 +119,7 @@ function ButtonsRenderer({ content, styles }: ButtonsRendererProps) {
     <BlockShell
       blockClass="wp-block-buttons"
       className={extraClassName || undefined}
-      style={{
-        ...styles,
-        display: 'flex',
-        flexDirection: orientation === 'vertical' ? 'column' : 'row',
-        justifyContent: layout,
-        gap: orientation === 'vertical' ? '0.75em' : '0.5em',
-        alignItems: orientation === 'vertical' ? 'stretch' : 'center',
-        flexWrap: 'wrap',
-      }}>
+      style={buttonsGroupStyle({ layout, orientation, styles })}>
       {buttons.map((button, index) => {
         const buttonClassName = ['wp-block-button', button.className || '']
           .filter(Boolean)
@@ -154,6 +147,9 @@ function ButtonsRenderer({ content, styles }: ButtonsRendererProps) {
                 fontWeight: 600,
                 cursor: 'pointer',
                 width: orientation === 'vertical' ? '100%' : undefined,
+                maxWidth: '100%',
+                whiteSpace: 'normal',
+                overflowWrap: 'anywhere',
               }}>
               {button.text}
             </a>

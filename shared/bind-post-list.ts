@@ -21,6 +21,7 @@ export type PostListContentShape = {
 	showDate?: boolean;
 	showAuthor?: boolean;
 	blogId?: string;
+	category?: string;
 	orderBy?: string;
 	order?: string;
 	openIn?: PostListOpenIn;
@@ -71,6 +72,7 @@ export function readPostListContent(content: unknown): Required<
 		| "showDate"
 		| "showAuthor"
 		| "blogId"
+		| "category"
 		| "orderBy"
 		| "order"
 		| "openIn"
@@ -96,6 +98,7 @@ export function readPostListContent(content: unknown): Required<
 		showDate: data.showDate !== false,
 		showAuthor: data.showAuthor !== false,
 		blogId: typeof data.blogId === "string" ? data.blogId : "",
+		category: typeof data.category === "string" ? data.category.trim() : "",
 		orderBy: data.orderBy === "title" ? "title" : "date",
 		order: data.order === "asc" ? "asc" : "desc",
 		openIn,

@@ -27,6 +27,7 @@ export type PostTocContent = {
   title?: string;
   maxDepth?: number;
   ordered?: boolean;
+  sticky?: boolean;
   className?: string;
 };
 
@@ -49,6 +50,7 @@ const DEFAULT_CONTENT: PostTocContent = {
   title: 'Table of Contents',
   maxDepth: 3,
   ordered: false,
+  sticky: false,
   className: '',
 };
 
@@ -158,6 +160,7 @@ function PostTocRenderer({ content, styles, isPreview, entries }: PostTocRendere
   const title = content?.title ?? '';
   const numbering = computeNumbering(entries);
   const ListTag = ordered ? 'ol' : 'ul';
+  const sticky = content?.sticky === true;
 
   return (
     <BlockShell
@@ -169,6 +172,9 @@ function PostTocRenderer({ content, styles, isPreview, entries }: PostTocRendere
         borderRadius: 'var(--npb-radius-input)',
         padding: '1.25rem 1.5rem',
         backgroundColor: 'var(--npb-surface-raised)',
+        ...(sticky
+          ? { position: 'sticky', top: '1rem', zIndex: 5, alignSelf: 'flex-start' }
+          : {}),
         ...styles,
       }}
       aria-label="Table of contents">
@@ -325,6 +331,19 @@ function PostTocSettings({ block, onUpdate }: PostTocSettingsProps) {
           onCheckedChange={(checked) => updateContent({ ordered: checked })}
         />
       </div>
+      <div className="flex items-center justify-between">
+        <SettingsLabel htmlFor="toc-sticky">Stay on screen while scrolling</SettingsLabel>
+        <Switch
+          id="toc-sticky"
+          checked={content?.sticky === true}
+          onCheckedChange={(checked) => updateContent({ sticky: checked })}
+        />
+      </div>
+      {content?.sticky === true ? (
+        <p className="npb-settings-hint-muted -mt-2 text-xs">
+          The list stays in view as the page scrolls. Put it in a side column so it has room.
+        </p>
+      ) : null}
     </SettingsSection>
   );
 }

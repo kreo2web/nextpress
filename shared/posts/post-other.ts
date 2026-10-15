@@ -68,6 +68,39 @@ export const parsePostOther = (other: unknown): PostOther => {
 export const isImportedPost = (post: Pick<Post, "other">): boolean =>
 	!!parsePostOther(post.other).import?.source;
 
+/** True when the post lists this category name (case-insensitive). Empty category matches everything. */
+export function postHasCategory(
+	post: { other?: unknown; categories?: string[] | null },
+	category: string,
+): boolean {
+	const wanted = category.trim().toLowerCase();
+	if (!wanted) return true;
+	const names =
+		Array.isArray(post.categories) && post.categories.length > 0
+			? post.categories
+			: parsePostOther(post.other).categories;
+	return names.some((name) => name.trim().toLowerCase() === wanted);
+}
+
+/** Slice a category-filtered list after a wide fetch. Used when taxonomy lives in JSON, not a column. */
+export function takePageAfterCategoryFilter<
+	T extends { other?: unknown; categories?: string[] | null },
+>({
+	posts,
+	category,
+	page,
+	perPage,
+}: {
+	posts: T[];
+	category: string;
+	page: number;
+	perPage: number;
+}): { posts: T[]; total: number } {
+	const matched = posts.filter((post) => postHasCategory(post, category));
+	const start = Math.max(0, (page - 1) * perPage);
+	return { posts: matched.slice(start, start + perPage), total: matched.length };
+}
+
 /** Flatten `other` taxonomy/import fields onto the API response. */
 export const enrichPostForApi = (post: Post): EnrichedPost => {
 	const parsed = parsePostOther(post.other);

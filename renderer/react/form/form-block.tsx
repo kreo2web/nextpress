@@ -21,7 +21,7 @@ export function FormBlock(block: BlockConfig) {
 
 	return (
 		<form
-			className={["wp-block-form", className].filter(Boolean).join(" ")}
+			className={["wp-block-form", isHorizontal ? "is-horizontal" : "", className].filter(Boolean).join(" ")}
 			data-np-form={block.id}
 			action="/api/forms/submit"
 			method="post"

@@ -407,11 +407,16 @@ export function SpacerBlock(block: BlockConfig) {
 export function SeparatorBlock(block: BlockConfig) {
 	const { style, className, attributes } = getRenderProps(block);
 	const data = parseStructuredContent(block.content);
-	const separatorStyle = data.separatorStyle as string | undefined;
+	const lineStyle =
+		data.lineStyle === "dashed" || data.lineStyle === "dotted" || data.lineStyle === "solid"
+			? data.lineStyle
+			: data.separatorStyle === "dashed" || data.separatorStyle === "dotted" || data.separatorStyle === "solid"
+				? data.separatorStyle
+				: "solid";
 
 	const mergedClassName = [
 		"wp-block-separator",
-		separatorStyle ? `is-style-${separatorStyle}` : "",
+		`is-style-${lineStyle}`,
 		className,
 	]
 		.filter(Boolean)
@@ -420,7 +425,13 @@ export function SeparatorBlock(block: BlockConfig) {
 	return (
 		<hr
 			className={mergedClassName || undefined}
-			style={style}
+			style={{
+				...style,
+				border: "none",
+				borderTop: `1px ${lineStyle} currentColor`,
+				backgroundColor: "transparent",
+				height: 0,
+			}}
 			{...(attributes as Record<string, unknown>)}
 		/>
 	);

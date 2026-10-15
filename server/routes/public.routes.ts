@@ -2,7 +2,7 @@ import { Router } from 'express';
 import type { Deps } from './shared/deps';
 import { asyncHandler } from './shared/async-handler';
 import { safeTryAsync } from '../utils';
-import { enrichPostForApi } from '@shared/posts/post-other';
+import { enrichPostForApi, takePageAfterCategoryFilter } from '@shared/posts/post-other';
 import { attachPostAuthor } from '../lib/attach-post-author';
 import { resolvePublicSite, readPublicSiteIdHint } from './shared/resolve-public-site';
 import { getSiteBlogIds } from './shared/site-content';
@@ -117,6 +117,7 @@ export function createPublicRoutes(deps: Deps): Router {
 
         const page = Math.max(1, Number(req.query.page) || 1);
         const perPage = Math.min(50, Math.max(1, Number(req.query.per_page) || 12));
+        const category = typeof req.query.category === 'string' ? req.query.category : '';
         const listSort = parseContentListSort({
           sort: req.query.sort,
           order: req.query.order,
@@ -127,22 +128,25 @@ export function createPublicRoutes(deps: Deps): Router {
           { where: 'status', equals: 'publish' },
           { where: 'blogId', in: scopedBlogIds },
         ];
+        const fetchWide = Boolean(category.trim());
         const posts = await models.posts.findManyWhere(filters, {
-          limit: perPage,
-          offset: (page - 1) * perPage,
+          limit: fetchWide ? 500 : perPage,
+          offset: fetchWide ? 0 : (page - 1) * perPage,
           orderBy: toModelOrderBy(listSort),
         });
-        const total = await models.posts.count({ where: filters });
         const mapped = [];
         for (const post of posts) {
           mapped.push(await attachPostAuthor({ models, post: enrichPostForApi(post) }));
         }
+        const paged = fetchWide
+          ? takePageAfterCategoryFilter({ posts: mapped, category, page, perPage })
+          : { posts: mapped, total: await models.posts.count({ where: filters }) };
         res.json({
-          posts: mapped,
-          total,
+          posts: paged.posts,
+          total: paged.total,
           page,
           per_page: perPage,
-          total_pages: Math.ceil(total / perPage) || 0,
+          total_pages: Math.ceil(paged.total / perPage) || 0,
         });
       });
 

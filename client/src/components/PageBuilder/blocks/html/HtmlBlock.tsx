@@ -40,7 +40,7 @@ function HtmlRenderer({ content, styles, isPreview }: HtmlRendererProps) {
       <BlockShell
         blockClass="wp-block-html"
         className={content?.className}
-        style={styles}
+        style={{ maxWidth: "100%", overflowX: "auto", boxSizing: "border-box", ...styles }}
         dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlContent) }}
       />
     );

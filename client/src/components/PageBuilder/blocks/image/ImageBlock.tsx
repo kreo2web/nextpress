@@ -56,7 +56,7 @@ function ImageRenderer({
 
   const handleResizeEnd = useCallback(
     (width: number) => {
-      onStylesChange?.({ width: `${width}px`, height: "auto" });
+      onStylesChange?.({ width: `${width}px`, height: "auto", maxWidth: "100%" });
     },
     [onStylesChange],
   );
@@ -104,6 +104,8 @@ function ImageRenderer({
       decoding="async"
       style={{
         ...styles,
+        maxWidth: styles?.maxWidth ?? "100%",
+        height: styles?.height ?? "auto",
         ...(intrinsicWidth && intrinsicHeight
           ? { aspectRatio: `${intrinsicWidth} / ${intrinsicHeight}` }
           : {}),

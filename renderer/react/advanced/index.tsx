@@ -205,6 +205,7 @@ export function CodeBlock(block: BlockConfig) {
 		lineHeight: "1.6",
 		...style,
 		overflowX: "auto",
+		boxSizing: "border-box",
 		maxWidth:
 			typeof savedMaxWidth === "string" && savedMaxWidth !== ""
 				? savedMaxWidth
@@ -249,10 +250,10 @@ export function CodeBlock(block: BlockConfig) {
 				{showLineNumbers
 					? lines.map((line, idx) => (
 							<div key={idx} style={{ display: "flex", gap: "1rem" }}>
-								<span style={{ color: "#64748b", userSelect: "none", textAlign: "right", minWidth: "1.5rem" }}>
+								<span style={{ color: "#64748b", userSelect: "none", textAlign: "right", minWidth: "1.5rem", flexShrink: 0 }}>
 									{idx + 1}
 								</span>
-								<span style={{ flex: 1 }}>{line || " "}</span>
+								<span style={{ flex: 1, minWidth: 0 }}>{line || " "}</span>
 							</div>
 						))
 					: codeContent}
@@ -281,7 +282,7 @@ export function HtmlBlock(block: BlockConfig) {
 	return (
 		<div
 			className={mergedClassName || undefined}
-			style={style}
+			style={{ maxWidth: "100%", overflowX: "auto", boxSizing: "border-box", ...style }}
 			{...attributes}
 			dangerouslySetInnerHTML={{ __html: sanitized }}
 		/>
@@ -312,13 +313,26 @@ export function PullquoteBlock(block: BlockConfig) {
 	return (
 		<figure
 			className={mergedClassName || undefined}
-			style={{ ...style, textAlign: readTextAlign({ styles: style, content: block.content }) }}
+			style={{
+				margin: "2em 0",
+				padding: "2em",
+				borderTop: "4px solid currentColor",
+				borderBottom: "4px solid currentColor",
+				backgroundColor: "#f8f9fa",
+				overflowWrap: "break-word",
+				...style,
+				textAlign: readTextAlign({ styles: style, content: block.content }),
+			}}
 			{...attributes}
 		>
-			<blockquote>
+			<blockquote style={{ fontSize: "1.5em", lineHeight: 1.6, fontStyle: "italic", margin: 0, padding: 0, overflowWrap: "break-word" }}>
 				<div dangerouslySetInnerHTML={{ __html: sanitizeHtml(valueHtml) }} />
 			</blockquote>
-			{citation ? <cite>{citation}</cite> : null}
+			{citation ? (
+				<cite style={{ display: "block", fontSize: "0.9em", fontStyle: "normal", opacity: 0.8, marginTop: "0.75em", overflowWrap: "break-word" }}>
+					{citation}
+				</cite>
+			) : null}
 		</figure>
 	);
 }
@@ -338,8 +352,18 @@ export function PreformattedBlock(block: BlockConfig) {
 
 	const savedMaxWidth = style.maxWidth;
 	const preStyle: React.CSSProperties = {
-		...style,
+		fontFamily: 'Monaco, Consolas, "Andale Mono", "DejaVu Sans Mono", monospace',
+		fontSize: "14px",
+		lineHeight: "1.6",
 		whiteSpace: "pre-wrap",
+		overflow: "auto",
+		backgroundColor: "#f8f9fa",
+		padding: "1em",
+		border: "1px solid #e9ecef",
+		borderRadius: "4px",
+		margin: "1em 0",
+		boxSizing: "border-box",
+		...style,
 		maxWidth:
 			typeof savedMaxWidth === "string" && savedMaxWidth.trim() !== ""
 				? savedMaxWidth
@@ -439,6 +463,8 @@ export function TableBlock(block: BlockConfig) {
 			? "#f9fafb"
 			: "transparent",
 		fontWeight: isHeader ? "600" : "normal",
+		overflowWrap: "break-word",
+		...(hasFixedLayout ? {} : { minWidth: "6rem" }),
 	});
 
 	return (

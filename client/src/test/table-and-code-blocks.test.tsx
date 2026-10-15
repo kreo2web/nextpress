@@ -70,6 +70,8 @@ describe("renderer/react/advanced TableBlock", () => {
     const wrap = table?.parentElement;
     expect(wrap?.style.overflowX).toBe("auto");
     expect(wrap?.style.maxWidth).toBe("100%");
+    expect(headers[0].style.overflowWrap).toBe("break-word");
+    expect(headers[0].style.minWidth).toBe("6rem");
   });
 
   it("scrolls a wide table inside a wrapper instead of stretching the page", () => {
@@ -220,6 +222,7 @@ describe("renderer/react/advanced CodeBlock", () => {
     expect(pre).not.toBeNull();
     expect(pre?.className).toContain("language-typescript");
     expect(pre?.className).toContain("has-line-numbers");
+    expect(pre?.style.boxSizing).toBe("border-box");
     expect(container.textContent).toContain("typescript");
     expect(container.textContent).toContain("const a = 1;");
   });

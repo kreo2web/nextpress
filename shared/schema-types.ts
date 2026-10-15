@@ -116,6 +116,8 @@ export type BlockContent =
 			format?: "html";
 			/** Heading level (1-6) for core/heading; ignored by other text blocks. */
 			level?: number;
+			/** HTML id for jump links from a table of contents. */
+			anchor?: string;
 	  }
 	| { kind: "markdown"; value: string; textAlign?: string }
 	| {

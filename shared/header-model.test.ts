@@ -56,6 +56,7 @@ describe("header content", () => {
 		expect(parsed.brand.text).toBe("Site");
 		expect(parsed.nav.length).toBeGreaterThan(0);
 		expect(parsed.sticky).toBe(false);
+		expect(parsed.navPhoneMenu).toBe(true);
 		expect(headerBarClassName({ sticky: true })).toBe("wp-block-header is-sticky");
 	});
 
@@ -356,6 +357,13 @@ describe("header blocks layout and menu rules", () => {
 		);
 		expect(headerBarClassName({ sticky: false, variant: "split" })).toBe("wp-block-header");
 		expect(headerBarClassName({ sticky: true })).toBe("wp-block-header is-sticky");
+		expect(headerBarClassName({ sticky: false, variant: "split", navPhoneMenu: false })).toBe(
+			"wp-block-header is-no-menu",
+		);
+		expect(readHeaderContent({ kind: "structured", data: {} }).navPhoneMenu).toBe(true);
+		expect(readHeaderContent({ kind: "structured", data: { navPhoneMenu: false } }).navPhoneMenu).toBe(
+			false,
+		);
 	});
 
 	it("reads a saved blocks layout back and rejects unknown layout names", () => {

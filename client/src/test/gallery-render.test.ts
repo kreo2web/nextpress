@@ -19,9 +19,20 @@ describe("buildGalleryRenderModel", () => {
 
 		expect(model.columns).toBe(3);
 		expect(model.gridStyle.display).toBe("grid");
-		expect(model.gridStyle.gridTemplateColumns).toBe(
-			"repeat(auto-fit, minmax(min(200px, 100%), 1fr))",
-		);
+		expect(model.gridStyle.gridTemplateColumns).toBe("repeat(3, minmax(0, 1fr))");
+	});
+
+	it("honours a saved column count", () => {
+		const model = buildGalleryRenderModel({
+			content: {
+				kind: "structured",
+				data: {
+					columns: 4,
+					images: [{ id: "1", url: "https://example.com/a.jpg", alt: "A" }],
+				},
+			},
+		});
+		expect(model.gridStyle.gridTemplateColumns).toBe("repeat(4, minmax(0, 1fr))");
 	});
 });
 

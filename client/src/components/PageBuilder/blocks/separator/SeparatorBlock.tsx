@@ -4,6 +4,7 @@ import type { DimensionPreset } from "@shared/dimension-presets";
 import { SettingsLabel, SettingsSection } from '../../shared';
 import ColorField from "../../ColorField";
 import { DimensionPresetField } from "../../dimension-preset-field";
+import { SettingsChipGroup } from "../../settings-chip-group";
 import { Minus as SeparatorIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
@@ -13,13 +14,28 @@ import { useSettingsState } from "../useSettingsState";
 // TYPES
 // ============================================================================
 
+type SeparatorLineStyle = "solid" | "dashed" | "dotted";
+
 type SeparatorContent = {
   className?: string;
+  lineStyle?: SeparatorLineStyle;
 };
 
 const DEFAULT_CONTENT: SeparatorContent = {
   className: '',
+  lineStyle: "solid",
 };
+
+const LINE_STYLE_OPTIONS = [
+  { value: "solid", label: "Solid" },
+  { value: "dashed", label: "Dashed" },
+  { value: "dotted", label: "Dotted" },
+] as const;
+
+function readLineStyle(value: string | undefined): SeparatorLineStyle {
+  if (value === "dashed" || value === "dotted" || value === "solid") return value;
+  return "solid";
+}
 
 /** Short / Medium / Full — local to this block, not a shared preset list. */
 const SEPARATOR_WIDTH_PRESETS: readonly DimensionPreset[] = [
@@ -38,6 +54,7 @@ type SeparatorRendererProps = {
 };
 
 function SeparatorRenderer({ content, styles }: SeparatorRendererProps) {
+  const lineStyle = readLineStyle(content?.lineStyle);
   return (
     <BlockShell
       as="hr"
@@ -46,9 +63,9 @@ function SeparatorRenderer({ content, styles }: SeparatorRendererProps) {
       style={{
         ...styles,
         border: "none",
-        borderTop: "1px solid currentColor",
-        backgroundColor: "currentColor",
-        height: "1px",
+        borderTop: `1px ${lineStyle} currentColor`,
+        backgroundColor: "transparent",
+        height: 0,
         opacity: 1,
       }}
     />
@@ -75,7 +92,7 @@ function readWidth(width: React.CSSProperties["width"]): string | undefined {
 }
 
 function SeparatorSettings({ block, onUpdate }: SeparatorSettingsProps) {
-  const { styles, updateStyles } = useSettingsState<SeparatorContent>({
+  const { content, styles, updateContent, updateStyles } = useSettingsState<SeparatorContent>({
     block,
     onUpdate,
     defaultContent: DEFAULT_CONTENT,
@@ -89,6 +106,12 @@ function SeparatorSettings({ block, onUpdate }: SeparatorSettingsProps) {
 
   return (
     <SettingsSection>
+      <SettingsChipGroup
+        label="Line style"
+        options={[...LINE_STYLE_OPTIONS]}
+        value={readLineStyle(content?.lineStyle)}
+        onChange={(value) => updateContent({ lineStyle: readLineStyle(value) })}
+      />
       <div className="space-y-2">
         <SettingsLabel>Line</SettingsLabel>
         <ColorField
@@ -125,7 +148,7 @@ const SeparatorBlock = createBlockDefinition<SeparatorContent>({
   id: 'core/separator',
   label: 'Separator',
   icon: SeparatorIcon,
-  description: 'A short centered line.',
+  description: 'A line across the content, solid, dashed, or dotted.',
   category: 'layout',
   defaultContent: DEFAULT_CONTENT,
   defaultStyles: {

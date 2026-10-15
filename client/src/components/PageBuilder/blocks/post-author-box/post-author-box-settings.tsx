@@ -215,6 +215,33 @@ export function PostAuthorBoxSettings({
             />
           </div>
 
+          <div className="space-y-3">
+            <div>
+              <SettingsLabel htmlFor="author-website">Website</SettingsLabel>
+              <Input
+                id="author-website"
+                type="url"
+                value={content?.websiteUrl || ''}
+                onChange={(e) => updateContent({ websiteUrl: e.target.value })}
+                placeholder="https://example.com"
+                className="mt-1 h-9 text-sm"
+              />
+            </div>
+            <div>
+              <SettingsLabel htmlFor="author-x">X</SettingsLabel>
+              <Input
+                id="author-x"
+                value={content?.xUrl || ''}
+                onChange={(e) => updateContent({ xUrl: e.target.value })}
+                placeholder="@name or https://x.com/name"
+                className="mt-1 h-9 text-sm"
+              />
+              <p className="text-xs text-npb-text-muted mt-1">
+                A website and X link show under the bio. Leave blank to hide.
+              </p>
+            </div>
+          </div>
+
           <div>
             <SettingsLabel>Layout</SettingsLabel>
             <Select

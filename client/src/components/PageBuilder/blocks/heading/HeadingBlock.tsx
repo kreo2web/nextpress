@@ -11,6 +11,7 @@ import { InlineTextEditor } from "../shared/inline-text-editor";
 import { useSettingsState } from "../useSettingsState";
 import { sanitizeHtml } from "@shared/sanitize-html";
 import { readTextAlign } from "@shared/text-align";
+import { headingAnchorId } from "@shared/page-headings";
 
 // ============================================================================
 // TYPES
@@ -88,6 +89,7 @@ function HeadingRenderer({
 }: HeadingRendererProps) {
   const textContent = getTextContent(content);
   const level = content.level || 2;
+  const headingId = headingAnchorId({ text: textContent, anchor: content.anchor }) || undefined;
   const Tag = `h${level}` as keyof JSX.IntrinsicElements;
   const textAlign = readTextAlign({ styles, content });
   const mergedStyles: React.CSSProperties = {
@@ -114,7 +116,7 @@ function HeadingRenderer({
         blockClass="wp-block-heading"
         className={sharedClassName}
         style={mergedStyles}
-        id={content.anchor}
+        id={headingId}
         dangerouslySetInnerHTML={{ __html: sanitizeHtml(textContent) }}
       />
     );
@@ -127,7 +129,7 @@ function HeadingRenderer({
         blockClass="wp-block-heading"
         className={sharedClassName}
         style={mergedStyles}
-        id={content.anchor}
+        id={headingId}
       >
         <InlineTextEditor
           value={textContent}
@@ -146,7 +148,7 @@ function HeadingRenderer({
       blockClass="wp-block-heading"
       className={sharedClassName}
       style={mergedStyles}
-      id={content.anchor}
+      id={headingId}
     >
       {textContent}
     </BlockShell>

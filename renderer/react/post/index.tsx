@@ -2,6 +2,8 @@ import * as React from "react";
 import type { BlockConfig } from "@shared/schema-types";
 import { getRenderProps, parseStructuredContent } from "../render-helpers";
 import { isSafePublicMediaUrl } from "@shared/bind-post-list";
+import { readBoundHeadings } from "@shared/page-headings";
+import { normalizeWebsiteUrl, normalizeXProfileUrl } from "@shared/safe-http-url";
 
 export { PostCommentsBlock } from "./comments";
 
@@ -20,6 +22,8 @@ export function PostAuthorBoxBlock(block: BlockConfig) {
 	const name = typeof data.name === "string" ? data.name : "";
 	const bio = typeof data.bio === "string" ? data.bio : "";
 	const avatar = typeof data.avatar === "string" ? data.avatar : "";
+	const websiteUrl = typeof data.websiteUrl === "string" ? normalizeWebsiteUrl(data.websiteUrl) : "";
+	const xUrl = typeof data.xUrl === "string" ? normalizeXProfileUrl(data.xUrl) : "";
 
 	const mergedClassName = ["wp-block-post-author-box", className].filter(Boolean).join(" ");
 	const displayName = name || "Author";
@@ -45,6 +49,16 @@ export function PostAuthorBoxBlock(block: BlockConfig) {
 				) : null}
 				{showBio && displayBio ? (
 					<p className="wp-block-post-author-box__bio" style={{ margin: "4px 0 0", color: "var(--npb-text-secondary)", fontSize: "0.875rem" }}>{displayBio}</p>
+				) : null}
+				{websiteUrl || xUrl ? (
+					<p className="wp-block-post-author-box__links" style={{ margin: "8px 0 0", display: "flex", flexWrap: "wrap", gap: "12px", fontSize: "0.875rem" }}>
+						{websiteUrl ? (
+							<a href={websiteUrl} rel="noopener noreferrer">Website</a>
+						) : null}
+						{xUrl ? (
+							<a href={xUrl} rel="noopener noreferrer">X</a>
+						) : null}
+					</p>
 				) : null}
 			</div>
 		</div>
@@ -209,24 +223,49 @@ export function PostNavigationBlock(block: BlockConfig) {
 export function PostTocBlock(block: BlockConfig) {
 	const { style, className, attributes } = getRenderProps(block);
 	const data = parseStructuredContent(block.content);
-	const title = (data.title as string) || "Table of Contents";
-	const ordered = data.ordered as boolean | undefined;
+	const title = typeof data.title === "string" ? data.title : "Table of Contents";
+	const ordered = data.ordered === true;
+	const sticky = data.sticky === true;
+	const headings = readBoundHeadings(data.headings);
 
 	const mergedClassName = ["wp-block-post-toc", className]
 		.filter(Boolean)
 		.join(" ");
 
 	const ListTag = ordered ? "ol" : "ul";
+	const stickyStyle = sticky
+		? { position: "sticky" as const, top: "1rem", zIndex: 5, alignSelf: "flex-start" as const }
+		: {};
 
 	return (
-		<div className={mergedClassName || undefined} style={style} {...attributes}>
-			<strong className="wp-block-post-toc__title">{title}</strong>
-			<ListTag className="wp-block-post-toc__list" style={{ margin: "8px 0 0", paddingLeft: "20px", color: "var(--npb-text-secondary)", fontSize: "0.875rem" }}>
-				<li>Section One</li>
-				<li>Section Two</li>
-				<li>Section Three</li>
-			</ListTag>
-		</div>
+		<nav
+			className={mergedClassName || undefined}
+			style={{
+				border: "1px solid var(--npb-border-default)",
+				borderRadius: "var(--npb-radius-input)",
+				padding: "1.25rem 1.5rem",
+				backgroundColor: "var(--npb-surface-raised)",
+				...stickyStyle,
+				...style,
+			}}
+			aria-label="Table of contents"
+			{...attributes}
+		>
+			{title ? <strong className="wp-block-post-toc__title">{title}</strong> : null}
+			{headings.length === 0 ? (
+				<p className="wp-block-post-toc__empty" style={{ margin: "8px 0 0", color: "var(--npb-text-muted)", fontSize: "0.875rem" }}>
+					Headings on this page show up here.
+				</p>
+			) : (
+				<ListTag className="wp-block-post-toc__list" style={{ margin: "8px 0 0", paddingLeft: "20px", color: "var(--npb-text-secondary)", fontSize: "0.875rem", listStyle: ordered ? undefined : "none" }}>
+					{headings.map((entry, index) => (
+						<li key={`${entry.id}-${index}`} style={{ paddingLeft: `${Math.max(0, (Number(entry.level) || 1) - 1)}rem` }}>
+							<a href={`#${entry.id}`}>{entry.text}</a>
+						</li>
+					))}
+				</ListTag>
+			)}
+		</nav>
 	);
 }
 

@@ -6,6 +6,8 @@ import { getRenderProps, parseTextContent, parseStructuredContent } from "../ren
 import { usePageColumnInset } from "@shared/page-column-context";
 import { PROSE_MAX_WIDTH } from "@shared/responsive-scales";
 import { readTextAlign } from "@shared/text-align";
+import { headingAnchorId } from "@shared/page-headings";
+import { buttonsGroupStyle } from "@shared/buttons-group-style";
 import {
 	effectiveIconGlyphColor,
 } from "@shared/icon-block-visuals";
@@ -117,7 +119,8 @@ export function HeadingBlock(block: BlockConfig) {
 	const content = parseTextContent(block.content);
 	const level = (content.level as number) || 2;
 	const text = (content.value as string) || "";
-	const anchor = content.anchor as string | undefined;
+	const savedAnchor = typeof content.anchor === "string" ? content.anchor : "";
+	const headingId = headingAnchorId({ text, anchor: savedAnchor }) || undefined;
 	const textAlign = readTextAlign({ styles: style, content: block.content });
 
 	const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -135,7 +138,7 @@ export function HeadingBlock(block: BlockConfig) {
 			: {}),
 	};
 
-	const attrs = { ...attributes, ...(anchor ? { id: anchor } : {}) };
+	const attrs = { ...attributes, ...(headingId ? { id: headingId } : {}) };
 
 	// `format: "html"` carries sanitized inline markup (e.g. imported headings with links).
 	if (content.format === "html") {
@@ -346,27 +349,31 @@ export function ButtonsBlock(block: BlockConfig) {
 	const { style, className, attributes } = getRenderProps(block);
 	const data = parseStructuredContent(block.content);
 	const buttons = (data.buttons as Array<Record<string, unknown>>) || [];
-	const layout = data.layout as string | undefined;
-	const orientation = data.orientation as string | undefined;
+	const layout = typeof data.layout === "string" ? data.layout : "flex-start";
+	const orientation = typeof data.orientation === "string" ? data.orientation : "horizontal";
 
-	const mergedClassName = ["wp-block-buttons", className]
+	const mergedClassName = [
+		"wp-block-buttons",
+		orientation === "vertical" ? "is-vertical" : "",
+		className,
+	]
 		.filter(Boolean)
 		.join(" ");
+	const groupStyle = buttonsGroupStyle({ layout, orientation, styles: style });
 
 	if (!buttons || buttons.length === 0) {
 		return (
 			<div
 				className={mergedClassName || undefined}
-				style={style}
+				style={groupStyle}
 				{...attributes}
 			>
-				{/* Empty buttons container */}
 			</div>
 		);
 	}
 
 	return (
-		<div className={mergedClassName || undefined} style={style} {...attributes}>
+		<div className={mergedClassName || undefined} style={groupStyle} {...attributes}>
 			{buttons.map((button, index) => {
 				const buttonText = (button.text as string) || "";
 				const buttonUrl = (button.url as string) || "";
@@ -382,7 +389,14 @@ export function ButtonsBlock(block: BlockConfig) {
 				const hasIcon = iconElement !== null;
 
 				const btnStyle: React.CSSProperties = {
-					...(hasIcon ? { display: "inline-flex", alignItems: "center", gap: hasIcon && !btnIconOnly ? "6px" : undefined } : {}),
+					display: "inline-flex",
+					alignItems: "center",
+					justifyContent: "center",
+					maxWidth: "100%",
+					whiteSpace: "normal",
+					overflowWrap: "anywhere",
+					width: orientation === "vertical" ? "100%" : undefined,
+					...(hasIcon ? { gap: hasIcon && !btnIconOnly ? "6px" : undefined } : {}),
 				};
 
 				const btnChildren = (

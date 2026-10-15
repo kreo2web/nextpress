@@ -216,5 +216,6 @@ describe('popup padding', () => {
   it('accepts CSS-style padding with up to four sides', () => {
     expect(readPopupContent({ kind: 'structured', data: { padding: '36px 28px 28px' } }).padding).toBe('36px 28px 28px');
     expect(readPopupContent({ kind: 'structured', data: { padding: '1px 2px 3px 4px 5px' } }).padding).toBe('24px');
+    expect(readPopupContent({ kind: 'structured', data: { padding: '0' } }).padding).toBe('0');
   });
 });

@@ -9,6 +9,7 @@ import { BlockShell } from '../shared/block-shell';
 import { InlineTextEditor } from '../shared/inline-text-editor';
 import { SettingsChipGroup } from '../../settings-chip-group';
 import { usePostDocument } from '../../PageContext';
+import { headingAnchorId } from '@shared/page-headings';
 
 // ============================================================================
 // TYPES
@@ -65,6 +66,7 @@ function PostTitleRenderer({ content, styles, onTextChange }: PostTitleRendererP
       ? raw
       : postDocument?.title || raw || 'Post Title';
   const tag = content?.tag || 'h1';
+  const headingId = headingAnchorId({ text }) || undefined;
   const mergedStyles: React.CSSProperties = {
     color: 'var(--npb-text-primary)',
     ...POST_TITLE_TYPE[tag],
@@ -72,7 +74,7 @@ function PostTitleRenderer({ content, styles, onTextChange }: PostTitleRendererP
   };
 
   return (
-    <BlockShell as={tag} blockClass="wp-block-post-title" className={content?.className} style={mergedStyles}>
+    <BlockShell as={tag} blockClass="wp-block-post-title" className={content?.className} style={mergedStyles} id={headingId}>
       {onTextChange ? (
         <InlineTextEditor
           ariaLabel="Post title"

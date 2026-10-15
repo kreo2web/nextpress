@@ -11,6 +11,7 @@ export type PostListContent = {
   showDate?: boolean;
   showAuthor?: boolean;
   blogId?: string;
+  category?: string;
   orderBy?: 'date' | 'title';
   order?: 'asc' | 'desc';
   openIn?: 'overlay' | 'page';
@@ -35,6 +36,7 @@ export const DEFAULT_CONTENT: PostListContent = {
   showDate: true,
   showAuthor: true,
   blogId: '',
+  category: '',
   orderBy: 'date',
   order: 'desc',
   openIn: 'overlay',

@@ -28,6 +28,7 @@ import { IconRenderer } from "../shared/IconRenderer";
 import { useSettingsState } from "../useSettingsState";
 import { generateBlockId } from "../../utils";
 import { buildAccordionItem } from "./accordion-factory";
+import { useBlockAccessors, type BlockStateAccessor } from "../blockStateRegistry";
 
 /** The accordion item's inner padding when none is saved. A side that is cleared falls back to it. */
 const ACCORDION_INNER_PADDING = "20px 24px";
@@ -68,6 +69,14 @@ type AccordionSettingsProps = {
 const toPickerIcon = (icon: AccordionIconRef | null | undefined): IconReference | undefined =>
 	icon ? { ...icon, iconSet: icon.iconSet as IconReference["iconSet"], size: 24, color: "currentColor" } : undefined;
 
+function countOtherFaqAccordions(accessors: BlockStateAccessor[], selfId: string): number {
+	return accessors.filter((accessor) => {
+		const state = accessor.getFullState();
+		if (state.name !== "core/accordion" || state.id === selfId) return false;
+		return readAccordionContent(state.content).faqSchema;
+	}).length;
+}
+
 const toAccordionIcon = (icon: IconReference): AccordionIconRef => ({
 	iconSet: icon.iconSet,
 	iconName: icon.iconName,
@@ -88,6 +97,7 @@ export function AccordionSettings({ block, onUpdate }: AccordionSettingsProps) {
 		parseContent: readAccordionContent,
 	});
 	const items = (block.children ?? []).filter((child) => child.name === ACCORDION_ITEM_BLOCK_NAME);
+	const otherFaqCount = countOtherFaqAccordions(useBlockAccessors(), block.id);
 	const updateIcon = (patch: Partial<AccordionContent["icon"]>) => updateContent({ icon: { ...content.icon, ...patch } });
 
 	const addItem = () => {
@@ -148,8 +158,13 @@ export function AccordionSettings({ block, onUpdate }: AccordionSettingsProps) {
 						<div className="min-w-0">
 							<SettingsLabel htmlFor={`accordion-faq-${block.id}`}>Mark as FAQ for search engines</SettingsLabel>
 							<p className="npb-settings-hint-muted text-xs">
-								Search results can show these questions and answers.
+								Search results can show these questions and answers. Use this on one accordion per page.
 							</p>
+							{content.faqSchema && otherFaqCount > 0 ? (
+								<p className="npb-settings-hint text-xs">
+									Another accordion on this page is already marked. Search engines expect one FAQ list, so turn one off.
+								</p>
+							) : null}
 						</div>
 						<Switch
 							id={`accordion-faq-${block.id}`}

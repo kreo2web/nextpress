@@ -5,6 +5,7 @@ import { sanitizeHtml } from "@shared/sanitize-html";
 import { isYouTubeUrl, buildYouTubeEmbedUrl } from "@shared/video-embed";
 import { readVideoPlayback, videoElementStyle } from "@shared/video-playback";
 import { getRenderProps, parseMediaContent, parseStructuredContent, renderChildBlocks } from "../render-helpers";
+import { mediaTextAlignItems, mediaTextPaneBasis } from "@shared/media-text-layout";
 
 /** A bare pixel count, not a CSS length. Used to reserve the picture's box. */
 function intrinsicPx(value: number | string | undefined): number | undefined {
@@ -51,37 +52,53 @@ export function ImageBlock(block: BlockConfig) {
 		return null;
 	}
 
-	const mergedClassName = ["wp-block-image", className]
+	const align = typeof content.align === "string" && content.align ? `align${content.align}` : "";
+	const mergedClassName = ["wp-block-image", align, className]
 		.filter(Boolean)
 		.join(" ");
 
-	const imageStyle: React.CSSProperties = {
-		...style,
-		maxWidth: style.maxWidth ?? "100%",
-		height: style.height ?? "auto",
-		...(explicitAspectRatio
-			? { aspectRatio: explicitAspectRatio }
-			: intrinsicWidth && intrinsicHeight
-				? { aspectRatio: `${intrinsicWidth} / ${intrinsicHeight}` }
-				: {}),
-		...(width && intrinsicWidth == null ? { width } : {}),
-		...(height && intrinsicHeight == null ? { height } : {}),
-		...(objectFit
-			? { objectFit: objectFit as React.CSSProperties["objectFit"] }
-			: {}),
-	};
+	const cropInFrame = Boolean(objectFit && explicitAspectRatio);
+	const imageStyle: React.CSSProperties = cropInFrame
+		? {
+				width: "100%",
+				height: "100%",
+				objectFit: objectFit as React.CSSProperties["objectFit"],
+				display: "block",
+			}
+		: {
+				...style,
+				maxWidth: style.maxWidth ?? "100%",
+				height: style.height ?? "auto",
+				...(explicitAspectRatio
+					? { aspectRatio: explicitAspectRatio }
+					: intrinsicWidth && intrinsicHeight
+						? { aspectRatio: `${intrinsicWidth} / ${intrinsicHeight}` }
+						: {}),
+				...(width && intrinsicWidth == null ? { width } : {}),
+				...(height && intrinsicHeight == null ? { height } : {}),
+				...(objectFit
+					? { objectFit: objectFit as React.CSSProperties["objectFit"] }
+					: {}),
+			};
 
 	const imageAlt = alt.trim();
-	const image = (
+	const img = (
 		<img
 			src={url}
 			alt={imageAlt}
-			width={intrinsicWidth}
-			height={intrinsicHeight}
+			width={cropInFrame ? undefined : intrinsicWidth}
+			height={cropInFrame ? undefined : intrinsicHeight}
 			decoding="async"
 			style={imageStyle}
 			role={imageAlt ? undefined : 'presentation'}
 		/>
+	);
+	const image = cropInFrame ? (
+		<div style={{ aspectRatio: explicitAspectRatio, width: "100%", overflow: "hidden" }}>
+			{img}
+		</div>
+	) : (
+		img
 	);
 
 	// Determine link href based on linkDestination
@@ -382,6 +399,10 @@ export function CoverBlock(block: BlockConfig) {
 			: typeof data.minHeight === "string" && data.minHeight
 				? Number.parseInt(data.minHeight, 10) || 400
 				: 400;
+	const coverMinHeight =
+		minHeightValue === 400
+			? (style.minHeight ?? "clamp(240px, 50vh, 400px)")
+			: `${minHeightValue}px`;
 	const contentPosition = (data.contentPosition as string) || "center center";
 	const backgroundType = (data.backgroundType as string) || "image";
 	const hasParallax = Boolean(data.hasParallax);
@@ -421,7 +442,7 @@ export function CoverBlock(block: BlockConfig) {
 		position: "relative",
 		display: "flex",
 		flexDirection: "column",
-		minHeight: `${minHeightValue}px`,
+		minHeight: coverMinHeight,
 		overflow: "hidden",
 		...(backgroundType === "image"
 			? {
@@ -477,8 +498,10 @@ export function CoverBlock(block: BlockConfig) {
 					flex: 1,
 					width: "100%",
 					minHeight: 0,
-					padding: "1.25em 2.375em",
+					padding: "1.25em clamp(1rem, 4vw, 2.375em)",
 					color: "white",
+					minWidth: 0,
+					overflowWrap: "anywhere",
 					...contentAlignment,
 				}}
 			>
@@ -610,8 +633,11 @@ export function MediaTextBlock(block: BlockConfig) {
 	const url = (data.mediaUrl as string) || (data.url as string) || "";
 	const alt = ((data.mediaAlt as string) || "").trim();
 	const mediaPosition = (data.mediaPosition as string) || "left";
-	const verticalAlignment = data.verticalAlignment as string | undefined;
+	const verticalAlignment = typeof data.verticalAlignment === "string" ? data.verticalAlignment : "center";
 	const isStackedOnMobile = data?.isStackedOnMobile !== false;
+	const imageFill = data.imageFill === true;
+	const mediaWidth = typeof data.mediaWidth === "number" ? data.mediaWidth : 50;
+	const paneBasis = mediaTextPaneBasis(mediaWidth);
 	const href = data?.href as string | undefined;
 	const linkTarget = (data?.linkTarget as string) || undefined;
 	const rel = data?.rel as string | undefined;
@@ -626,28 +652,29 @@ export function MediaTextBlock(block: BlockConfig) {
 	const mergedClassName = [
 		"wp-block-media-text",
 		mediaPosition === "right" ? "has-media-on-the-right" : "",
-		verticalAlignment ? `is-vertically-aligned-${verticalAlignment}` : "",
+		`is-vertically-aligned-${verticalAlignment}`,
 		isStackedOnMobile ? "is-stacked-on-mobile" : "",
+		imageFill ? "is-image-fill" : "",
 		className,
 	]
 		.filter(Boolean)
 		.join(" ");
 
-	const mediaStyle: React.CSSProperties = url
-		? {
-				backgroundImage: `url(${url})`,
-				backgroundSize: "cover",
-				backgroundPosition: "center",
-			}
-		: {};
+	const mediaStyle: React.CSSProperties = {
+		flexBasis: paneBasis.media,
+		minWidth: 0,
+		...(imageFill && url
+			? {
+					backgroundImage: `url(${url})`,
+					backgroundSize: "cover",
+					backgroundPosition: "center",
+					minHeight: "12rem",
+				}
+			: {}),
+	};
 
-	const mediaContent = url ? (
-		<img
-			src={url}
-			alt={alt}
-			className="sr-only"
-			aria-hidden={alt ? undefined : true}
-		/>
+	const mediaInner = imageFill ? null : url ? (
+		<img src={url} alt={alt} style={{ maxWidth: "100%", height: "auto", display: "block" }} />
 	) : null;
 
 	const mediaElement =
@@ -661,11 +688,11 @@ export function MediaTextBlock(block: BlockConfig) {
 				className="wp-block-media-text__media"
 				style={mediaStyle}
 			>
-				{mediaContent}
+				{mediaInner}
 			</a>
 		) : (
 			<figure className="wp-block-media-text__media" style={mediaStyle}>
-				{mediaContent}
+				{mediaInner}
 			</figure>
 		));
 
@@ -676,17 +703,28 @@ export function MediaTextBlock(block: BlockConfig) {
 			<div dangerouslySetInnerHTML={{ __html: sanitizeHtml(textContent) }} />
 		) : null;
 
+	const shellStyle: React.CSSProperties = {
+		...style,
+		display: "flex",
+		gap: "20px",
+		alignItems: mediaTextAlignItems(verticalAlignment),
+	};
+
 	return (
-		<div className={mergedClassName || undefined} style={style} {...attributes}>
+		<div className={mergedClassName || undefined} style={shellStyle} {...attributes}>
 			{mediaPosition === "right" ? (
 				<>
-					<div className="wp-block-media-text__content">{textElement}</div>
+					<div className="wp-block-media-text__content" style={{ flexBasis: paneBasis.text, minWidth: 0 }}>
+						{textElement}
+					</div>
 					{mediaElement}
 				</>
 			) : (
 				<>
 					{mediaElement}
-					<div className="wp-block-media-text__content">{textElement}</div>
+					<div className="wp-block-media-text__content" style={{ flexBasis: paneBasis.text, minWidth: 0 }}>
+						{textElement}
+					</div>
 				</>
 			)}
 		</div>

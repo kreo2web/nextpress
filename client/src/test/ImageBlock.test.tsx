@@ -116,5 +116,6 @@ describe("published ImageBlock", () => {
 
     expect(html).toContain("aspect-ratio:21/9");
     expect(html).toContain("object-fit:contain");
+    expect(html).toContain("overflow:hidden");
   });
 });

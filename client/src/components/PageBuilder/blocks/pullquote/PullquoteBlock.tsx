@@ -76,6 +76,7 @@ function PullquoteRenderer({
         borderTop: '4px solid currentColor',
         borderBottom: '4px solid currentColor',
         backgroundColor: '#f8f9fa',
+        overflowWrap: 'break-word',
         ...styles,
       }}
     >

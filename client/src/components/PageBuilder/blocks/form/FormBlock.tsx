@@ -5,6 +5,7 @@ import { FormHiddenFields } from "@shared/form-hidden-fields";
 import { ContainerChildren } from "../../BlockRenderer";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { FormSettings } from "./form-settings";
+import { buildGroupShellStyles, readGroupShellContent } from "@shared/group-shell-styles";
 
 const UNITS = { spacing: "px", font: "rem", dimension: "px", border: "px" } as const;
 
@@ -55,14 +56,20 @@ type FormCanvasProps = {
  * sending is off; in preview and on the live site the form runtime sends it.
  */
 function FormCanvas({ hostBlock, content, isPreview, onNestedBlockChange }: FormCanvasProps) {
+	const { outerStyle, isHorizontal } = buildGroupShellStyles({
+		styles: hostBlock.styles,
+		content: readGroupShellContent(hostBlock.content),
+		children: hostBlock.children?.map((child) => ({ styles: child.styles })),
+	});
 	return (
 		<form
-			className="wp-block-form"
+			className={["wp-block-form", isHorizontal ? "is-horizontal" : ""].filter(Boolean).join(" ")}
 			data-np-form={isPreview ? hostBlock.id : undefined}
 			action="/api/forms/submit"
 			method="post"
 			noValidate={!isPreview}
 			onSubmit={isPreview ? undefined : (event) => event.preventDefault()}
+			style={outerStyle}
 		>
 			{isPreview ? null : (
 				<p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-npb-text-muted">
@@ -72,7 +79,12 @@ function FormCanvas({ hostBlock, content, isPreview, onNestedBlockChange }: Form
 				</p>
 			)}
 			{Array.isArray(hostBlock.children) && hostBlock.children.length > 0 ? (
-				<ContainerChildren block={hostBlock} isPreview={isPreview ?? false} onBlockChange={onNestedBlockChange} />
+				<ContainerChildren
+					block={hostBlock}
+					isPreview={isPreview ?? false}
+					onBlockChange={onNestedBlockChange}
+					stackClassName="wp-block-form__fields"
+				/>
 			) : isPreview ? null : (
 				<p className="text-npb-text-muted text-sm">Add a field from Form fields.</p>
 			)}

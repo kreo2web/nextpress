@@ -37,10 +37,14 @@ export function safePxLength(value: unknown): string | undefined {
 }
 
 const LENGTH = /^-?(?:\d{1,5})(?:\.\d{1,3})?(?:px|rem|em|%|vw|vh|vmin|vmax|dvh|dvw|ch)$/i;
+const ZERO_LENGTH = /^-?0(?:\.0+)?$/;
 
-/** A plain length (`140px`, `30%`, `12rem`), or nothing. No `calc()` or anything that could break out. */
+/** A plain length (`140px`, `30%`, `12rem`), unitless `0`, or nothing. No `calc()` or anything that could break out. */
 export function safeCssLength(value: unknown): string | undefined {
-	return typeof value === "string" && LENGTH.test(value.trim()) ? value.trim() : undefined;
+	if (typeof value !== "string") return undefined;
+	const text = value.trim();
+	if (ZERO_LENGTH.test(text) || LENGTH.test(text)) return text;
+	return undefined;
 }
 
 /** One to four plain lengths, like CSS padding (`24px`, `20px 24px`, `36px 28px 28px`), or nothing. */

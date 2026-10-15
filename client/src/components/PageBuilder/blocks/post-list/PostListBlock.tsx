@@ -55,13 +55,14 @@ function PostListRenderer({
   const editorSiteId = useOptionalActiveSite()?.activeSiteId ?? '';
   const siteIdHint = isPreview ? readVisitorSiteIdHint() : editorSiteId;
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['posts', isPreview ? 'public' : 'admin', siteIdHint, cfg.blogId, cfg.postsPerPage, cfg.orderBy, cfg.order],
+    queryKey: ['posts', isPreview ? 'public' : 'admin', siteIdHint, cfg.blogId, cfg.category, cfg.postsPerPage, cfg.orderBy, cfg.order],
     queryFn: async () => {
       const params = new URLSearchParams({
         per_page: String(cfg.postsPerPage),
       });
       if (!isPreview) params.set('status', 'any');
       if (cfg.blogId) params.set(isPreview ? 'blogId' : 'blog_id', cfg.blogId);
+      if (cfg.category) params.set('category', cfg.category);
       if (cfg.orderBy) {
         const sortField =
           cfg.orderBy === 'date'
@@ -229,7 +230,7 @@ function PostCard({
           style={{ textDecoration: 'none', color: 'inherit' }}>
           {cfg.showFeaturedImage && featuredImage('w-24 h-24')}
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-base leading-tight mb-1 truncate">
+            <h3 className="font-semibold text-base leading-tight mb-1 break-words">
               {post.title}
             </h3>
             {cfg.showExcerpt && post.excerpt && (
@@ -265,7 +266,7 @@ function PostCard({
           </div>
         ) : null}
         <div className="p-4 flex flex-col flex-1">
-          <h3 className="font-semibold text-base leading-tight mb-1">
+          <h3 className="font-semibold text-base leading-tight mb-1 break-words">
             {post.title}
           </h3>
           {cfg.showExcerpt && post.excerpt && (

@@ -178,6 +178,19 @@ export function PostListSettings({
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <SettingsLabel htmlFor="pl-category">Category</SettingsLabel>
+            <Input
+              id="pl-category"
+              className="h-9"
+              value={content.category ?? ''}
+              onChange={(e) => updateContent({ category: e.target.value })}
+              placeholder="News"
+            />
+            <p className="npb-settings-hint-muted mt-1 text-xs">
+              Same name as on the post. Leave blank for every post.
+            </p>
+          </div>
           <SettingsDisclosure
             title="Which blog"
             defaultOpen={Boolean(content.blogId)}>

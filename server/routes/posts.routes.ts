@@ -3,7 +3,7 @@ import type { Deps } from './shared/deps';
 import { asyncHandler } from './shared/async-handler';
 import { safeTryAsync } from '../utils';
 import { coerceDates } from './shared/date-coerce';
-import { enrichPostForApi } from '@shared/posts/post-other';
+import { enrichPostForApi, takePageAfterCategoryFilter } from '@shared/posts/post-other';
 import type { Filter } from '@shared/create-models';
 import { attachPostAuthor } from '../lib/attach-post-author';
 import { loadAdjacentPosts } from '../lib/load-adjacent-posts';
@@ -119,29 +119,37 @@ export function createPostsRoutes(deps: Deps): Router {
         });
         const search = parseContentListSearch(req.query.search);
         filters.push(...buildTitleSearchFilters({ search }));
+        const category = typeof req.query.category === 'string' ? req.query.category : '';
+        const fetchWide = Boolean(category.trim());
 
         const posts = filters.length > 0
           ? await models.posts.findManyWhere(filters, {
-              limit,
-              offset,
+              limit: fetchWide ? 500 : limit,
+              offset: fetchWide ? 0 : offset,
               orderBy: toModelOrderBy(listSort),
             })
           : await models.posts.findMany({
-              limit,
-              offset,
+              limit: fetchWide ? 500 : limit,
+              offset: fetchWide ? 0 : offset,
               orderBy: toModelOrderBy(listSort),
             });
 
-        const total = await models.posts.count({
-          where: filters.length > 0 ? filters : undefined,
-        });
+        const enriched = posts.map(enrichPostForApi);
+        const paged = fetchWide
+          ? takePageAfterCategoryFilter({ posts: enriched, category, page, perPage: limit })
+          : {
+              posts: enriched,
+              total: await models.posts.count({
+                where: filters.length > 0 ? filters : undefined,
+              }),
+            };
 
         return {
-          posts: posts.map(enrichPostForApi),
-          total,
+          posts: paged.posts,
+          total: paged.total,
           page,
           per_page: limit,
-          total_pages: Math.ceil(total / limit),
+          total_pages: Math.ceil(paged.total / limit),
         };
       });
 

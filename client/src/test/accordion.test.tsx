@@ -93,6 +93,10 @@ describe('accordion model', () => {
     expect(content.openMode).toBe('one');
   });
 
+  it('keeps None padding as CSS zero', () => {
+    expect(readAccordionContent({ kind: 'structured', data: { itemPadding: '0' } }).itemPadding).toBe('0');
+  });
+
   it('turns a single custom icon and swaps a pair', () => {
     const closed = { iconSet: 'lucide', iconName: 'circle' };
     const open = { iconSet: 'lucide', iconName: 'x' };

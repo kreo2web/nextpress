@@ -195,6 +195,42 @@ describe("bindPostBlocks", () => {
 		});
 	});
 
+	it("binds page headings onto a table of contents", () => {
+		const bound = bindPostBlocks({
+			blocks: [
+				{
+					id: "h1",
+					name: "core/heading",
+					type: "block",
+					parentId: null,
+					content: { kind: "text", value: "One", level: 2 },
+				} as BlockConfig,
+				block("post/toc", { title: "Contents", maxDepth: 3, sticky: true }),
+				{
+					id: "h2",
+					name: "core/heading",
+					type: "block",
+					parentId: null,
+					content: { kind: "text", value: "Two", level: 4 },
+				} as BlockConfig,
+			],
+			post,
+		});
+		expect(bound[0]?.content).toMatchObject({
+			kind: "text",
+			value: "One",
+			anchor: "one",
+		});
+		expect(bound[1]?.content).toMatchObject({
+			kind: "structured",
+			data: {
+				title: "Contents",
+				sticky: true,
+				headings: [{ id: "one", text: "One", level: 2 }],
+			},
+		});
+	});
+
 	it("injects bound comments into the comments block", () => {
 		const bound = bindPostBlocks({
 			blocks: [block("post/comments", { showForm: false })],

@@ -58,7 +58,7 @@ export const buildGalleryRenderModel = ({
 		shellStyle: styles as CSSProperties | undefined,
 		gridStyle: {
 			display: "grid",
-			gridTemplateColumns: `repeat(auto-fit, minmax(min(200px, 100%), 1fr))`,
+			gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(0, 1fr))`,
 			gap: "16px",
 			width: "100%",
 		},
@@ -96,7 +96,7 @@ export const GALLERY_PUBLISH_CSS = `
   color: #666;
   text-align: center;
 }
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .wp-block-gallery .blocks-gallery-grid { grid-template-columns: 1fr !important; }
 }
 `.trim();

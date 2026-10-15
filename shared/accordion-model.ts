@@ -223,7 +223,7 @@ export function buildAccordionCss({ blockId, content }: { blockId: string; conte
 	return [
 		`${root}{display:flex;flex-direction:column;gap:${content.look === "lines" ? "0" : content.gap}}`,
 		look[content.look],
-		`${scoped(" > .np-accordion__title")}{display:flex;align-items:center;gap:14px;cursor:pointer;list-style:none;padding:${content.itemPadding};font-size:${content.titleSize};font-weight:${content.titleWeight};line-height:1.5;${content.titleColor ? `color:${content.titleColor};` : ""}${content.icon.position === "end" ? "flex-direction:row-reverse;justify-content:space-between;" : ""}}`,
+		`${scoped(" > .np-accordion__title")}{display:flex;align-items:center;gap:14px;cursor:pointer;list-style:none;padding:${content.itemPadding};font-size:${content.titleSize};font-weight:${content.titleWeight};line-height:1.5;min-width:0;overflow-wrap:anywhere;${content.titleColor ? `color:${content.titleColor};` : ""}${content.icon.position === "end" ? "flex-direction:row-reverse;justify-content:space-between;" : ""}}`,
 		`${scoped(" > .np-accordion__title::-webkit-details-marker")}{display:none}`,
 		`${scoped(" > .np-accordion__title:focus-visible")}{outline:2px solid var(--npb-accent,#2563eb);outline-offset:-2px}`,
 		`${scoped(" .np-accordion__icon")}{display:inline-flex;flex-shrink:0;align-items:center;justify-content:center;width:${content.icon.size};height:${content.icon.size};${content.icon.color ? `color:${content.icon.color};` : ""}}`,

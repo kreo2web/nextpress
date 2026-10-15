@@ -20,6 +20,8 @@ export type PostAuthorBoxContent = {
   name?: string;
   avatar?: string;
   bio?: string;
+  websiteUrl?: string;
+  xUrl?: string;
 };
 
 export type AuthorData = { name?: string; avatar?: string; bio?: string };

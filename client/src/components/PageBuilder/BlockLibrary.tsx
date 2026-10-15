@@ -29,9 +29,11 @@ if (import.meta.env.DEBUG_BUILDER) {
 
 // A template part means nothing until a template is chosen, so it is added from the Templates group,
 // not dragged in from here.
+const HIDDEN_FROM_LIBRARY = new Set([TEMPLATE_PART_BLOCK_NAME, "core/divider"]);
+
 const allBlocks = Object.values(blockRegistry).filter(
   (block, index, arr) =>
-    arr.findIndex((b) => b.id === block.id) === index && block.id !== TEMPLATE_PART_BLOCK_NAME
+    arr.findIndex((b) => b.id === block.id) === index && !HIDDEN_FROM_LIBRARY.has(block.id)
 );
 
 /**

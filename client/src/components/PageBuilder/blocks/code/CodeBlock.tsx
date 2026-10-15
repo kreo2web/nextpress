@@ -100,6 +100,7 @@ function CodeRenderer({
     lineHeight: "1.6",
     ...styles,
     overflowX: "auto",
+    boxSizing: "border-box",
     maxWidth:
       typeof savedMaxWidth === "string" && savedMaxWidth !== ""
         ? savedMaxWidth
@@ -194,10 +195,10 @@ function CodeRenderer({
             {showLineNumbers
               ? lines.map((line, idx) => (
                   <div key={idx} className="flex gap-3">
-                    <span className="text-slate-500 select-none text-right min-w-[1.5rem]">
+                    <span className="text-slate-500 select-none text-right min-w-[1.5rem] shrink-0">
                       {idx + 1}
                     </span>
-                    <span className="flex-1">{line || " "}</span>
+                    <span className="flex-1 min-w-0">{line || " "}</span>
                   </div>
                 ))
               : codeContent || "// Empty code block"}
