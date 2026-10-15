@@ -33,6 +33,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { appendSiteIdToUrl, buildSiteOptionUrl } from '@/lib/site-api';
 import { useActiveSite } from '@/hooks/useActiveSite';
 import { PAGE_DESCRIPTION_FROM_OPTIONS } from "@shared/description-from";
+import { MediaUrlField } from "@/components/PageBuilder/blocks/shared/media-url-field";
 import type { PageDescriptionFrom } from "@shared/description-from";
 import type {
   Page,
@@ -336,12 +337,14 @@ export default function PageSettingsModal({
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="featuredImage">Featured image</Label>
-                <Input
+                <MediaUrlField
                   id="featuredImage"
+                  label="Featured image"
+                  kind="image"
                   value={featuredImage}
-                  onChange={(e) => setFeaturedImage(e.target.value)}
                   placeholder="/uploads/cover.jpg"
+                  onChange={({ url }) => setFeaturedImage(url)}
+                  onLibrarySelect={({ item }) => setFeaturedImage(item.url)}
                 />
                 <p className="text-xs text-npb-text-muted">
                   Link previews use this picture. Leave it empty to use the first picture on the page, then the site logo.

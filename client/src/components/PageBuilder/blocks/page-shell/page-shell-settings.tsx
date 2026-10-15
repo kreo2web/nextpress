@@ -17,8 +17,11 @@ import { resolveShellPadding } from "@shared/page-shell-padding";
 import { SpacingField } from "../../spacing-field";
 import { spacingPairsPatch } from "../../spacing-styles";
 import { PageShellScrollbarField } from "./page-shell-scrollbar-field";
+import { SettingsChipGroup } from "../../settings-chip-group";
+import { isFullPageColumn } from "@shared/page-shell-styles";
 import {
 	DEFAULT_PAGE_SHELL_CONTENT,
+	PAGE_CONTENT_ALIGN_OPTIONS,
 	PAGE_SHELL_WIDTH_OPTIONS,
 	readPageShellContent,
 	type PageShellContent,
@@ -74,9 +77,19 @@ export function PageShellSettings({
 					updateContent({ containerWidth: next ?? DEFAULT_PAGE_SHELL_CONTENT.containerWidth })
 				}
 			/>
-			<p className="npb-settings-hint -mt-1 text-xs">
-				The column fills the page. Side padding is the space at the edges.
-			</p>
+			{isFullPageColumn(content.containerWidth) ? null : (
+				<SettingsChipGroup
+					label="Content position"
+					ariaLabel="Content position"
+					options={[...PAGE_CONTENT_ALIGN_OPTIONS]}
+					value={content.contentAlign ?? "center"}
+					onChange={(value) => {
+						if (value === "left" || value === "center" || value === "right") {
+							updateContent({ contentAlign: value });
+						}
+					}}
+				/>
+			)}
 			<SpacingField
 				ariaLabel="Page padding"
 				title=""

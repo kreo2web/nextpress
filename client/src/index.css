@@ -1590,11 +1590,12 @@
   width: 100%;
   height: 10rem;
   object-fit: cover;
-  background: var(--npb-surface-inset, #f4f4f5);
+  background: transparent;
 }
 
 .np-post-list__image--empty {
   height: 10rem;
+  background: var(--npb-surface-inset, #f4f4f5);
 }
 
 .np-post-list__body {

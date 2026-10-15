@@ -49,14 +49,14 @@ describe("HeaderBar look", () => {
 });
 
 describe("HeaderBar page padding", () => {
-	it("does not add a second inset on the bar; the page already insets the header", () => {
+	it("lines the bar up with the page column only when that is turned on", () => {
 		const plain = renderToStaticMarkup(<HeaderBar content={DEFAULT_HEADER_CONTENT} />);
 		expect(plain).toContain("wp-block-header__frame");
 		expect(plain).not.toContain("is-page-inset");
 		const inset = renderToStaticMarkup(
 			<HeaderBar content={{ ...DEFAULT_HEADER_CONTENT, matchPagePadding: true }} />,
 		);
-		expect(inset).not.toContain("is-page-inset");
+		expect(inset).toContain("is-page-inset");
 	});
 });
 

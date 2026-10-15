@@ -250,11 +250,10 @@ describe('float on scroll in the editor canvas', () => {
     expect(within(inspector).queryByText('Stay on scroll')).toBeNull();
   });
 
-  it('says the page already applies its side padding', () => {
+  it('lets you line the header up with the page column', () => {
     render(<Builder />);
     const inspector = screen.getByTestId('inspector');
-    expect(within(inspector).queryByRole('switch', { name: 'Match page padding' })).toBeNull();
-    expect(within(inspector).getByText(/page's side padding already applies/i)).toBeInTheDocument();
+    expect(within(inspector).getByRole('switch', { name: 'Match page padding' })).toBeInTheDocument();
   });
 });
 

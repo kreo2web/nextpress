@@ -32,6 +32,12 @@ function PageShellRenderer({
 		...hostBlock,
 		content: hostBlock.content,
 		children: hostBlock.children ?? [],
+		styles: {
+			...hostBlock.styles,
+			display: "flex",
+			flexDirection: "column",
+			alignItems: "stretch",
+		},
 	};
 
 	const scrollbarCss = buildScrollbarCss({ selector: CANVAS_SCROLLER_SELECTOR, settings: resolved.scrollbar });

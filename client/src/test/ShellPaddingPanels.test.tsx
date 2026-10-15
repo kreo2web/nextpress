@@ -45,10 +45,10 @@ describe('page shell padding panel', () => {
     expect(saved.paddingBlock).toBeUndefined();
   });
 
-  it('does not offer content position until the column can actually move', () => {
+  it('offers content position when the column is narrower than the page, and hides it at full width', () => {
     const onUpdate = vi.fn();
     const { rerender } = render(<PageShellSettings block={shell({ containerWidth: '960px' })} onUpdate={onUpdate} />);
-    expect(screen.queryByRole('radiogroup', { name: 'Content position' })).toBeNull();
+    expect(screen.getByRole('radiogroup', { name: 'Content position' })).toBeInTheDocument();
     rerender(<PageShellSettings block={shell({ containerWidth: '100%' })} onUpdate={onUpdate} />);
     expect(screen.queryByRole('radiogroup', { name: 'Content position' })).toBeNull();
   });

@@ -264,8 +264,9 @@ describe("buildPublishedPageHtml", () => {
 		});
 		expect(html).toContain("html::-webkit-scrollbar{width:12px;height:12px}");
 		expect(html).toContain("@supports not selector(::-webkit-scrollbar)");
-		expect(html).toMatch(/margin-left:\s*4rem/);
-		expect(html).not.toMatch(/padding-left:\s*4rem/);
+		expect(html).toMatch(/padding-left:\s*4rem/);
+		expect(html).toContain("--np-page-pad-left:4rem");
+		expect(html).toContain("max-width:1200px");
 
 		const standard = build({});
 		expect(standard).toContain("html::-webkit-scrollbar{width:12px;height:12px}");

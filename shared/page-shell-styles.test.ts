@@ -104,9 +104,9 @@ describe("page shell styles", () => {
 		});
 		expect(inset["--np-page-pad-left" as keyof typeof inset]).toBe("3rem");
 		expect(inset.paddingLeft).toBeUndefined();
-		expect(inset["--np-page-max-width" as keyof typeof inset]).toBe("100%");
+		expect(inset["--np-page-max-width" as keyof typeof inset]).toBe("960px");
 		expect(inset["--np-page-margin-left" as keyof typeof inset]).toBe("0");
-		expect(inset["--np-page-margin-right" as keyof typeof inset]).toBe("0");
+		expect(inset["--np-page-margin-right" as keyof typeof inset]).toBe("auto");
 		const header: BlockConfig = {
 			id: "hdr",
 			name: "core/header",
@@ -115,23 +115,25 @@ describe("page shell styles", () => {
 			content: { kind: "structured", data: {} },
 		};
 		expect(getPageShellChildItemStyle({ child: header, content }).maxWidth).toBe("100%");
-		expect(getPageShellChildItemStyle({ child: header, content }).marginLeft).toBe("1rem");
+		expect(getPageShellChildItemStyle({ child: header, content }).marginLeft).toBeUndefined();
+		expect(getPageShellChildItemStyle({ child: header, content }).paddingLeft).toBeUndefined();
 		const item = getPageShellChildItemStyle({ child: heading("h1"), content });
-		expect(item.maxWidth).toBe("100%");
-		expect(item.marginLeft).toBe("1rem");
-		expect(item.marginRight).toBe("1rem");
+		expect(item.maxWidth).toBe("1200px");
+		expect(item.marginLeft).toBe("auto");
+		expect(item.marginRight).toBe("auto");
+		expect(item.paddingLeft).toBe("1rem");
+		expect(item.paddingRight).toBe("1rem");
 		expect(item.paddingTop).toBe("2rem");
 		expect(item.paddingBottom).toBe("2rem");
-		expect(item.paddingLeft).toBeUndefined();
 	});
 
 	it("side and top-and-bottom padding win over the one-box value, per axis", () => {
 		const content = { ...DEFAULT_PAGE_SHELL_CONTENT, paddingInline: "4rem" };
 		const item = getPageShellChildItemStyle({ child: heading("h1"), content });
-		expect(item.maxWidth).toBe("100%");
-		expect(item.marginLeft).toBe("4rem");
-		expect(item.marginRight).toBe("4rem");
-		expect(item.paddingLeft).toBeUndefined();
+		expect(item.maxWidth).toBe("1200px");
+		expect(item.paddingLeft).toBe("4rem");
+		expect(item.paddingRight).toBe("4rem");
+		expect(item.marginLeft).toBe("auto");
 		expect([item.paddingTop, item.paddingBottom]).toEqual(["2rem", "2rem"]);
 		const both = getPageShellChildItemStyle({
 			child: heading("h1"),
@@ -146,21 +148,34 @@ describe("page shell styles", () => {
 				child: heading("h1"),
 				content: { ...DEFAULT_PAGE_SHELL_CONTENT, contentAlign },
 			});
-		expect([at().marginLeft, at().marginRight, at().alignSelf]).toEqual(["1rem", "1rem", "stretch"]);
-		expect([at("left").marginLeft, at("left").marginRight]).toEqual(["1rem", "1rem"]);
-		expect([at("right").marginLeft, at("right").marginRight]).toEqual(["1rem", "1rem"]);
+		expect([at().marginLeft, at().marginRight]).toEqual(["auto", "auto"]);
+		expect([at("left").marginLeft, at("left").marginRight]).toEqual(["0", "auto"]);
+		expect([at("right").marginLeft, at("right").marginRight]).toEqual(["auto", "0"]);
 	});
 
-	it("uses side padding as the space from the page edge even when a content width is set", () => {
+	it("keeps content width and puts side padding inside that column", () => {
 		const at = (paddingInline: string) =>
 			getPageShellChildItemStyle({
 				child: heading("h1"),
 				content: { ...DEFAULT_PAGE_SHELL_CONTENT, containerWidth: "1024px", paddingInline },
 			});
-		expect(at("0.75rem").marginLeft).toBe("0.75rem");
-		expect(at("0.75rem").marginRight).toBe("0.75rem");
-		expect(at("3rem").marginLeft).toBe("3rem");
-		expect(at("3rem").maxWidth).toBe("100%");
+		expect(at("0.75rem").paddingLeft).toBe("0.75rem");
+		expect(at("0.75rem").paddingRight).toBe("0.75rem");
+		expect(at("3rem").paddingLeft).toBe("3rem");
+		expect(at("3rem").maxWidth).toBe("1024px");
+		expect(at("3rem").marginLeft).toBe("auto");
+	});
+
+	it("a full-width column uses padding as the space from the page edge", () => {
+		const item = getPageShellChildItemStyle({
+			child: heading("h1"),
+			content: { ...DEFAULT_PAGE_SHELL_CONTENT, containerWidth: "100%", paddingInline: "3rem" },
+		});
+		expect(item.maxWidth).toBe("100%");
+		expect(item.paddingLeft).toBe("3rem");
+		expect(item.paddingRight).toBe("3rem");
+		expect(item.marginLeft).toBe("0");
+		expect(item.marginRight).toBe("0");
 	});
 
 	it("puts top and bottom padding on the column once, not between every block", () => {
@@ -174,14 +189,13 @@ describe("page shell styles", () => {
 		expect(styleOf(top).paddingBottom).toBeUndefined();
 		expect(styleOf(middle).paddingTop).toBeUndefined();
 		expect(styleOf(middle).paddingBottom).toBeUndefined();
-		expect(styleOf(middle).paddingLeft).toBeUndefined();
-		expect(styleOf(middle).marginLeft).toBe("0.75rem");
-		expect(styleOf(middle).maxWidth).toBe("100%");
+		expect(styleOf(middle).paddingLeft).toBe("0.75rem");
+		expect(styleOf(middle).maxWidth).toBe("1200px");
 		expect(styleOf(bottom).paddingBottom).toBe("3rem");
 		expect(styleOf(bottom).paddingTop).toBeUndefined();
 	});
 
-	it("gives the header the same side padding as the rest of the page", () => {
+	it("keeps the header full-bleed so its background reaches the page edge", () => {
 		const header: BlockConfig = {
 			id: "hdr",
 			name: "core/header",
@@ -196,8 +210,8 @@ describe("page shell styles", () => {
 		expect(item.paddingLeft).toBeUndefined();
 		expect(item.paddingTop).toBeUndefined();
 		expect(item.maxWidth).toBe("100%");
-		expect(item.marginLeft).toBe("8rem");
-		expect(item.marginRight).toBe("8rem");
+		expect(item.marginLeft).toBeUndefined();
+		expect(item.marginRight).toBeUndefined();
 	});
 });
 

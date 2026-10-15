@@ -23,18 +23,25 @@ export type PageColumnInset = {
 	padRight: string;
 };
 
+/** True when the page column is told to fill the canvas (no max width). */
+export function isFullPageColumn(width: string): boolean {
+	const trimmed = width.trim();
+	return trimmed === "" || trimmed === "100%" || trimmed === "none";
+}
+
 /**
- * The inset a header follows.
- * The column fills the page, so the header frame does too and the side padding
- * sits inside the bar. A content width must not shrink this box: that used to
- * leave a wide empty band the padding control could not close.
+ * The inset a header follows so its inner bar lines up with the text column.
+ * Content width caps the column; side padding sits inside that box; leftover
+ * space follows contentAlign (center by default).
  */
 export function readPageColumnInset(content: PageShellContent): PageColumnInset {
 	const padding = resolveShellPadding(content);
+	const isFull = isFullPageColumn(content.containerWidth);
+	const align = content.contentAlign ?? "center";
 	return {
-		maxWidth: "100%",
-		marginLeft: "0",
-		marginRight: "0",
+		maxWidth: isFull ? "100%" : content.containerWidth,
+		marginLeft: isFull ? "0" : align === "right" ? "auto" : align === "left" ? "0" : "auto",
+		marginRight: isFull ? "0" : align === "left" ? "auto" : align === "right" ? "0" : "auto",
 		padLeft: padding.left,
 		padRight: padding.right,
 	};
@@ -54,6 +61,7 @@ export function buildPageShellOuterStyle({
 		boxSizing: "border-box",
 		display: "flex",
 		flexDirection: "column",
+		alignItems: "stretch",
 		fontFamily: content.fontFamily,
 		...(backgroundColor ? { backgroundColor } : {}),
 		...(content.backgroundFill ? fillToBackgroundStyles(content.backgroundFill) : {}),
@@ -70,26 +78,34 @@ const contentSiblings = (siblings: BlockConfig[] | undefined, child: BlockConfig
 	(siblings ?? [child]).filter((item) => !isFullBleedPageShellChild(item));
 
 /**
- * Space from the page edge. The margins are the side padding, and the column
- * stretches to fill what is left. A narrower content width is not applied here:
- * centering that width made the sides look stuck and much larger than the padding.
+ * The text column: content width caps it, side padding is inside that box, and
+ * leftover space on a wide page follows left / center / right.
  */
 const contentColumnSides = ({
+	content,
 	padding,
 }: {
+	content: PageShellContent;
 	padding: ReturnType<typeof resolveShellPadding>;
-}): CSSProperties => ({
-	alignSelf: "stretch",
-	width: "auto",
-	maxWidth: "100%",
-	marginLeft: padding.left,
-	marginRight: padding.right,
-});
+}): CSSProperties => {
+	const inset = readPageColumnInset(content);
+	return {
+		boxSizing: "border-box",
+		width: "100%",
+		minWidth: 0,
+		maxWidth: inset.maxWidth,
+		marginLeft: inset.marginLeft,
+		marginRight: inset.marginRight,
+		paddingLeft: padding.left,
+		paddingRight: padding.right,
+	};
+};
 
 /**
  * Constrains each child to the content column.
- * A header sits on the page too, so it uses the same side padding. It does not
- * take the page's top or bottom padding (those stay on the first and last text blocks).
+ * A header stays full-bleed so its background reaches the page edge; its inner
+ * bar follows the column through `--np-page-*`. Top and bottom padding stay on
+ * the first and last text blocks, not between every block.
  */
 export function getPageShellChildItemStyle({
 	child,
@@ -104,8 +120,9 @@ export function getPageShellChildItemStyle({
 	const padding = resolveShellPadding(content);
 	if (isFullBleedPageShellChild(child)) {
 		return {
-			...contentColumnSides({ padding }),
 			boxSizing: "border-box",
+			width: "100%",
+			maxWidth: "100%",
 			minWidth: 0,
 		};
 	}
@@ -113,11 +130,9 @@ export function getPageShellChildItemStyle({
 	const isFirst = column[0]?.id === child.id;
 	const isLast = column[column.length - 1]?.id === child.id;
 	return {
-		...contentColumnSides({ padding }),
+		...contentColumnSides({ content, padding }),
 		...(isFirst ? { paddingTop: padding.top } : {}),
 		...(isLast ? { paddingBottom: padding.bottom } : {}),
-		boxSizing: "border-box",
-		minWidth: 0,
 	};
 }
 

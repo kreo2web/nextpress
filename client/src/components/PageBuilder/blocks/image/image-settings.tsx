@@ -59,20 +59,6 @@ export function ImageSettings({ block, onUpdate }: ImageSettingsProps) {
         defaultOpen={true}
       >
         <div className="space-y-4">
-          {/* Image Preview */}
-          {imageUrl && (
-            <div>
-              <SettingsLabel>Preview</SettingsLabel>
-              <div className="mt-2 inline-block border border-dashed border-npb-border-strong p-2 rounded-lg" style={{ maxWidth: '100%' }}>
-                <img
-                  src={imageUrl}
-                  alt={content?.alt || ''}
-                  style={{ width: '240px', height: 'auto', display: 'block', maxWidth: "100%" }}
-                />
-              </div>
-            </div>
-          )}
-
           <MediaUrlField
             id="image-src"
             label="Image URL"

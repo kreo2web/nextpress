@@ -170,8 +170,18 @@ export function HeaderSettings({
 						onCheckedChange={(checked) => updateContent({ sticky: checked })}
 					/>
 				</div>
+				<div className="mt-3 flex items-center justify-between gap-3">
+					<SettingsLabel htmlFor="header-match-padding">Match page padding</SettingsLabel>
+					<Switch
+						id="header-match-padding"
+						checked={content.matchPagePadding === true}
+						onCheckedChange={(checked) => updateContent({ matchPagePadding: checked })}
+					/>
+				</div>
 				<p className="npb-settings-hint-muted mt-1.5 text-xs">
-					This header sits on the page, so the page's side padding already applies.
+					{content.matchPagePadding
+						? "Logo and links sit in the same column as the rest of the page."
+						: "The bar goes from edge to edge. Turn on to line up with the page column."}
 				</p>
 				<div className="mt-3 flex items-center justify-between gap-3">
 					<SettingsLabel htmlFor="header-over-first">Sit over the first section</SettingsLabel>

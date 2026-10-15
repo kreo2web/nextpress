@@ -126,22 +126,16 @@ figure.wp-block-embed {
   max-width: 100%;
   height: auto;
   display: block;
-  background-color: color-mix(in srgb, currentColor 8%, transparent);
-  background-image: linear-gradient(
-    100deg,
-    transparent 35%,
-    color-mix(in srgb, currentColor 14%, transparent) 50%,
-    transparent 65%
-  );
-  background-size: 200% 100%;
-  animation: np-image-shimmer 1.15s ease-in-out 2;
+  background-color: transparent;
+  background-image: none;
 }
-@keyframes np-image-shimmer {
-  from { background-position: 100% 0; }
-  to { background-position: 0 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .wp-block-image img { animation: none; }
+.wp-block-gallery img,
+.wp-block-post-featured-image img,
+.wp-block-cover img,
+.wp-block-media-text img,
+.wp-block-video video {
+  background-color: transparent;
+  background-image: none;
 }
 
 /* A piece marked for one screen only. The page frame is the size container, so the
@@ -370,6 +364,16 @@ figure.wp-block-embed {
   width: 100%;
   min-height: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.wp-block-page-shell__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
 }
 
 /*
@@ -1070,6 +1074,9 @@ ${GALLERY_PUBLISH_CSS}
   width: 100%;
   height: 10rem;
   object-fit: cover;
+  background: transparent;
+}
+.np-post-list__image--empty {
   background: var(--npb-surface-inset, #f4f4f5);
 }
 .np-post-list__body { padding: 1rem; }

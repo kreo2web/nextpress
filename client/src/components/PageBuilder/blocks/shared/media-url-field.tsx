@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import MediaPickerDialog from "@/components/media/MediaPickerDialog";
 import { SettingsLabel } from "../../shared";
+import { MediaThumb, type MediaThumbKind } from "./media-thumb";
 
-type MediaKind = "image" | "video" | "audio" | "any";
+type MediaKind = MediaThumbKind;
 
 type MediaUrlFieldProps = {
   id: string;
@@ -20,8 +21,8 @@ type MediaUrlFieldProps = {
 };
 
 /**
- * URL input with optional media-library picker — shared by image, video, audio,
- * gallery, cover, and media-text settings panels.
+ * Picture (or clip) plus an address and a library picker — shared by image, video,
+ * audio, gallery, cover, header, and media-text settings.
  */
 export function MediaUrlField({
   id,
@@ -38,6 +39,7 @@ export function MediaUrlField({
   return (
     <div>
       <SettingsLabel htmlFor={id}>{label}</SettingsLabel>
+      <MediaThumb url={value} kind={kind} />
       <div className="mt-1 space-y-2">
         <Input
           id={id}

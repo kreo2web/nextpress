@@ -130,8 +130,10 @@ describe('float on scroll on the published page', () => {
     };
     const html = renderToStaticMarkup(<PageShellBlock {...page} />);
     const wrapper = html.slice(0, html.indexOf('<header'));
-    expect(wrapper).toContain('margin-left:4rem');
-    expect(wrapper).toContain('margin-right:4rem');
+    expect(wrapper).toContain('--np-page-pad-left:4rem');
+    expect(wrapper).toContain('--np-page-max-width:960px');
+    expect(wrapper).toContain('--np-page-margin-left:0');
+    expect(wrapper.slice(wrapper.lastIndexOf('<div'))).not.toContain('margin-left:4rem');
     const bar = html.slice(html.indexOf('wp-block-header__bar'), html.indexOf('wp-block-header__slot'));
     expect(bar).not.toContain('padding-left:4rem');
   });
