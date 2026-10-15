@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import type { BlockConfig } from '@shared/schema-types';
 import { SettingsLabel } from '../../shared';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
 import { Frame, Image as ImageIcon } from 'lucide-react';
 import { useSettingsState } from '../useSettingsState';
@@ -77,24 +79,21 @@ function UrlInputRow({
 }) {
   return (
     <div className="flex gap-1.5 px-4 w-full max-w-md">
-      <input
+      <Input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && onApply()}
         placeholder={placeholder}
-        className={
-          dark
-            ? 'flex-1 px-2.5 py-1.5 text-sm bg-white/15 border border-white/30 text-white rounded-md outline-none placeholder:text-white/50'
-            : 'flex-1 px-2.5 py-1.5 text-sm border border-npb-border-strong bg-npb-surface-base rounded-md outline-none placeholder:text-npb-text-muted'
-        }
+        className={cn(
+          'h-9 flex-1',
+          dark &&
+            'border-white/30 bg-white/15 text-white placeholder:text-white/50',
+        )}
       />
-      <button
-        type="button"
-        onClick={onApply}
-        className="px-3 py-1.5 text-sm font-medium bg-npb-accent text-npb-text-inverse border-none rounded-md cursor-pointer">
+      <Button type="button" size="sm" className="h-9" onClick={onApply}>
         Set
-      </button>
+      </Button>
     </div>
   );
 }

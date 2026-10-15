@@ -29,8 +29,11 @@ export default function AdminTopBar() {
         <span className="text-xs text-zinc-400">
           {user?.firstName || user?.username || 'Admin'}
         </span>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-xs text-zinc-400 hover:bg-white/10 hover:text-white"
           onClick={async () => {
             try {
               await authClient.signOut();
@@ -39,10 +42,9 @@ export default function AdminTopBar() {
               window.location.href = '/';
             }
           }}
-          className="cursor-pointer text-xs text-zinc-400 hover:text-white"
         >
           Log Out
-        </button>
+        </Button>
       </div>
     </div>
   );

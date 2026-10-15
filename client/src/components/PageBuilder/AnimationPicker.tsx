@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { SettingsDisclosure } from "./shared/settings-disclosure"
 import { Eye } from 'lucide-react'
@@ -200,23 +201,24 @@ export default function AnimationPicker({ animation, blockId, onChange }: Animat
               />
             </div>
 
-            {/* Play once toggle */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
+            <div className="flex items-center justify-between gap-3">
+              <SettingsLabel htmlFor="anim-play-once">Play once only</SettingsLabel>
+              <Switch
+                id="anim-play-once"
                 checked={animation.entry.once ?? true}
-                onChange={(e) =>
+                onCheckedChange={(checked) =>
                   updateAnimation({
-                    entry: { ...animation.entry!, once: e.target.checked },
+                    entry: { ...animation.entry!, once: checked },
                   })
                 }
-                className="rounded-none border-npb-border-strong"
               />
-              <span className="text-xs text-npb-text-secondary">Play once only</span>
-            </label>
+            </div>
 
-            {/* Preview button */}
-            <button
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
               onClick={() =>
                 previewEntryAnimation(
                   animation.entry!.name,
@@ -224,10 +226,9 @@ export default function AnimationPicker({ animation, blockId, onChange }: Animat
                   animation.entry!.delay ?? 0,
                 )
               }
-              className="w-full px-2 py-1.5 text-xs border border-npb-border-default rounded-none bg-npb-interactive-bg text-npb-text-secondary hover:bg-npb-interactive-bg-hover transition-colors flex items-center justify-center gap-1"
             >
               <Eye className="w-3 h-3" /> Preview
-            </button>
+            </Button>
           </div>
         )}
       </SettingsDisclosure>
