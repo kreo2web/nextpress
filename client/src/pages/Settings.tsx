@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Save, Globe, Database, Code, Shield, Bell, Upload, X, ImageIcon, Home, Check, KeyRound } from 'lucide-react';
+import { Save, Globe, Database, Bell, Upload, X, ImageIcon, Home, Check, KeyRound } from 'lucide-react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Spinner } from '@/components/ui/spinner';
 import { apiRequest } from '@/lib/queryClient';
@@ -26,14 +26,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { format } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
 import { DomainInputWithVerify } from '@/components/domain';
 import { ApiKeysPanel } from '@/components/settings/ApiKeysPanel';
+import { AiSettingsPanel } from '@/components/settings/ai-settings';
+import { TimezoneField } from '@/components/settings/timezone-field';
+import { useSiteAccess } from '@/hooks/use-site-access';
 
 /**
  * Settings structure matching server schema
- * Organized by category: general, writing, reading, discussion, system
+ * Organized by category: general, reading, discussion. Every switch here acts on this site only.
  */
 interface Settings {
   general: {
@@ -42,16 +43,8 @@ interface Settings {
     siteUrl: string;
     adminEmail: string;
     timezone: string;
-    dateFormat: string;
-    timeFormat: string;
-  };
-  writing: {
-    richTextEnabled: boolean;
-    autosaveEnabled: boolean;
-    syntaxHighlighting: boolean;
   };
   reading: {
-    postsPerPage: number;
     rssPosts: number;
     rssEnabled: boolean;
     discourageSearchIndexing: boolean;
@@ -60,18 +53,7 @@ interface Settings {
   discussion: {
     enableComments: boolean;
     moderateComments: boolean;
-    emailNotifications: boolean;
     enableRegistration: boolean;
-    defaultRole: string;
-  };
-  system: {
-    cachingEnabled: boolean;
-    compressionEnabled: boolean;
-    securityHeadersEnabled: boolean;
-    debugMode: boolean;
-    restApiEnabled: boolean;
-    graphqlEnabled: boolean;
-    webhooksEnabled: boolean;
   };
 }
 
@@ -102,57 +84,6 @@ interface Theme {
   version: string;
   status: string;
 }
-
-/**
- * Common timezone options
- */
-const TIMEZONE_OPTIONS = [
-  { value: 'UTC', label: 'UTC' },
-  { value: 'America/New_York', label: 'Eastern Time (US & Canada)' },
-  { value: 'America/Chicago', label: 'Central Time (US & Canada)' },
-  { value: 'America/Denver', label: 'Mountain Time (US & Canada)' },
-  { value: 'America/Los_Angeles', label: 'Pacific Time (US & Canada)' },
-  { value: 'America/Toronto', label: 'Toronto' },
-  { value: 'America/Mexico_City', label: 'Mexico City' },
-  { value: 'America/Sao_Paulo', label: 'São Paulo' },
-  { value: 'Europe/London', label: 'London' },
-  { value: 'Europe/Paris', label: 'Paris' },
-  { value: 'Europe/Berlin', label: 'Berlin' },
-  { value: 'Europe/Rome', label: 'Rome' },
-  { value: 'Europe/Moscow', label: 'Moscow' },
-  { value: 'Africa/Cairo', label: 'Cairo' },
-  { value: 'Africa/Lagos', label: 'Lagos' },
-  { value: 'Asia/Dubai', label: 'Dubai' },
-  { value: 'Asia/Kolkata', label: 'Kolkata' },
-  { value: 'Asia/Shanghai', label: 'Shanghai' },
-  { value: 'Asia/Tokyo', label: 'Tokyo' },
-  { value: 'Asia/Singapore', label: 'Singapore' },
-  { value: 'Australia/Sydney', label: 'Sydney' },
-  { value: 'Pacific/Auckland', label: 'Auckland' },
-];
-
-/**
- * Common date format options (date-fns format tokens)
- */
-const DATE_FORMAT_OPTIONS = [
-  { value: 'MMMM d, yyyy', label: 'January 1, 2025' },
-  { value: 'MMM d, yyyy', label: 'Jan 1, 2025' },
-  { value: 'MM/dd/yyyy', label: '01/01/2025' },
-  { value: 'dd/MM/yyyy', label: '01/01/2025 (Day/Month/Year)' },
-  { value: 'yyyy-MM-dd', label: '2025-01-01 (ISO)' },
-  { value: 'EEEE, MMMM d, yyyy', label: 'Wednesday, January 1, 2025' },
-  { value: 'd MMMM yyyy', label: '1 January 2025' },
-];
-
-/**
- * Common time format options (date-fns format tokens)
- */
-const TIME_FORMAT_OPTIONS = [
-  { value: 'h:mm a', label: '1:30 PM (12-hour)' },
-  { value: 'h:mm:ss a', label: '1:30:45 PM (12-hour with seconds)' },
-  { value: 'HH:mm', label: '13:30 (24-hour)' },
-  { value: 'HH:mm:ss', label: '13:30:45 (24-hour with seconds)' },
-];
 
 function SiteHomepageField({
   selectId,
@@ -218,7 +149,7 @@ function SiteHomepageField({
   );
 }
 
-export default function Settings() {
+function SettingsScreen() {
   const { activeSiteId } = useActiveSite();
   const [formData, setFormData] = useState<Settings | null>(null);
   const [siteInfo, setSiteInfo] = useState<SiteInfo | null>(null);
@@ -243,17 +174,9 @@ export default function Settings() {
   const { toast } = useToast();
   const settingsSaveAckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [settingsJustSaved, setSettingsJustSaved] = useState(false);
-
-  /**
-   * Safely format a date with the given format string
-   */
-  const safeFormatDate = useCallback((formatString: string): string => {
-    try {
-      return format(new Date(), formatString);
-    } catch (error) {
-      return 'Invalid format';
-    }
-  }, []);
+  // The AI tab saves on its own, so the header Save (for the other tabs' form) steps aside there.
+  const [initialTab] = useState(() => (new URLSearchParams(window.location.search).get('tab') === 'ai' ? 'ai' : 'general'));
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   // Fetch current settings from new consolidated API
   const { data: settingsResponse, isLoading } = useQuery<{
@@ -711,18 +634,6 @@ export default function Settings() {
     }
   };
 
-  const updateWritingField = <K extends keyof Settings['writing']>(
-    field: K,
-    value: Settings['writing'][K]
-  ) => {
-    if (formData) {
-      setFormData({
-        ...formData,
-        writing: { ...formData.writing, [field]: value },
-      });
-    }
-  };
-
   const updateReadingField = <K extends keyof Settings['reading']>(
     field: K,
     value: Settings['reading'][K]
@@ -743,18 +654,6 @@ export default function Settings() {
       setFormData({
         ...formData,
         discussion: { ...formData.discussion, [field]: value },
-      });
-    }
-  };
-
-  const updateSystemField = <K extends keyof Settings['system']>(
-    field: K,
-    value: Settings['system'][K]
-  ) => {
-    if (formData) {
-      setFormData({
-        ...formData,
-        system: { ...formData.system, [field]: value },
       });
     }
   };
@@ -824,13 +723,13 @@ export default function Settings() {
   );
 
   return (
-    <AdminLayout title="Settings" actions={saveActions}>
-          <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid grid-cols-5 w-full max-w-2xl">
+    <AdminLayout title="Settings" actions={activeTab === 'ai' ? undefined : saveActions}>
+          <Tabs defaultValue={initialTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full max-w-3xl grid-cols-3 gap-1 group-data-[orientation=horizontal]/tabs:h-auto sm:grid-cols-6 sm:gap-0 sm:group-data-[orientation=horizontal]/tabs:h-9">
               <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="writing">Writing</TabsTrigger>
               <TabsTrigger value="reading">Reading</TabsTrigger>
               <TabsTrigger value="discussion">Discussion</TabsTrigger>
+              <TabsTrigger value="ai">AI</TabsTrigger>
               <TabsTrigger value="system">System</TabsTrigger>
             </TabsList>
 
@@ -934,95 +833,14 @@ export default function Settings() {
 
                   <Separator />
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="timezone">Timezone</Label>
-                      <Select
-                        value={formData.general.timezone}
-                        onValueChange={(value) => {
-                          updateGeneralField('timezone', value);
-                          clearFieldError('general.timezone');
-                        }}
-                      >
-                        <SelectTrigger className={getFieldError('general.timezone') ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Select timezone" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TIMEZONE_OPTIONS.map((tz) => (
-                            <SelectItem key={tz.value} value={tz.value}>
-                              {tz.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-npb-text-muted">
-                        Your site's timezone for date and time display
-                      </p>
-                      {getFieldError('general.timezone') && (
-                        <p className="text-sm text-red-500">
-                          {getFieldError('general.timezone')}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dateFormat">Date Format</Label>
-                      <Select
-                        value={formData.general.dateFormat}
-                        onValueChange={(value) => {
-                          updateGeneralField('dateFormat', value);
-                          clearFieldError('general.dateFormat');
-                        }}
-                      >
-                        <SelectTrigger className={getFieldError('general.dateFormat') ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Select date format" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {DATE_FORMAT_OPTIONS.map((fmt) => (
-                            <SelectItem key={fmt.value} value={fmt.value}>
-                              {fmt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-npb-text-muted">
-                        Preview: {safeFormatDate(formData.general.dateFormat)}
-                      </p>
-                      {getFieldError('general.dateFormat') && (
-                        <p className="text-sm text-red-500">
-                          {getFieldError('general.dateFormat')}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="timeFormat">Time Format</Label>
-                      <Select
-                        value={formData.general.timeFormat}
-                        onValueChange={(value) => {
-                          updateGeneralField('timeFormat', value);
-                          clearFieldError('general.timeFormat');
-                        }}
-                      >
-                        <SelectTrigger className={getFieldError('general.timeFormat') ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Select time format" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TIME_FORMAT_OPTIONS.map((fmt) => (
-                            <SelectItem key={fmt.value} value={fmt.value}>
-                              {fmt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-npb-text-muted">
-                        Preview: {safeFormatDate(formData.general.timeFormat)}
-                      </p>
-                      {getFieldError('general.timeFormat') && (
-                        <p className="text-sm text-red-500">
-                          {getFieldError('general.timeFormat')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  <TimezoneField
+                    value={formData.general.timezone}
+                    error={getFieldError('general.timezone')}
+                    onChange={(value) => {
+                      updateGeneralField('timezone', value);
+                      clearFieldError('general.timezone');
+                    }}
+                  />
 
                   <Separator />
 
@@ -1264,66 +1082,6 @@ export default function Settings() {
               </Card>
             </TabsContent>
 
-            {/* Writing Settings */}
-            <TabsContent value="writing">
-              <Card className="admin-surface">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Code className="w-5 h-5 mr-2 text-npb-accent" />
-                    Writing Settings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Enable Rich Text Editor</Label>
-                        <p className="text-sm text-npb-text-secondary">
-                          Use visual editor for posts and pages
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.writing.richTextEnabled}
-                        onCheckedChange={(checked) =>
-                          updateWritingField('richTextEnabled', checked)
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Auto-save Posts</Label>
-                        <p className="text-sm text-npb-text-secondary">
-                          Automatically save drafts while writing
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.writing.autosaveEnabled}
-                        onCheckedChange={(checked) =>
-                          updateWritingField('autosaveEnabled', checked)
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Enable Code Syntax Highlighting</Label>
-                        <p className="text-sm text-npb-text-secondary">
-                          Highlight code blocks in posts
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.writing.syntaxHighlighting}
-                        onCheckedChange={(checked) =>
-                          updateWritingField('syntaxHighlighting', checked)
-                        }
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
             {/* Reading Settings */}
             <TabsContent value="reading">
               <Card className="admin-surface">
@@ -1341,30 +1099,7 @@ export default function Settings() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="postsPerPage">Posts per Page</Label>
-                      <Input
-                        id="postsPerPage"
-                        type="number"
-                        value={formData.reading.postsPerPage}
-                        onChange={(e) => {
-                          updateReadingField(
-                            'postsPerPage',
-                            parseInt(e.target.value) || 10
-                          );
-                          clearFieldError('reading.postsPerPage');
-                        }}
-                        min={1}
-                        max={100}
-                        className={getFieldError('reading.postsPerPage') ? 'border-red-500' : ''}
-                      />
-                      {getFieldError('reading.postsPerPage') && (
-                        <p className="text-sm text-red-500">
-                          {getFieldError('reading.postsPerPage')}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="rssPosts">RSS Feed Posts</Label>
+                      <Label htmlFor="rssPosts">Posts in the RSS feed</Label>
                       <Input
                         id="rssPosts"
                         type="number"
@@ -1391,9 +1126,9 @@ export default function Settings() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label>Enable RSS Feeds</Label>
+                        <Label>RSS feed</Label>
                         <p className="text-sm text-npb-text-secondary">
-                          Allow RSS feed generation
+                          Readers can follow new posts at <code className="text-xs">/feed</code>
                         </p>
                       </div>
                       <Switch
@@ -1463,9 +1198,9 @@ export default function Settings() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label>Allow Comments</Label>
+                        <Label>Allow comments</Label>
                         <p className="text-sm text-npb-text-secondary">
-                          Enable comments on posts and pages
+                          Visitors can comment on this site's posts
                         </p>
                       </div>
                       <Switch
@@ -1478,9 +1213,9 @@ export default function Settings() {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label>Moderate Comments</Label>
+                        <Label>Review comments first</Label>
                         <p className="text-sm text-npb-text-secondary">
-                          Comments must be approved before appearing
+                          New comments show only after someone approves them in Comments
                         </p>
                       </div>
                       <Switch
@@ -1491,20 +1226,6 @@ export default function Settings() {
                       />
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Email Notifications</Label>
-                        <p className="text-sm text-npb-text-secondary">
-                          Send email when new comments are posted
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.discussion.emailNotifications}
-                        onCheckedChange={(checked) =>
-                          updateDiscussionField('emailNotifications', checked)
-                        }
-                      />
-                    </div>
                   </div>
 
                   <Separator />
@@ -1512,9 +1233,9 @@ export default function Settings() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label>User Registration</Label>
+                        <Label>Let visitors create an account</Label>
                         <p className="text-sm text-npb-text-secondary">
-                          Allow new user registration
+                          They can comment and keep a profile, nothing more. To add someone to your team, send an invite link from People.
                         </p>
                       </div>
                       <Switch
@@ -1525,27 +1246,14 @@ export default function Settings() {
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="defaultRole">Default User Role</Label>
-                      <Input
-                        id="defaultRole"
-                        value={formData.discussion.defaultRole}
-                        onChange={(e) => {
-                          updateDiscussionField('defaultRole', e.target.value);
-                          clearFieldError('discussion.defaultRole');
-                        }}
-                        placeholder="subscriber"
-                        className={getFieldError('discussion.defaultRole') ? 'border-red-500' : ''}
-                      />
-                      {getFieldError('discussion.defaultRole') && (
-                        <p className="text-sm text-red-500">
-                          {getFieldError('discussion.defaultRole')}
-                        </p>
-                      )}
-                    </div>
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* AI: which AI service the page assistant uses (saves on its own) */}
+            <TabsContent value="ai">
+              <AiSettingsPanel />
             </TabsContent>
 
             {/* System Settings */}
@@ -1575,77 +1283,6 @@ export default function Settings() {
                   </CardContent>
                 </Card>
 
-                {/* Performance Settings */}
-                <Card className="admin-surface">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Shield className="w-5 h-5 mr-2 text-npb-accent" />
-                      Performance & Security
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Enable Caching</Label>
-                        <p className="text-sm text-npb-text-secondary">
-                          Cache rendered pages for better performance
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.system.cachingEnabled}
-                        onCheckedChange={(checked) =>
-                          updateSystemField('cachingEnabled', checked)
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Enable Compression</Label>
-                        <p className="text-sm text-npb-text-secondary">
-                          Compress responses to reduce bandwidth
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.system.compressionEnabled}
-                        onCheckedChange={(checked) =>
-                          updateSystemField('compressionEnabled', checked)
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Security Headers</Label>
-                        <p className="text-sm text-npb-text-secondary">
-                          Add security headers to responses
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.system.securityHeadersEnabled}
-                        onCheckedChange={(checked) =>
-                          updateSystemField('securityHeadersEnabled', checked)
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Debug Mode</Label>
-                        <p className="text-sm text-npb-text-secondary">
-                          Enable debug logging and error details
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.system.debugMode}
-                        onCheckedChange={(checked) =>
-                          updateSystemField('debugMode', checked)
-                        }
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {/* API Keys */}
                 <Card className="admin-surface">
                   <CardHeader>
@@ -1659,58 +1296,6 @@ export default function Settings() {
                   </CardContent>
                 </Card>
 
-                {/* API Settings */}
-                <Card className="admin-surface">
-                  <CardHeader>
-                    <CardTitle>API Configuration</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>REST API</Label>
-                        <p className="text-sm text-npb-text-secondary">
-                          Enable WordPress-compatible REST API
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.system.restApiEnabled}
-                        onCheckedChange={(checked) =>
-                          updateSystemField('restApiEnabled', checked)
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>GraphQL API</Label>
-                        <p className="text-sm text-npb-text-secondary">
-                          Enable GraphQL endpoint for modern applications
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.system.graphqlEnabled}
-                        onCheckedChange={(checked) =>
-                          updateSystemField('graphqlEnabled', checked)
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Webhooks</Label>
-                        <p className="text-sm text-npb-text-secondary">
-                          Enable webhook notifications for content changes
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.system.webhooksEnabled}
-                        onCheckedChange={(checked) =>
-                          updateSystemField('webhooksEnabled', checked)
-                        }
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             </TabsContent>
           </Tabs>
@@ -1722,4 +1307,21 @@ export default function Settings() {
       />
     </AdminLayout>
   );
+}
+
+/** Settings change how the whole site works, so only the site's admins see them (the server checks too). */
+export default function Settings() {
+  const access = useSiteAccess();
+  if (!access.isLoading && access.access && !access.can('manage_site')) {
+    return (
+      <AdminLayout title="Settings">
+        <Card className="admin-surface">
+          <CardContent className="py-12 text-center text-npb-text-secondary">
+            Only this site's admins change its settings. Switch to a site you run, or ask its admin.
+          </CardContent>
+        </Card>
+      </AdminLayout>
+    );
+  }
+  return <SettingsScreen />;
 }

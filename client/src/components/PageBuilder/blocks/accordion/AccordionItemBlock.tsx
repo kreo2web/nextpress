@@ -12,6 +12,7 @@ import {
 } from "@shared/accordion-model";
 import { ContainerChildren } from "../../BlockRenderer";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import { InlineTextEditor } from "../shared/inline-text-editor";
 import { IconRenderer } from "../shared/IconRenderer";
 import type { IconReference } from "@/lib/icon-indexes";
@@ -99,15 +100,10 @@ function AccordionItemCanvas({
 }
 
 const AccordionItemBlock = createBlockDefinition<AccordionItemContent>({
-	id: "core/accordion-item",
-	label: "Accordion item",
+	...catalogMeta("core/accordion-item"),
 	icon: PanelTopOpen,
-	description: "One question or section inside an accordion",
-	category: "layout",
-	isContainer: true,
 	handlesOwnChildren: true,
 	defaultContent: DEFAULT_ACCORDION_ITEM_CONTENT,
-	defaultStyles: { padding: "0", margin: "0" },
 	parseContent: (raw) => readAccordionItemContent(raw),
 	settings: AccordionItemSettings,
 	hasSettings: true,

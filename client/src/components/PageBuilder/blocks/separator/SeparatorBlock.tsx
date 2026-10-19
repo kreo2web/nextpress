@@ -9,6 +9,8 @@ import { Minus as SeparatorIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { useSettingsState } from "../useSettingsState";
+import { SEPARATOR_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -21,10 +23,7 @@ type SeparatorContent = {
   lineStyle?: SeparatorLineStyle;
 };
 
-const DEFAULT_CONTENT: SeparatorContent = {
-  className: '',
-  lineStyle: "solid",
-};
+const DEFAULT_CONTENT: SeparatorContent = SEPARATOR_DEFAULT_CONTENT;
 
 const LINE_STYLE_OPTIONS = [
   { value: "solid", label: "Solid" },
@@ -145,17 +144,9 @@ function SeparatorSettings({ block, onUpdate }: SeparatorSettingsProps) {
 // ============================================================================
 
 const SeparatorBlock = createBlockDefinition<SeparatorContent>({
-  id: 'core/separator',
-  label: 'Separator',
+  ...catalogMeta('core/separator'),
   icon: SeparatorIcon,
-  description: 'A line across the content, solid, dashed, or dotted.',
-  category: 'layout',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    color: '#000000',
-    width: '100px',
-    margin: '2.5em auto',
-  },
   settings: SeparatorSettings,
   hasSettings: true,
   render: ({ content, styles }) => <SeparatorRenderer content={content} styles={styles} />,

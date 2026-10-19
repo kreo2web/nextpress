@@ -8,6 +8,8 @@ import type { Filter } from '@shared/create-models';
 import { attachPostAuthor } from '../lib/attach-post-author';
 import { loadAdjacentPosts } from '../lib/load-adjacent-posts';
 import { getSiteBlogIds } from './shared/site-content';
+import { assertCanOnItem } from '../lib/access';
+import { readErrorStatus } from './shared/status-error';
 import {
   assertAuthenticatedSiteAccess,
   ContentAccessError,
@@ -199,11 +201,12 @@ export function createPostsRoutes(deps: Deps): Router {
 
       const siteBlogIds = await getSiteBlogIds({ models, siteId: parsed.data.siteId });
 
+      // Check every post first, so a refused list changes nothing.
+      const existing = await Promise.all(parsed.data.items.map((item) => models.posts.findById(item.id)));
+      if (existing.some((post) => !post?.blogId || !siteBlogIds.includes(post.blogId))) {
+        return res.status(403).json({ message: 'One or more posts are not accessible on this site' });
+      }
       for (const item of parsed.data.items) {
-        const existing = await models.posts.findById(item.id);
-        if (!existing?.blogId || !siteBlogIds.includes(existing.blogId)) {
-          return res.status(403).json({ message: 'One or more posts are not accessible on this site' });
-        }
         await models.posts.update(item.id, { menuOrder: item.menuOrder });
       }
 
@@ -234,6 +237,7 @@ export function createPostsRoutes(deps: Deps): Router {
           models,
           siteId,
           status: post.status,
+          password: post.password,
         });
         if (!allowed) {
           return;
@@ -283,6 +287,7 @@ export function createPostsRoutes(deps: Deps): Router {
             models,
             siteId,
             status: post.status,
+            password: post.password,
           });
           if (!allowed) {
             return;
@@ -327,6 +332,13 @@ export function createPostsRoutes(deps: Deps): Router {
               .replace(/[^a-z0-9]+/g, '-')
               .replace(/^-|-$/g, '');
 
+        // A post lives in a blog, and a blog on a site: the person must be able to edit that site.
+        const blogId = typeof req.body.blogId === 'string' ? req.body.blogId : '';
+        if (!blogId) {
+          throw Object.assign(new Error('Pick a blog for this post.'), { statusCode: 400 });
+        }
+        await assertCanOnItem({ req, models, kind: 'blog', id: blogId });
+
         // Include authorId and slug in the data before validation
         const parsedData = postSchemas.insert.parse({
           ...coerceDates(req.body as Record<string, unknown>, ['publishedAt']),
@@ -364,8 +376,9 @@ export function createPostsRoutes(deps: Deps): Router {
       });
 
       if (err) {
-        console.error('Error creating post:', err);
-        return res.status(500).json({ message: 'Failed to create post' });
+        const status = readErrorStatus(err);
+        if (status >= 500) console.error({ atFunction: 'posts.create', data: { blogId: req.body?.blogId, error: err }, message: 'Failed to create post' });
+        return res.status(status).json({ message: status >= 500 ? 'Failed to create post' : err.message });
       }
 
       res.status(201).json(result);
@@ -424,18 +437,19 @@ export function createPostsRoutes(deps: Deps): Router {
           postData.blocks = contentValidation.blocks;
         }
 
-        const siteId = await resolveContentSiteId({
-          models,
-          contentType: 'post',
-          contentId: id,
-        });
-        if (siteId) {
-          try {
-            await assertAuthenticatedSiteAccess({ req, models, siteId });
-          } catch (error) {
-            const statusCode = (error as { statusCode?: number }).statusCode ?? 403;
-            return res.status(statusCode).json({ message: (error as Error).message });
+        const { err: accessErr } = await safeTryAsync(async () => {
+          const { siteId } = await assertCanOnItem({ req, models, kind: 'post', id });
+          // Moving to another blog stays on the same site.
+          const targetBlogId = (postData as { blogId?: string | null }).blogId;
+          if (targetBlogId && targetBlogId !== existingPost.blogId) {
+            const target = await assertCanOnItem({ req, models, kind: 'blog', id: targetBlogId });
+            if (target.siteId !== siteId) {
+              throw Object.assign(new Error('A post can only move to a blog on the same site.'), { statusCode: 400 });
+            }
           }
+        });
+        if (accessErr) {
+          return res.status(readErrorStatus(accessErr)).json({ message: accessErr.message });
         }
 
         const wasPublished = existingPost.status === 'publish';
@@ -473,18 +487,9 @@ export function createPostsRoutes(deps: Deps): Router {
           return res.status(404).json({ message: 'Post not found' });
         }
 
-        const siteId = await resolveContentSiteId({
-          models,
-          contentType: 'post',
-          contentId: id,
-        });
-        if (siteId) {
-          try {
-            await assertAuthenticatedSiteAccess({ req, models, siteId });
-          } catch (error) {
-            const statusCode = (error as { statusCode?: number }).statusCode ?? 403;
-            return res.status(statusCode).json({ message: (error as Error).message });
-          }
+        const { err: accessErr } = await safeTryAsync(() => assertCanOnItem({ req, models, kind: 'post', id }));
+        if (accessErr) {
+          return res.status(readErrorStatus(accessErr)).json({ message: accessErr.message });
         }
 
         await models.posts.delete(id);

@@ -10,6 +10,7 @@
  * manifest, however, throws before anything touches the database.
  */
 import { collectErrorText } from "../utils.js";
+import { isReservedOptionName } from "../lib/ai-builder/reserved-option-names.js";
 import {
 	blogs,
 	comments,
@@ -291,7 +292,18 @@ export function createTransferImporter(deps: TransferImporterDeps): TransferImpo
 			await importEntityRows("media", deps.models.media, data.media, mode, summary);
 		}
 		if (requested.has("options") && data.options) {
-			await importEntityRows("options", deps.models.options, data.options, mode, summary);
+			// A file can't write a site's AI settings: addresses and keys are set in Settings, never imported.
+			const reserved = data.options.filter((row) => isReservedOptionName(row.name));
+			const importable = data.options.filter((row) => !isReservedOptionName(row.name));
+			if (reserved.length > 0) {
+				log(
+					`[transfer] import skipped ${reserved.length} reserved option row(s): ${reserved
+						.map((row) => `${row.id} (${row.name}, site ${row.siteId})`)
+						.join(", ")} (atFunction: importData)`,
+				);
+			}
+			await importEntityRows("options", deps.models.options, importable, mode, summary);
+			ensureSummaryEntry(summary, "options").skipped += reserved.length;
 		}
 
 		return summary;

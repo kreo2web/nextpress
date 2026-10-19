@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { createBlocksBuilder } from "../blocks/build-block.js";
-import { mergePageOtherOnWrite } from "../types/page-other.js";
 import { buildColumnsLayout } from "../layout/columns-layout.js";
+import { mergePageOtherOnWrite } from "../types/page-other.js";
 
 describe("SDK page and block defaults", () => {
 	const blocks = createBlocksBuilder();
 
 	it("applies editor shell padding and token units on blocks", () => {
 		const block = blocks.paragraph({ text: "Hello" });
-		expect(block.styles?.padding).toBe("20px");
+		expect(block.styles?.padding).toBe("20px 20px 0");
 		expect(block.styles?.margin).toBe("0px");
 		expect(block.other?.units).toMatchObject({
 			spacing: "px",
@@ -18,7 +18,7 @@ describe("SDK page and block defaults", () => {
 
 	it("applies heading registry defaultStyles", () => {
 		const block = blocks.heading({ text: "Title", level: 1 });
-		expect(block.styles?.fontWeight).toBe("700");
+		expect(block.styles?.fontWeight).toBeUndefined();
 		expect(block.styles?.margin).toBe("0");
 	});
 
@@ -74,7 +74,7 @@ describe("buildColumnsLayout", () => {
 			blocks.paragraph({ text: "c" }),
 		];
 		const layout = buildColumnsLayout(2, children);
-		expect(layout[0]?.blockIds).toEqual([children[0]!.id, children[2]!.id]);
-		expect(layout[1]?.blockIds).toEqual([children[1]!.id]);
+		expect(layout[0]?.blockIds).toEqual([children[0].id, children[2].id]);
+		expect(layout[1]?.blockIds).toEqual([children[1].id]);
 	});
 });

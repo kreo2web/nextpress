@@ -14,13 +14,13 @@ import { userOtherWithBio } from '@shared/author-display';
 import { Button } from '@/components/ui/button';
 import {
   type PostAuthorBoxContent,
-  DEFAULT_CONTENT,
   LAYOUT_OPTIONS,
   AVATAR_SIZE_MIN,
   AVATAR_SIZE_MAX,
   hasAuthorOverride,
   useAuthorData,
 } from './post-author-box-model';
+import { POST_AUTHOR_BOX_DEFAULT_CONTENT as DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
 
 /** Sidebar settings for the author box block. */
 export function PostAuthorBoxSettings({

@@ -7,6 +7,7 @@
  * the ones referenced by exported pages/posts. Unscoped exports include
  * everything.
  */
+import { isReservedOptionName } from "../lib/ai-builder/reserved-option-names.js";
 import { normalizeSiteHostname } from "../utils/validate-domain.js";
 import { buildManifest } from "./manifest.js";
 import {
@@ -171,9 +172,11 @@ export function createTransferExporter(deps: TransferExporterDeps): TransferExpo
 			? (await findAll(deps.models.media, "media")).filter((mediaRow) => mediaRow.siteId === scopeId)
 			: await findAll(deps.models.media, "media");
 
-		const optionRows = scopeId
-			? (await findAll(deps.models.options, "options")).filter((option) => option.siteId === scopeId)
-			: await findAll(deps.models.options, "options");
+		// AI settings hold a locked key. Export files travel between machines, so they never carry it.
+		const exportableOptions = (await findAll(deps.models.options, "options")).filter(
+			(option) => !isReservedOptionName(option.name),
+		);
+		const optionRows = scopeId ? exportableOptions.filter((option) => option.siteId === scopeId) : exportableOptions;
 
 		const userRows = scopeId
 			? await deriveScopedUsers(siteRows, userRoleRows, pageRows, postRows, commentRows, mediaRows)

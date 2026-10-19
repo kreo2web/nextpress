@@ -29,12 +29,16 @@ import { useContentLists } from '@/hooks/useContentLists';
 import { useKeyboardShortcut } from '@/hooks/use-keyboard-shortcut';
 import { pageEditorPath, postEditorPath } from '@/lib/admin-content-routes';
 import { useOptionalActiveSite } from '@/hooks/useActiveSite';
+import { useSiteAccess } from '@/hooks/use-site-access';
+import type { SiteAction } from '@shared/access';
 import { appendSiteIdToUrl } from '@/lib/site-api';
 
 type NavigationAction = {
   label: string;
   path: string;
   icon: LucideIcon;
+  /** Shown only to people who may use the page (the server enforces it either way). */
+  needs?: SiteAction | 'main-site-admin';
 };
 
 type CategoryColor = {
@@ -47,9 +51,9 @@ const NAVIGATION_ACTIONS: NavigationAction[] = [
   { label: 'Posts', path: '/admin/posts', icon: FileText },
   { label: 'Pages', path: '/admin/pages', icon: File },
   { label: 'Media library', path: '/admin/media', icon: Image },
-  { label: 'Themes', path: '/admin/themes', icon: Palette },
-  { label: 'Plugins', path: '/admin/plugins', icon: Plug },
-  { label: 'Settings', path: '/admin/settings', icon: Settings },
+  { label: 'Themes', path: '/admin/themes', icon: Palette, needs: 'manage_site' },
+  { label: 'Plugins', path: '/admin/plugins', icon: Plug, needs: 'main-site-admin' },
+  { label: 'Settings', path: '/admin/settings', icon: Settings, needs: 'manage_site' },
   { label: 'View site', path: '/', icon: Compass },
 ];
 
@@ -93,6 +97,7 @@ export function GlobalCommandPalette(): ReactNode {
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const activeSite = useOptionalActiveSite();
+  const access = useSiteAccess();
   const {
     pages,
     posts,
@@ -119,7 +124,9 @@ export function GlobalCommandPalette(): ReactNode {
     activeSite?.isLoading || pagesLoading || postsLoading;
   const hasError = Boolean(activeSite?.error || pagesError || postsError);
   const hasContent = pages.length > 0 || posts.length > 0;
-  const navigationActions = NAVIGATION_ACTIONS.map((action) =>
+  const navigationActions = NAVIGATION_ACTIONS.filter(
+    (action) => !action.needs || (action.needs === 'main-site-admin' ? access.isMainSiteAdmin : access.can(action.needs)),
+  ).map((action) =>
     action.label === 'View site'
       ? {
           ...action,

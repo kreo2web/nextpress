@@ -15,8 +15,8 @@ vi.mock("../utils/validate-external-url", () => ({
 
 const { createMediaRoutes } = await import("../routes/media.routes");
 
-const SITE = { id: "550e8400-e29b-41d4-a716-446655440000", name: "Test" };
 const USER_ID = "user-1";
+const SITE = { id: "550e8400-e29b-41d4-a716-446655440000", name: "Test", ownerId: USER_ID };
 
 type MediaRow = Record<string, string | number> & { id: string; originalName: string; siteId: string };
 
@@ -46,6 +46,7 @@ const buildApp = () => {
 				findByOwner: async () => [{ ...SITE, siteUrl: null, isDefault: true }],
 				findDefaultSite: async () => SITE,
 			},
+			roles: { findManyWhere: async () => [] },
 			userRoles: { findByUser: async () => [] },
 			media: {
 				findManyWhere: async (filters: Array<{ where: string; equals: string }>) =>
@@ -69,7 +70,13 @@ const buildApp = () => {
 
 	const app = express();
 	app.use(express.json());
-	app.use("/api/media", createMediaRoutes(deps));
+	// The download stands in for svgl.app, so the test never reaches the network.
+	const publicFetch = async (url: string): Promise<Response> => {
+		if (!url.startsWith("https://svgl.app/")) throw new Error(`Unexpected download in test: ${url}`);
+		svglDownloads += 1;
+		return new Response(HOSTILE_LOGO, { headers: { "content-type": "image/svg+xml" } });
+	};
+	app.use("/api/media", createMediaRoutes(deps, { publicFetch }));
 	return app;
 };
 
@@ -84,14 +91,7 @@ beforeEach(async () => {
 	uploadDir = await mkdtemp(path.join(os.tmpdir(), "np-media-icons-"));
 	rows = [];
 	svglDownloads = 0;
-	vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
-		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-		if (url.startsWith("https://svgl.app/")) {
-			svglDownloads += 1;
-			return new Response(HOSTILE_LOGO, { headers: { "content-type": "image/svg+xml" } });
-		}
-		return realFetch(input, init);
-	});
+	vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => realFetch(input, init));
 });
 
 afterEach(async () => {

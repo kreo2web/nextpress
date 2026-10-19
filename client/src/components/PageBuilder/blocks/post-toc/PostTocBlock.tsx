@@ -18,6 +18,8 @@ import { useBlockState } from '../useBlockState';
 import { BlockShell } from '../shared/block-shell';
 import { defaultParseContent, defaultSerializeContent } from '../createBlockDefinition';
 import { usePageHeadings, type HeadingEntry } from './use-page-headings';
+import { POST_TOC_DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
+import { catalogMeta } from '../catalog-meta';
 
 // ============================================================================
 // TYPES
@@ -46,13 +48,7 @@ type PostTitleHeadingContent = {
 // CONSTANTS
 // ============================================================================
 
-const DEFAULT_CONTENT: PostTocContent = {
-  title: 'Table of Contents',
-  maxDepth: 3,
-  ordered: false,
-  sticky: false,
-  className: '',
-};
+const DEFAULT_CONTENT: PostTocContent = POST_TOC_DEFAULT_CONTENT;
 
 const DEPTH_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
 const HEADING_BLOCK = 'core/heading';
@@ -358,13 +354,9 @@ function PostTocSettings({ block, onUpdate }: PostTocSettingsProps) {
  * after paint via usePageHeadings (hook file, not this component).
  */
 const PostTocBlock: BlockDefinition = {
-  id: 'post/toc',
-  label: 'Table of Contents',
+  ...catalogMeta('post/toc'),
   icon: ListOrdered,
-  description: 'Auto-generated table of contents from page headings',
-  category: 'post',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '1em 0' },
   component: PostTocComponent,
   settings: PostTocSettings,
   hasSettings: true,

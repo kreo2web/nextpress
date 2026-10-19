@@ -3,6 +3,7 @@ import type { BlockConfig } from "@shared/schema-types";
 import { AppWindow } from "lucide-react";
 import { ContainerChildren } from "../../BlockRenderer";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import {
 	DEFAULT_PAGE_SHELL_CONTENT,
 	readPageShellContent,
@@ -68,20 +69,10 @@ function PageShellRenderer({
 }
 
 const PageShellBlock = createBlockDefinition<PageShellContent>({
-	id: "core/page-shell",
-	label: "Page shell",
+	...catalogMeta("core/page-shell"),
 	icon: AppWindow,
-	description: "Page-wide canvas: padding, font, width, and colors",
-	category: "layout",
-	isContainer: true,
 	handlesOwnChildren: true,
 	defaultContent: DEFAULT_PAGE_SHELL_CONTENT,
-	defaultStyles: {
-		width: "100%",
-		boxSizing: "border-box",
-		padding: "0px",
-		margin: "0px",
-	},
 	settings: PageShellSettings,
 	hasSettings: true,
 	parseContent: (raw) => readPageShellContent(raw),

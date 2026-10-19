@@ -11,9 +11,10 @@ import {
   type PostNavigationContent,
   type AdjacentPost,
   type AdjacentPostsData,
-  DEFAULT_CONTENT,
   PLACEHOLDER_ADJACENT,
 } from './post-navigation-model';
+import { POST_NAVIGATION_DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
+import { catalogMeta } from '../catalog-meta';
 import { PostNavigationSettings } from './post-navigation-settings';
 import { usePostDocument } from '../../PageContext';
 
@@ -205,13 +206,9 @@ function NavigationLink({
  * Displays previous/next post navigation links with optional thumbnails and labels.
  */
 const PostNavigationBlock = createBlockDefinition<PostNavigationContent>({
-  id: 'post/navigation',
-  label: 'Post Navigation',
+  ...catalogMeta('post/navigation'),
   icon: ArrowLeftRight,
-  description: 'Navigate between previous and next posts',
-  category: 'post',
-  defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '2em 0' },
+  defaultContent: POST_NAVIGATION_DEFAULT_CONTENT,
   settings: PostNavigationSettings,
   hasSettings: true,
   render: ({ content, styles, isPreview }) => (

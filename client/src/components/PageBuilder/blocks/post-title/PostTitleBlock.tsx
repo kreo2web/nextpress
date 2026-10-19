@@ -10,6 +10,8 @@ import { InlineTextEditor } from '../shared/inline-text-editor';
 import { SettingsChipGroup } from '../../settings-chip-group';
 import { usePostDocument } from '../../PageContext';
 import { headingAnchorId } from '@shared/page-headings';
+import { POST_TITLE_DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
+import { catalogMeta } from '../catalog-meta';
 
 // ============================================================================
 // TYPES
@@ -21,11 +23,7 @@ export type PostTitleContent = {
   className?: string;
 };
 
-const DEFAULT_CONTENT: PostTitleContent = {
-  text: 'Post Title',
-  tag: 'h1',
-  className: '',
-};
+const DEFAULT_CONTENT: PostTitleContent = POST_TITLE_DEFAULT_CONTENT;
 
 const HEADING_TAG_OPTIONS = [
   { value: 'h1' as const, label: 'H1' },
@@ -152,13 +150,9 @@ function PostTitleSettings({ block, onUpdate }: PostTitleSettingsProps) {
  * as a static heading.
  */
 const PostTitleBlock = createBlockDefinition<PostTitleContent>({
-  id: 'post/title',
-  label: 'Post Title',
+  ...catalogMeta('post/title'),
   icon: Type,
-  description: 'Display the post title as a heading',
-  category: 'post',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '0' },
   settings: PostTitleSettings,
   hasSettings: true,
   render: ({ content, styles, setContent }) => (

@@ -5,6 +5,7 @@ import { Droppable, Draggable, DropPlaceholder } from "@/lib/dnd";
 import { useBlockActions } from "../../BlockActionsContext";
 import BlockRenderer from "../../BlockRenderer";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import {
   type ColumnLayout,
   type ColumnsContent,
@@ -294,15 +295,10 @@ function ColumnsBlockView({
 // ============================================================================
 
 const ColumnsBlock = createBlockDefinition<ColumnsContent>({
-  id: "core/columns",
-  label: "Columns",
+  ...catalogMeta("core/columns"),
   icon: GridIcon,
-  description: "Flexible horizontal container for any blocks",
-  category: "layout",
-  isContainer: true,
   handlesOwnChildren: true,
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: "1em 0" },
   settings: ColumnsSettings,
   hasSettings: true,
   parseContent: parseColumnsContent,

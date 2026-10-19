@@ -34,7 +34,7 @@ export function registerPageTools({ server, client }: ToolDeps): void {
 		{
 			title: "Get page",
 			description:
-				"Load a page by UUID or slug including blocks. Note version for updates (expectedVersion).",
+				"Load a page by UUID or slug including all its blocks (can be long). Note version for updates (expectedVersion). To work on the blocks, start with get_page_outline: it is much shorter.",
 			inputSchema: {
 				id: z.string().min(1).describe("Page UUID or slug"),
 			},
@@ -47,7 +47,7 @@ export function registerPageTools({ server, client }: ToolDeps): void {
 		{
 			title: "Create page",
 			description:
-				"Create a page. Defaults to draft so owners can review in the admin CMS. Pass blocks from build_blocks.",
+				"Create a page. Defaults to draft so owners can review in the admin CMS. Pass blocks from build_blocks, or create it empty and build it step by step with change_page_blocks (see the build_page prompt).",
 			inputSchema: {
 				title: z.string().min(1),
 				slug: z.string().optional(),
@@ -74,7 +74,7 @@ export function registerPageTools({ server, client }: ToolDeps): void {
 		{
 			title: "Update page",
 			description:
-				"Update page metadata/blocks. Requires expectedVersion from get_page. On VERSION_STALE, re-get and retry.",
+				"Update page metadata (title, slug, status) or replace the whole block tree. Requires expectedVersion from get_page. On VERSION_STALE, re-get and retry. To change blocks, prefer change_page_blocks: it edits part of the page and checks the result.",
 			inputSchema: {
 				id: z.string().min(1),
 				expectedVersion: z.number().int().min(0),

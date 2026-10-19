@@ -271,20 +271,28 @@ export const uploadMediaSchema = z.object({
 
 export const listUsersQuerySchema = paginationSchema;
 
+/** Main-site admins only. `role` on `siteId` gives the new person a role on that site straight away. */
 export const createUserSchema = z.object({
-	username: z.string().min(1),
+	username: z.string().min(2),
 	email: z.string().email(),
 	password: z.string().min(8),
 	name: z.string().optional(),
-	role: z.string().optional(),
+	siteId: z.string().uuid().optional(),
+	role: z.enum(["subscriber", "editor", "admin"]).optional(),
 });
 
-export const updateUserSchema = createUserSchema
-	.partial()
-	.omit({ password: true })
-	.extend({
-		password: z.string().min(8).optional(),
-	});
+/** Anyone may change their own profile; email, username and status need a main-site admin. Roles live per site. */
+export const updateUserSchema = z.object({
+	name: z.string().optional(),
+	firstName: z.string().nullable().optional(),
+	lastName: z.string().nullable().optional(),
+	displayUsername: z.string().nullable().optional(),
+	profileImageUrl: z.string().nullable().optional(),
+	bio: z.string().optional(),
+	email: z.string().email().optional(),
+	username: z.string().min(2).optional(),
+	status: z.enum(["active", "inactive"]).optional(),
+});
 
 export const createSiteSchema = z.object({
 	name: z.string().min(1),
@@ -308,18 +316,9 @@ export const generalSettingsSchema = z.object({
 	siteUrl: z.string().url().or(z.literal("")),
 	adminEmail: z.string().email().or(z.literal("")),
 	timezone: z.string().min(1),
-	dateFormat: z.string().min(1),
-	timeFormat: z.string().min(1),
-});
-
-export const writingSettingsSchema = z.object({
-	richTextEnabled: z.boolean(),
-	autosaveEnabled: z.boolean(),
-	syntaxHighlighting: z.boolean(),
 });
 
 export const readingSettingsSchema = z.object({
-	postsPerPage: z.number().int().positive().max(100),
 	rssPosts: z.number().int().positive().max(100),
 	rssEnabled: z.boolean(),
 	discourageSearchIndexing: z.boolean(),
@@ -329,27 +328,13 @@ export const readingSettingsSchema = z.object({
 export const discussionSettingsSchema = z.object({
 	enableComments: z.boolean(),
 	moderateComments: z.boolean(),
-	emailNotifications: z.boolean(),
 	enableRegistration: z.boolean(),
-	defaultRole: z.string().min(1),
-});
-
-export const systemSettingsSchema = z.object({
-	cachingEnabled: z.boolean(),
-	compressionEnabled: z.boolean(),
-	securityHeadersEnabled: z.boolean(),
-	debugMode: z.boolean(),
-	restApiEnabled: z.boolean(),
-	graphqlEnabled: z.boolean(),
-	webhooksEnabled: z.boolean(),
 });
 
 export const partialSettingsSchema = z.object({
 	general: generalSettingsSchema.partial().optional(),
-	writing: writingSettingsSchema.partial().optional(),
 	reading: readingSettingsSchema.partial().optional(),
 	discussion: discussionSettingsSchema.partial().optional(),
-	system: systemSettingsSchema.partial().optional(),
 });
 
 export const signInEmailSchema = z.object({

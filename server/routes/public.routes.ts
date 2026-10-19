@@ -4,6 +4,8 @@ import { asyncHandler } from './shared/async-handler';
 import { safeTryAsync } from '../utils';
 import { enrichPostForApi, takePageAfterCategoryFilter } from '@shared/posts/post-other';
 import { attachPostAuthor } from '../lib/attach-post-author';
+import { isPubliclyReadable } from '../lib/is-publicly-readable';
+import { allowsVisitorAccounts, findSignUpSite } from '../lib/accounts/visitor-sign-up';
 import { resolvePublicSite, readPublicSiteIdHint } from './shared/resolve-public-site';
 import { getSiteBlogIds } from './shared/site-content';
 import {
@@ -60,7 +62,7 @@ export function createPublicRoutes(deps: Deps): Router {
         }
 
         const page = await models.pages.findBySiteAndSlug(site.id, req.params.slug);
-        if (!page || page.status !== 'publish') {
+        if (!page || !isPubliclyReadable(page)) {
           res.status(404).json({ message: 'Page not found' });
           return;
         }
@@ -135,7 +137,8 @@ export function createPublicRoutes(deps: Deps): Router {
           orderBy: toModelOrderBy(listSort),
         });
         const mapped = [];
-        for (const post of posts) {
+        // Password-protected posts never show to visitors.
+        for (const post of posts.filter((row) => isPubliclyReadable(row))) {
           mapped.push(await attachPostAuthor({ models, post: enrichPostForApi(post) }));
         }
         const paged = fetchWide
@@ -179,7 +182,7 @@ export function createPublicRoutes(deps: Deps): Router {
         ]);
 
         const post = posts[0];
-        if (!post || post.status !== 'publish') {
+        if (!post || !isPubliclyReadable(post)) {
           res.status(404).json({ message: 'Post not found' });
           return;
         }
@@ -230,7 +233,7 @@ export function createPublicRoutes(deps: Deps): Router {
         }
 
         const page = await models.pages.findBySiteAndSlug(site.id, homepage.value);
-        if (!page || page.status !== 'publish') {
+        if (!page || !isPubliclyReadable(page)) {
           res.status(404).json({ message: 'No homepage content found' });
           return;
         }
@@ -248,6 +251,26 @@ export function createPublicRoutes(deps: Deps): Router {
         console.error('Error fetching homepage:', err);
         res.status(500).json({ message: 'Failed to fetch homepage' });
       }
+    }),
+  );
+
+  /**
+   * GET /api/public/sign-up-status — whether the site this address belongs to lets visitors make an
+   * account (commenters only). The sign-up page asks first, so a closed site shows the invite message.
+   */
+  router.get(
+    '/sign-up-status',
+    asyncHandler(async (req, res) => {
+      const { err, result } = await safeTryAsync(async () => {
+        const site = await findSignUpSite({ models, host: req.get('host') });
+        if (!site) return { open: false, siteName: null };
+        return { open: await allowsVisitorAccounts({ models, siteId: site.id }), siteName: site.name ?? null };
+      });
+      if (err || !result) {
+        console.error({ atFunction: 'public.signUpStatus', data: { host: req.get('host') ?? null, error: err }, message: 'Could not read whether sign-up is open' });
+        return res.status(500).json({ message: "We couldn't check this right now. Try again in a moment." });
+      }
+      res.json(result);
     }),
   );
 

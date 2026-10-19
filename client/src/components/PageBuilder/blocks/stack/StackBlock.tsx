@@ -5,6 +5,7 @@ import { DEFAULT_STACK_CONTENT, type StackContent } from "@shared/stack-model";
 import { ContainerChildren } from "../../BlockRenderer";
 import { Layers as StackIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import { StackSettings } from "./stack-settings";
 
 // ============================================================================
@@ -60,26 +61,10 @@ function StackRenderer({
 // ============================================================================
 
 const StackBlock = createBlockDefinition<StackContent>({
-  id: "core/stack",
-  label: "Stack",
+  ...catalogMeta("core/stack"),
   icon: StackIcon,
-  description: "Stack blocks vertically, in a row, or layered AB",
-  category: "layout",
-  isContainer: true,
   handlesOwnChildren: true,
   defaultContent: DEFAULT_STACK_CONTENT,
-  defaultStyles: {
-    width: "100%",
-    boxSizing: "border-box",
-    display: "flex",
-    flexDirection: "column",
-    flexWrap: "nowrap",
-    alignItems: "flex-start",
-    justifyContent: "flex-start",
-    gap: "1rem",
-    padding: "0px",
-    margin: "0px",
-  },
   settings: StackSettings,
   hasSettings: true,
   render: ({ content, styles, value, isPreview, onNestedBlockChange }) => (

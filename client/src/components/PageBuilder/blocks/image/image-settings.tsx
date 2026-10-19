@@ -8,7 +8,8 @@ import { useSettingsState } from "../useSettingsState";
 import { SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
 import { LinkUrlField, LinkTargetSelect } from "../shared/link-settings";
-import { type ImageContent, DEFAULT_CONTENT } from "./image-model";
+import { type ImageContent } from "./image-model";
+import { IMAGE_DEFAULT_CONTENT as DEFAULT_CONTENT } from "@shared/block-catalog/media-blocks";
 
 type ImageSettingsProps = {
   block: BlockConfig;

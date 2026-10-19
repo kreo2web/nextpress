@@ -6,6 +6,8 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
 import { resolveReadSiteId } from '../lib/content-access';
+import { z } from 'zod';
+import { assertCanOnItem } from '../lib/access';
 import {
   DEFAULT_MEDIA_LIST_SORT,
   MEDIA_LIST_SORT_FIELDS,
@@ -14,6 +16,7 @@ import {
 } from '@shared/content-list-query';
 import { sanitizeSvgMarkup, isSvglFileUrl, SVG_FILE_MAX_BYTES } from '@shared/icon-drawing';
 import { sideloadRemoteImage } from '../utils/sideload-remote-image';
+import type { PublicFetch } from '../utils/safe-public-fetch';
 import { createRateLimiter } from '../utils/rate-limit';
 
 const SVG_MIME_TYPES = new Set(['image/svg+xml', 'image/svg']);
@@ -55,7 +58,14 @@ async function cleanUploadedSvg({ filePath }: { filePath: string }): Promise<{ o
  * - PUT    /api/media/:id    - Update media metadata (auth required, fires wp_update_attachment_metadata hook)
  * - DELETE /api/media/:id    - Delete media and file (auth required, fires delete_attachment hook)
  */
-export function createMediaRoutes(deps: Deps): Router {
+const mediaDetailsSchema = z.object({
+  alt: z.string().max(1000).nullable().optional(),
+  caption: z.string().max(5000).nullable().optional(),
+  description: z.string().max(10000).nullable().optional(),
+  originalName: z.string().trim().min(1).max(255).optional(),
+});
+
+export function createMediaRoutes(deps: Deps, { publicFetch }: { publicFetch?: PublicFetch } = {}): Router {
   const router = Router();
   const checkLogoRateLimit = createRateLimiter();
   const {
@@ -278,6 +288,7 @@ export function createMediaRoutes(deps: Deps): Router {
           allowedMimeTypes: ['image/svg+xml'],
           maxSize: SVG_FILE_MAX_BYTES,
           filenamePrefix: 'svgl',
+          fetchImpl: publicFetch,
         });
         if (!saved.ok) {
           throw Object.assign(new Error(`svgl download failed for ${url}: ${saved.message}`), {
@@ -318,12 +329,25 @@ export function createMediaRoutes(deps: Deps): Router {
     requireAuth,
     asyncHandler(async (req, res) => {
       const id = req.params.id;
-      const mediaData = schemas.media.update.parse(req.body);
+      // Words about the file only. The stored name, address and site never change here: delete
+      // removes the file by its stored name, so a changed name could point outside the uploads folder.
+      const parsed = mediaDetailsSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res.status(400).json({ message: 'Some details were not valid. Check them and try again.' });
+      }
 
-      const mediaItem = await models.media.update(id, mediaData);
-
-      hooks.doAction('wp_update_attachment_metadata', mediaItem);
-      res.json(mediaItem);
+      const { err, result } = await safeTryAsync(async () => {
+        await assertCanOnItem({ req, models, kind: 'media', id });
+        const mediaItem = await models.media.update(id, { ...parsed.data, updatedAt: new Date() });
+        hooks.doAction('wp_update_attachment_metadata', mediaItem);
+        return mediaItem;
+      });
+      if (err) {
+        const status = readErrorStatus(err);
+        if (status >= 500) console.error({ atFunction: 'media.update', data: { mediaId: id, error: err }, message: 'Failed to update media' });
+        return res.status(status).json({ message: status >= 500 ? 'Could not save these details. Try again.' : err.message });
+      }
+      res.json(result);
     })
   );
 
@@ -333,16 +357,21 @@ export function createMediaRoutes(deps: Deps): Router {
     requireAuth,
     asyncHandler(async (req, res) => {
       const id = req.params.id;
+      const { err: accessErr } = await safeTryAsync(() => assertCanOnItem({ req, models, kind: 'media', id }));
+      if (accessErr) {
+        return res.status(readErrorStatus(accessErr)).json({ message: accessErr.message });
+      }
 
-      // Get media item to delete the file from disk
       const mediaItem = await models.media.findById(id);
-      if (mediaItem) {
-        const filePath = path.join(uploadDir, mediaItem.filename);
+      const filePath = mediaItem ? path.resolve(uploadDir, mediaItem.filename) : null;
+      if (filePath && filePath.startsWith(path.resolve(uploadDir) + path.sep)) {
         try {
           await fs.unlink(filePath);
         } catch (error) {
-          console.warn('Could not delete file:', filePath, error);
+          console.warn({ atFunction: 'media.delete', data: { mediaId: id, filePath, error }, message: 'Could not delete the file from disk' });
         }
+      } else if (filePath) {
+        console.error({ atFunction: 'media.delete', data: { mediaId: id, filename: mediaItem?.filename }, message: 'Refused to delete a file outside the uploads folder' });
       }
 
       await models.media.delete(id);

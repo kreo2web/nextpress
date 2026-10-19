@@ -11,6 +11,8 @@ import { InlineTextEditor } from "../shared/inline-text-editor";
 import { useSettingsState } from "../useSettingsState";
 import { readTextAlign } from "@shared/text-align";
 import { sanitizeHtml } from "../../utils";
+import { QUOTE_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -30,13 +32,7 @@ type QuoteContent = {
 
 type QuoteTextAlign = NonNullable<QuoteContent['textAlign']>;
 
-const DEFAULT_CONTENT: QuoteContent = {
-  value: '<p>Add a quote</p>',
-  citation: '',
-  align: undefined,
-  anchor: '',
-  className: '',
-};
+const DEFAULT_CONTENT: QuoteContent = QUOTE_DEFAULT_CONTENT;
 
 const QUOTE_ALIGN_OPTIONS = [
   { value: "default", label: "Default" },
@@ -248,13 +244,9 @@ function QuoteSettings({ block, onUpdate }: QuoteSettingsProps) {
 // ============================================================================
 
 const QuoteBlock = createBlockDefinition<QuoteContent>({
-  id: 'core/quote',
-  label: 'Quote',
+  ...catalogMeta('core/quote'),
   icon: QuoteIcon,
-  description: 'Add a blockquote',
-  category: 'advanced',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '1em 0' },
   settings: QuoteSettings,
   hasSettings: true,
   render: ({ content, styles, isEditing, setContent }) => (

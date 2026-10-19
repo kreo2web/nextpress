@@ -6,7 +6,8 @@ import { safeTryAsync } from "../utils";
 import { resolveAccessibleSites } from "./shared/resolve-accessible-sites";
 import { readErrorStatus, statusError } from "./shared/resolve-request-site";
 import { changeSiteAddress, checkSiteAddress, refreshWebServer } from "../lib/site-address";
-import { isAdminOfAnySite, isSiteAdmin } from "../lib/site-admin-access";
+import { isSiteAdmin } from "../lib/site-admin-access";
+import { isMainSiteAdmin } from "../lib/access";
 import { deleteEmptySite } from "../lib/delete-site";
 import { readSiteAddress } from "../utils/site-address";
 import { isSystemDefaultTheme } from "@shared/theme-display";
@@ -88,8 +89,9 @@ export function createSitesRoutes(deps: Deps): Router {
 			}
 
 			const { err, result } = await safeTryAsync(async () => {
-				if (!(await isAdminOfAnySite({ models, userId }))) {
-					throw statusError({ message: "Only site admins can add sites.", statusCode: 403 });
+				// A new site changes what the web server answers for the whole install.
+				if (!(await isMainSiteAdmin({ models, userId }))) {
+					throw statusError({ message: "Only the main site's admins can add sites.", statusCode: 403 });
 				}
 
 				const sites = await models.sites.findMany();
@@ -238,7 +240,11 @@ export function createSitesRoutes(deps: Deps): Router {
 			if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
 			const { err, result } = await safeTryAsync(async () => {
-				const site = await assertSiteAdmin({ userId, siteId: req.params.id });
+				const site = await models.sites.findById(req.params.id);
+				if (!site) throw statusError({ message: "Site not found", statusCode: 404 });
+				if (!(await isMainSiteAdmin({ models, userId }))) {
+					throw statusError({ message: "Only the main site's admins can remove sites.", statusCode: 403 });
+				}
 				if (site.isDefault) {
 					throw statusError({ message: "The default site can't be deleted. Make another site the default first.", statusCode: 400 });
 				}

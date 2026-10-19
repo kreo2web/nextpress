@@ -3,7 +3,9 @@ import type { JSX } from "react";
 import { Image as ImageIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { useImageResize } from "./use-image-resize";
-import { type ImageContent, DEFAULT_CONTENT } from "./image-model";
+import { type ImageContent } from "./image-model";
+import { IMAGE_DEFAULT_CONTENT } from "@shared/block-catalog/media-blocks";
+import { catalogMeta } from "../catalog-meta";
 import { ImageSettings } from "./image-settings";
 import { imageFrame } from "@shared/image-frame";
 
@@ -241,17 +243,9 @@ function ImageBlockView({
 // ============================================================================
 
 const ImageBlock = createBlockDefinition<ImageContent>({
-  id: "core/image",
-  label: "Image",
+  ...catalogMeta("core/image"),
   icon: ImageIcon,
-  description: "Add an image",
-  category: "media",
-  defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    width: "100%",
-    maxWidth: "100%",
-    height: "auto",
-  },
+  defaultContent: IMAGE_DEFAULT_CONTENT,
   settings: ImageSettings,
   hasSettings: true,
   render: ({ content, styles, setStyles, setContent, isPreview, isSelected, isEditing }) => (

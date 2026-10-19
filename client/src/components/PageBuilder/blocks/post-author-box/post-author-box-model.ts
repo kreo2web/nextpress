@@ -26,17 +26,6 @@ export type PostAuthorBoxContent = {
 
 export type AuthorData = { name?: string; avatar?: string; bio?: string };
 
-export const DEFAULT_CONTENT: PostAuthorBoxContent = {
-  authorId: '',
-  postId: '',
-  showAvatar: true,
-  showBio: true,
-  showName: true,
-  layout: 'horizontal',
-  avatarSize: 64,
-  className: '',
-};
-
 export const AVATAR_SIZE_MIN = 32;
 export const AVATAR_SIZE_MAX = 128;
 

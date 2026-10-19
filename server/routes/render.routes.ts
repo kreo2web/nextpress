@@ -10,6 +10,7 @@ import { resolveSiteRenderContext } from "./shared/resolve-site-render-context";
 import { getSiteBlogIds } from "./shared/site-content";
 import { renderStatusHtml } from "../../renderer/templates/status-page";
 import { isPubliclyReadable } from "../lib/is-publicly-readable";
+import { buildRssFeed } from "../lib/feed/build-rss-feed";
 import { sendPublishedHtml } from "../lib/send-published-html";
 import { isReservedPublicSlug } from "./shared/public-slug";
 
@@ -106,6 +107,35 @@ export function createRenderRoutes(deps: Deps): Router {
 
 		res.setHeader("Content-Type", "text/plain");
 		res.send(lines.join("\n"));
+	}));
+
+	/**
+	 * GET /feed - The site's RSS feed: its newest published posts (Settings → Reading sets the count
+	 * and can turn the feed off, which answers 404). Password-protected posts never appear.
+	 */
+	router.get("/feed", asyncHandler(async (req, res) => {
+		const context = await resolveSiteRenderContext({ models, req });
+		if (!context) return res.status(404).type("text/plain").send("Feed not found");
+		const settings = await models.sites.getSettings(context.site.id);
+		if (settings.reading.rssEnabled === false) return res.status(404).type("text/plain").send("This site has no feed");
+
+		const blogIds = await getSiteBlogIds({ models, siteId: context.site.id });
+		const rows = blogIds.length === 0
+			? []
+			: await models.posts.findManyWhere(
+					[{ where: "status", equals: "publish" }, { where: "blogId", in: blogIds }],
+					{ limit: settings.reading.rssPosts, orderBy: { property: "publishedAt", order: "descending" } },
+				);
+		const posts = rows
+			.filter((post) => isPubliclyReadable(post) && typeof post.slug === "string")
+			.map((post) => ({ id: post.id, title: post.title, slug: String(post.slug), excerpt: post.excerpt ?? null, publishedAt: post.publishedAt, createdAt: post.createdAt }));
+
+		res.setHeader("Content-Type", "application/rss+xml; charset=utf-8");
+		res.setHeader("Cache-Control", "public, max-age=300");
+		res.send(buildRssFeed({
+			site: { name: context.settings.name, url: context.settings.url || `${req.protocol}://${req.get("host")}`, description: settings.general.siteDescription },
+			posts,
+		}));
 	}));
 
 	/**

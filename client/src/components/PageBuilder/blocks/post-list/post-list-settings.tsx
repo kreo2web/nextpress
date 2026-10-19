@@ -13,7 +13,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
 import { LayoutList, Settings } from 'lucide-react';
-import { type PostListContent, DEFAULT_CONTENT } from './post-list-model';
+import { type PostListContent } from './post-list-model';
+import { POST_LIST_DEFAULT_CONTENT as DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
 
 type PostListLayout = NonNullable<PostListContent['layout']>;
 type PostListMore = NonNullable<PostListContent['morePosts']>;

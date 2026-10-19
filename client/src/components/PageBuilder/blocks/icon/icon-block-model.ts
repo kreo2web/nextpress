@@ -1,14 +1,9 @@
 import type { BlockConfig, BlockContent } from "@shared/schema-types";
 import type { IconReference } from "@/lib/icon-indexes";
 import { isNumericLengthUnit } from "@/lib/icon-indexes/types";
+import { ICON_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
 
-const DEFAULT_ICON: IconReference = {
-  iconSet: "lucide",
-  iconName: "star",
-  size: 24,
-  color: "currentColor",
-  strokeWidth: 2,
-};
+const DEFAULT_ICON: IconReference = ICON_DEFAULT_CONTENT.icon;
 
 export type IconContent = {
   icon: IconReference;
@@ -18,10 +13,8 @@ export type IconContent = {
 };
 
 export const DEFAULT_ICON_CONTENT: IconContent = {
+  ...ICON_DEFAULT_CONTENT,
   icon: { ...DEFAULT_ICON },
-  link: "",
-  linkTarget: "_self",
-  label: "",
 };
 
 function parseIconReference(raw: unknown): IconReference {

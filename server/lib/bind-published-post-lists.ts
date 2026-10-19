@@ -52,17 +52,20 @@ export async function bindPublishedPostLists({
 	siteId,
 	blocks,
 	listPage,
+	timeZone,
 }: {
 	models: BindModels;
 	siteId: string;
 	blocks: BlockConfig[];
 	listPage?: number;
+	/** The site's timezone, so list dates match the rest of the site. */
+	timeZone?: string;
 }): Promise<BlockConfig[]> {
 	if (!documentHasBlockName({ blocks, name: "post/list" })) return blocks;
 
 	const blogs = await models.blogs.findManyWhere([{ where: "siteId", equals: siteId }]);
 	const siteBlogIds = blogs.map((blog) => blog.id);
-	return walk({ models, siteBlogIds, blocks, listPage: readListPage(listPage) });
+	return walk({ models, siteBlogIds, blocks, listPage: readListPage(listPage), timeZone });
 }
 
 async function walk({
@@ -70,16 +73,18 @@ async function walk({
 	siteBlogIds,
 	blocks,
 	listPage,
+	timeZone,
 }: {
 	models: BindModels;
 	siteBlogIds: string[];
 	blocks: BlockConfig[];
 	listPage: number;
+	timeZone?: string;
 }): Promise<BlockConfig[]> {
 	const next: BlockConfig[] = [];
 	for (const block of blocks) {
 		const children = Array.isArray(block.children)
-			? await walk({ models, siteBlogIds, blocks: block.children, listPage })
+			? await walk({ models, siteBlogIds, blocks: block.children, listPage, timeZone })
 			: block.children;
 		let current = children === block.children ? block : { ...block, children };
 		if (current.name === "post/list") {
@@ -102,6 +107,7 @@ async function walk({
 				page,
 				hasMore: loaded.hasMore,
 				totalPages: loaded.totalPages,
+				timeZone,
 			});
 		}
 		next.push(current);

@@ -7,6 +7,8 @@ import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { InlineTextEditor } from "../shared/inline-text-editor";
 import { useSettingsState } from "../useSettingsState";
+import { PREFORMATTED_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -17,10 +19,7 @@ type PreformattedContent = {
   className?: string;
 };
 
-const DEFAULT_CONTENT: PreformattedContent = {
-  content: 'This is preformatted text.\nIt preserves    spacing   and\n\teven\ttabs!',
-  className: '',
-};
+const DEFAULT_CONTENT: PreformattedContent = PREFORMATTED_DEFAULT_CONTENT;
 
 // ============================================================================
 // RENDERER
@@ -143,17 +142,9 @@ function PreformattedSettings({ block, onUpdate }: PreformattedSettingsProps) {
 // ============================================================================
 
 const PreformattedBlock = createBlockDefinition<PreformattedContent>({
-  id: 'core/preformatted',
-  label: 'Preformatted',
+  ...catalogMeta('core/preformatted'),
   icon: PreformattedIcon,
-  description: 'Add text that respects your spacing and tabs',
-  category: 'advanced',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    backgroundColor: '#f8f9fa',
-    color: '#000000',
-    fontSize: '14px',
-  },
   settings: PreformattedSettings,
   hasSettings: true,
   render: ({ content, styles, isEditing, setContent }) => (

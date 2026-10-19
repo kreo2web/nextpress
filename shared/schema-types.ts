@@ -13,6 +13,7 @@ import type {
 	posts,
 	media,
 	formSubmissions,
+	invites,
 	sessions,
 } from "./schema";
 import type { CSSProperties } from "react";
@@ -92,6 +93,7 @@ export type NewPost = typeof posts.$inferInsert & {
 // Media types
 export type Media = typeof media.$inferSelect;
 export type FormSubmission = typeof formSubmissions.$inferSelect;
+export type Invite = typeof invites.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
 
 // Session types

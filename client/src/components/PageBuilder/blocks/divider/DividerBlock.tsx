@@ -9,6 +9,8 @@ import ColorField from "../../ColorField";
 import { Minus as MinusIcon, Settings } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { useSettingsState } from "../useSettingsState";
+import { DIVIDER_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -31,11 +33,7 @@ function readLineColor(color: string | undefined): string | undefined {
   return typeof color === "string" && color.trim() !== "" ? color : undefined;
 }
 
-const DEFAULT_CONTENT: DividerContent = {
-  style: 'solid',
-  width: 100,
-  color: '#cccccc',
-};
+const DEFAULT_CONTENT: DividerContent = DIVIDER_DEFAULT_CONTENT;
 
 // ============================================================================
 // RENDERER
@@ -158,15 +156,9 @@ function DividerSettings({ block, onUpdate }: DividerSettingsProps) {
 // ============================================================================
 
 const DividerBlock = createBlockDefinition<DividerContent>({
-  id: 'core/divider',
-  label: 'Divider',
+  ...catalogMeta('core/divider'),
   icon: MinusIcon,
-  description: 'Add a horizontal line',
-  category: 'layout',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    padding: '20px 0px',
-  },
   settings: DividerSettings,
   hasSettings: true,
   render: ({ content, styles }) => <DividerRenderer content={content} styles={styles} />,

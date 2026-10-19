@@ -131,6 +131,7 @@ export async function sendPublishedHtml({
 		url: siteUrl,
 		discourageIndexing: Boolean(storedSettings?.reading?.discourageSearchIndexing),
 		descriptionFrom: storedSettings?.reading?.descriptionFrom,
+		hasFeed: storedSettings?.reading?.rssEnabled !== false,
 		logoUrl: siteRecord?.logoUrl || "",
 	};
 	const pageSeo = parsePageOther(document.other).seo;
@@ -164,12 +165,14 @@ export async function sendPublishedHtml({
 		post: { ...document, blocks: parts.blocks },
 	});
 
+	const timeZone = storedSettings?.general?.timezone;
 	const blocks = siteId
 		? await bindPublishedPostLists({
 				models,
 				siteId,
 				blocks: prepared.blocks,
 				listPage: readListPage(res.req?.query?.npPage),
+				timeZone,
 			})
 		: prepared.blocks;
 
@@ -184,7 +187,7 @@ export async function sendPublishedHtml({
 			blogId: document.blogId,
 		},
 		canonicalUrl: publicCanonical,
-		post: prepared.post,
+		post: prepared.post ? { ...prepared.post, timeZone } : prepared.post,
 		themeSettings: theme?.settings,
 		themeRawSettings: theme?.rawSettings,
 		site,

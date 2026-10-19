@@ -35,6 +35,8 @@ export type BindablePostDocument = {
 	createdAt?: string | Date | null;
 	categories?: string[] | null;
 	tags?: string[] | null;
+	/** The site's timezone (Settings → General), for the post's dates. */
+	timeZone?: string | null;
 	author?: AuthorDisplay | null;
 	other?: unknown;
 	comments?: BoundComment[];
@@ -235,6 +237,7 @@ function bindOneBlock({
 							data.publishedAt,
 						categories: post.categories ?? data.categories,
 						tags: post.tags ?? data.tags,
+						...(post.timeZone ? { timeZone: post.timeZone } : {}),
 					},
 					post,
 				),

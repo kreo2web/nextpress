@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Switch, Route, useLocation } from 'wouter';
 import { queryClient } from './lib/queryClient';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
@@ -8,9 +8,10 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLoadingShell } from '@/components/app-loading-shell';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { ActiveSiteProvider } from '@/hooks/useActiveSite';
+import { ActiveSiteProvider, useActiveSite } from '@/hooks/useActiveSite';
 import PublicPageView from '@/pages/PublicPageView';
 import { AdminChrome } from '@/components/admin/admin-shell';
+import { NoDashboardAccess } from '@/components/admin/no-dashboard-access';
 import { GlobalCommandPalette } from '@/components/admin/global-command-palette';
 
 const NotFound = lazy(() => import('@/pages/not-found'));
@@ -23,6 +24,7 @@ const FormSubmissions = lazy(() => import('@/pages/FormSubmissions'));
 const Themes = lazy(() => import('@/pages/Themes'));
 const ThemeEdit = lazy(() => import('@/pages/ThemeEdit'));
 const Users = lazy(() => import('@/pages/Users'));
+const Join = lazy(() => import('@/pages/Join'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Sites = lazy(() => import('@/pages/Sites'));
 const Login = lazy(() => import('@/pages/Login'));
@@ -83,6 +85,7 @@ function Router() {
         {/* Auth routes - always available */}
         <Route path="/admin/login" component={Login} />
         <Route path="/admin/register" component={Register} />
+        <Route path="/join/:code" component={({ params }: { params: { code: string } }) => <Join code={params.code} />} />
 
         {/* Preview routes - available to everyone */}
         <Route
@@ -187,15 +190,24 @@ function Router() {
     !location.startsWith('/admin/register') &&
     !location.startsWith('/admin/page-builder');
   const routedContent = isAdminContentRoute ? <AdminChrome>{routes}</AdminChrome> : routes;
+  const isDashboardRoute =
+    location.startsWith('/admin') && !location.startsWith('/admin/login') && !location.startsWith('/admin/register');
 
   return isAuthenticated ? (
     <ActiveSiteProvider>
       <GlobalCommandPalette />
-      {routedContent}
+      {isDashboardRoute ? <DashboardGate>{routedContent}</DashboardGate> : routedContent}
     </ActiveSiteProvider>
   ) : (
     routes
   );
+}
+
+/** Someone signed in with no site to work on sees a next step instead of the dashboard. */
+function DashboardGate({ children }: { children: ReactNode }) {
+  const { sites, isLoading, error } = useActiveSite();
+  if (!isLoading && !error && sites.length === 0) return <NoDashboardAccess />;
+  return <>{children}</>;
 }
 
 function App() {

@@ -10,6 +10,8 @@ import { BlockShell } from "../shared/block-shell";
 import { useSettingsState } from "../useSettingsState";
 import { SettingsDisclosure, SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
+import { catalogMeta } from "../catalog-meta";
+import { AUDIO_DEFAULT_CONTENT } from "@shared/block-catalog/media-blocks";
 
 // ============================================================================
 // TYPES
@@ -32,20 +34,7 @@ type AudioContent = {
   id?: number | string;
 };
 
-const DEFAULT_CONTENT: AudioContent = {
-  kind: 'media',
-  url: '',
-  mediaType: 'audio',
-  id: undefined,
-  autoplay: false,
-  controls: true,
-  loop: false,
-  preload: 'none',
-  align: undefined,
-  caption: '',
-  anchor: '',
-  className: '',
-};
+const DEFAULT_CONTENT: AudioContent = AUDIO_DEFAULT_CONTENT;
 
 // ============================================================================
 // RENDERER
@@ -228,13 +217,9 @@ function AudioSettings({ block, onUpdate }: AudioSettingsProps) {
 // ============================================================================
 
 const AudioBlock = createBlockDefinition<AudioContent>({
-  id: 'core/audio',
-  label: 'Audio',
+  ...catalogMeta('core/audio'),
   icon: AudioIcon,
-  description: 'Add an audio player',
-  category: 'media',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { width: '100%' },
   settings: AudioSettings,
   hasSettings: true,
   render: ({ content, styles }) => <AudioRenderer content={content} styles={styles} />,

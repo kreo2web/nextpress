@@ -5,6 +5,7 @@ import { safeTryAsync } from '../utils';
 import { generateSlug } from './shared/slug';
 import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
 import { resolveReadSiteId } from '../lib/content-access';
+import { assertCanOnItem, readerCanEdit } from '../lib/access';
 import { resolveSiteThemeSettings } from './shared/resolve-site-theme-settings';
 import { mergePageOtherWithThemeDefaults } from '@shared/theme-to-page-design';
 
@@ -74,7 +75,9 @@ export function createBlogsRoutes(deps: Deps): Router {
           return { blogs: [], total: 0, page, per_page: limit, total_pages: 0 };
         }
 
-        const actualStatus = status ? parseStatusParam(status as string) : null;
+        // Drafts and private blogs are for the site's own team; everyone else sees published ones.
+        const canSeeAll = await readerCanEdit({ req, models, siteId });
+        const actualStatus = canSeeAll ? (status ? parseStatusParam(status as string) : null) : CONFIG.STATUS.PUBLISH;
 
         const filters = [
           ...(actualStatus ? [{ where: 'status', equals: actualStatus }] : []),
@@ -116,7 +119,9 @@ export function createBlogsRoutes(deps: Deps): Router {
     asyncHandler(async (req, res) => {
       try {
         const blog = await models.blogs.findById(req.params.id);
-        if (!blog) {
+        const visible =
+          blog && (blog.status === CONFIG.STATUS.PUBLISH || (await readerCanEdit({ req, models, siteId: String(blog.siteId) })));
+        if (!blog || !visible) {
           return res.status(404).json({ message: 'Blog not found' });
         }
         res.json(blog);
@@ -218,23 +223,22 @@ export function createBlogsRoutes(deps: Deps): Router {
     '/:id',
     requireAuth,
     asyncHandler(async (req, res) => {
-      try {
-        const id = req.params.id;
-        const blogData = blogSchemas.update.parse(req.body);
-
-        const existing = await models.blogs.findById(id);
-        if (!existing) {
-          return res.status(404).json({ message: 'Blog not found' });
-        }
-
+      const id = req.params.id;
+      const { err, result } = await safeTryAsync(async () => {
+        await assertCanOnItem({ req, models, kind: 'blog', id });
+        // A blog stays on its site, keeps its author and its own index page.
+        const { siteId: _siteId, pageId: _pageId, authorId: _authorId, ...blogData } = blogSchemas.update.parse(req.body) as Record<string, unknown>;
         const blog = await models.blogs.update(id, blogData);
         hooks.doAction('save_blog', blog);
+        return blog;
+      });
 
-        res.json(blog);
-      } catch (error) {
-        console.error('Error updating blog:', error);
-        res.status(500).json({ message: 'Failed to update blog' });
+      if (err) {
+        const status = readErrorStatus(err);
+        if (status >= 500) console.error({ atFunction: 'blogs.update', data: { blogId: id, error: err }, message: 'Failed to update blog' });
+        return res.status(status).json({ message: status >= 500 ? 'Failed to update blog' : err.message });
       }
+      res.json(result);
     })
   );
 
@@ -247,6 +251,10 @@ export function createBlogsRoutes(deps: Deps): Router {
     asyncHandler(async (req, res) => {
       try {
         const id = req.params.id;
+        const { err: accessErr } = await safeTryAsync(() => assertCanOnItem({ req, models, kind: 'blog', id }));
+        if (accessErr) {
+          return res.status(readErrorStatus(accessErr)).json({ message: accessErr.message });
+        }
         const blog = await models.blogs.findById(id);
 
         if (!blog) {
@@ -255,22 +263,30 @@ export function createBlogsRoutes(deps: Deps): Router {
 
         const pageId = (blog as { pageId?: string | null }).pageId;
 
+        // Posts point at their blog; removing it would orphan them, so the person moves or deletes them first.
+        const postCount = await models.posts.count({ where: [{ where: 'blogId', equals: id }] });
+        if (postCount > 0) {
+          return res.status(409).json({ message: `This blog still has ${postCount} post${postCount === 1 ? '' : 's'}. Move or delete them first, then delete the blog.` });
+        }
+
         // Delete blog first — blogs.page_id references pages, so the page cannot be removed while the blog exists.
         await models.blogs.delete(id);
         hooks.doAction('delete_blog', id);
 
         if (pageId) {
           const { err: pageErr } = await safeTryAsync(async () => {
-            await models.pages.delete(pageId);
+            // Only the blog's own index page on the same site; a tampered link never reaches another site.
+            const page = await models.pages.findById(pageId);
+            if (page && String(page.siteId) === String(blog.siteId)) await models.pages.delete(pageId);
           });
           if (pageErr) {
-            console.warn(`Failed to delete blog page ${pageId}:`, pageErr);
+            console.warn({ atFunction: 'blogs.delete', data: { blogId: id, pageId, error: pageErr }, message: 'The blog was deleted but its page could not be' });
           }
         }
 
         res.json({ message: 'Blog deleted successfully' });
       } catch (error) {
-        console.error('Error deleting blog:', error);
+        console.error({ atFunction: 'blogs.delete', data: { blogId: req.params.id, error }, message: 'Failed to delete blog' });
         res.status(500).json({ message: 'Failed to delete blog' });
       }
     })

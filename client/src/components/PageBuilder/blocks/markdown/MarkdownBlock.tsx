@@ -5,6 +5,8 @@ import MDEditor from "@uiw/react-md-editor";
 import { useTheme } from "@/components/ThemeProvider";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
+import { MARKDOWN_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -15,10 +17,7 @@ export type MarkdownContent = {
   className?: string;
 };
 
-const DEFAULT_CONTENT: MarkdownContent = {
-  content: "",
-  className: "",
-};
+const DEFAULT_CONTENT: MarkdownContent = MARKDOWN_DEFAULT_CONTENT;
 
 const MIN_EDITOR_HEIGHT_PX = 160;
 const LINE_HEIGHT_PX = 28;
@@ -91,15 +90,9 @@ function MarkdownRenderer({
 // ============================================================================
 
 const MarkdownBlock = createBlockDefinition<MarkdownContent>({
-  id: "core/markdown",
-  label: "Markdown",
+  ...catalogMeta("core/markdown"),
   icon: MarkdownIcon,
-  description: "Add rich text using Markdown format",
-  category: "advanced",
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    margin: "1em 0",
-  },
   hasSettings: false,
   render: ({ content, styles, setContent, isPreview }) => (
     <MarkdownRenderer

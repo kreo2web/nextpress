@@ -5,6 +5,7 @@ import { buildGroupShellStyles, readGroupShellContent } from "@shared/group-shel
 import { ContainerChildren } from "../../BlockRenderer";
 import { Package as GroupIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import { type GroupContent, DEFAULT_SEMANTIC_CONTENT } from "./group-model";
 import { GroupSettings } from "./group-settings";
 
@@ -65,24 +66,10 @@ function GroupRenderer({
 // ============================================================================
 
 const GroupBlock = createBlockDefinition<GroupContent>({
-  id: "core/group",
-  label: "Group",
+  ...catalogMeta("core/group"),
   icon: GroupIcon,
-  description: "Gather blocks in a layout container",
-  category: "layout",
-  isContainer: true,
   handlesOwnChildren: true,
   defaultContent: DEFAULT_SEMANTIC_CONTENT,
-  defaultStyles: {
-    padding: "1rem 1.25rem",
-    width: "100%",
-    boxSizing: "border-box",
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-    alignItems: "flex-start",
-    justifyContent: "flex-start",
-  },
   settings: GroupSettings,
   hasSettings: true,
   render: ({ content, styles, value, isPreview, onNestedBlockChange }) => (

@@ -58,9 +58,7 @@ export type {
 	SetupStatus,
 	Site,
 	SiteInfo,
-	SystemSettingsSection,
 	Template,
 	Theme,
 	User,
-	WritingSettings,
 } from "./domain.js";

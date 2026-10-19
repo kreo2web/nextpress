@@ -32,7 +32,10 @@ import { appendSiteIdToUrl } from "@/lib/site-api";
 import { mergePageOtherWithDefaults } from "@shared/page-other";
 import { reIdTemplateBlocks } from "@/lib/re-id-template-blocks";
 import { useContentLists } from "@/hooks/useContentLists";
-import { FilePlus } from "lucide-react";
+import { FilePlus, Sparkles } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { useAiStatus } from "@/hooks/use-ai-settings";
+import { setPendingDescription } from "@/components/PageBuilder/assistant/assistant-storage";
 import type { Page, BlockConfig } from "@shared/schema-types";
 
 interface CreatePageModalProps {
@@ -51,6 +54,8 @@ interface PageFormData {
   parentId?: string;
   menuOrder: number;
   templateId?: string;
+  /** "Describe your page": handed to the editor, whose assistant builds a first draft on open. */
+  description?: string;
 }
 
 /**
@@ -86,6 +91,7 @@ export function CreatePageModal({
   const queryClient = useQueryClient();
   const { activeSiteId } = useActiveSite();
   const { pages, templates } = useContentLists();
+  const assistantEnabled = useAiStatus({ siteId: activeSiteId }).data?.enabled === true;
 
   // Update title when initialTitle changes
   useEffect(() => {
@@ -194,8 +200,12 @@ export function CreatePageModal({
       const response = await apiRequest("POST", "/api/pages", payload);
       return await response.json();
     },
-    onSuccess: (newPage: Page) => {
+    onSuccess: (newPage: Page, variables: PageFormData) => {
       showSuccessToast("Page created successfully");
+      const description = variables.description?.trim();
+      if (description && assistantEnabled) {
+        setPendingDescription({ pageId: String(newPage.id), description });
+      }
 
       // Invalidate queries to refresh lists
       queryClient.invalidateQueries({ queryKey: ["/api/pages"] });
@@ -342,6 +352,25 @@ export function CreatePageModal({
               autoFocus
             />
           </div>
+
+          {assistantEnabled ? (
+            <div className="grid gap-2">
+              <Label htmlFor="description" className="flex items-center gap-1.5">
+                <Sparkles className="h-4 w-4 text-npb-text-muted" aria-hidden />
+                Describe your page (optional)
+              </Label>
+              <Textarea
+                id="description"
+                placeholder="A landing page for a yoga studio: a hero with a booking button, class times, prices and a contact form"
+                value={formData.description ?? ""}
+                onChange={(e) => handleFieldChange("description", e.target.value)}
+                rows={3}
+              />
+              <p className="text-xs text-npb-text-muted">
+                The assistant builds a first draft when the editor opens. Nothing is published.
+              </p>
+            </div>
+          ) : null}
 
           <div className="grid gap-2">
             <Label htmlFor="slug">URL Slug</Label>

@@ -9,8 +9,8 @@ import {
 } from "@shared/accordion-model";
 import { ContainerChildren } from "../../BlockRenderer";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import { AccordionContext } from "./accordion-context";
-import { buildStarterAccordionItems } from "./accordion-factory";
 import { AccordionSettings } from "./accordion-settings";
 
 type AccordionCanvasProps = {
@@ -47,16 +47,10 @@ function AccordionCanvas({ hostBlock, content, isPreview, onNestedBlockChange }:
 }
 
 const AccordionBlock = createBlockDefinition<AccordionContent>({
-	id: "core/accordion",
-	label: "Accordion",
+	...catalogMeta("core/accordion"),
 	icon: ListCollapse,
-	description: "Questions or sections that open and close",
-	category: "layout",
-	isContainer: true,
 	handlesOwnChildren: true,
 	defaultContent: DEFAULT_ACCORDION_CONTENT,
-	defaultStyles: { width: "100%", boxSizing: "border-box", padding: "0" },
-	defaultChildren: ({ parentId, newId }) => buildStarterAccordionItems({ parentId, newId }),
 	parseContent: (raw) => readAccordionContent(raw),
 	settings: AccordionSettings,
 	hasSettings: true,

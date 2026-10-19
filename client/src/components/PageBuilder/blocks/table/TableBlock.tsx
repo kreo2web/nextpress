@@ -13,6 +13,8 @@ import {
   resolveTableData,
 } from "./table-model";
 import { TableSettings } from "./table-settings";
+import { TABLE_DEFAULT_DATA } from "@shared/block-catalog/table-defaults";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // RENDERER & IN-CANVAS EDITOR
@@ -430,51 +432,9 @@ function TableRenderer({
 // ============================================================================
 
 const TableBlock = createBlockDefinition<TableContent | TableData>({
-  id: "core/table",
-  label: "Table",
+  ...catalogMeta("core/table"),
   icon: TableIcon,
-  description: "Create a table to display data",
-  category: "advanced",
-  defaultContent: {
-    kind: "structured",
-    data: {
-      head: [
-        {
-          cells: [
-            { content: "Header 1", tag: "th" },
-            { content: "Header 2", tag: "th" },
-            { content: "Header 3", tag: "th" },
-          ],
-        },
-      ],
-      body: [
-        {
-          cells: [
-            { content: "Cell 1", tag: "td" },
-            { content: "Cell 2", tag: "td" },
-            { content: "Cell 3", tag: "td" },
-          ],
-        },
-        {
-          cells: [
-            { content: "Cell 4", tag: "td" },
-            { content: "Cell 5", tag: "td" },
-            { content: "Cell 6", tag: "td" },
-          ],
-        },
-      ],
-      foot: [],
-      hasFixedLayout: false,
-      striped: false,
-      bordered: true,
-      compact: false,
-      caption: "",
-      className: "",
-    },
-  },
-  defaultStyles: {
-    margin: "1em 0",
-  },
+  defaultContent: { kind: "structured", data: TABLE_DEFAULT_DATA },
   settings: TableSettings,
   hasSettings: true,
   render: ({ content, styles, isEditing, setContent }) => (

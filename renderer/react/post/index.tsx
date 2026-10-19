@@ -104,7 +104,7 @@ export function PostInfoBlock(block: BlockConfig) {
 	const dateFormat = readPostInfoDateFormat(data.dateFormat);
 	if (showDate) {
 		if (publishedAt) {
-			items.push(formatPostInfoDate(publishedAt, dateFormat));
+			items.push(formatPostInfoDate(publishedAt, dateFormat, typeof data.timeZone === "string" ? data.timeZone : undefined));
 		} else if (!hasBoundMeta) {
 			items.push("January 15, 2025");
 		}

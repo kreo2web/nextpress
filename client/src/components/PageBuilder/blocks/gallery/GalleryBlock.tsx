@@ -1,6 +1,7 @@
 import React from "react";
 import { Image as ImageIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import { BlockShell } from "../shared/block-shell";
 import { readGalleryData, DEFAULT_DATA } from "@shared/gallery-model";
 import { buildGalleryRenderModel } from "@shared/gallery-render";
@@ -81,13 +82,9 @@ function GalleryRenderer({ galleryData, styles }: GalleryRendererProps) {
 // ============================================================================
 
 const GalleryBlock = createBlockDefinition<import("@shared/gallery-model").GalleryData>({
-  id: 'core/gallery',
-  label: 'Gallery',
+  ...catalogMeta('core/gallery'),
   icon: ImageIcon,
-  description: 'Display multiple images in a rich gallery',
-  category: 'media',
   defaultContent: DEFAULT_DATA,
-  defaultStyles: { width: '100%', margin: '1em 0' },
   settings: GallerySettings,
   hasSettings: true,
   render: ({ content, styles }) => (

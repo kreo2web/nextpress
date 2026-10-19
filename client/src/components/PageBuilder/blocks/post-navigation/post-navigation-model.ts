@@ -1,6 +1,6 @@
 /**
  * Post Navigation block data model: content shape, adjacent-post types,
- * defaults, and placeholder data. No React here — see `post-navigation-settings.tsx`
+ * and placeholder data. Defaults live in shared/block-catalog. No React here — see `post-navigation-settings.tsx`
  * for the UI and `PostNavigationBlock.tsx` for the renderer/data hook.
  */
 
@@ -20,15 +20,6 @@ export type AdjacentPost = {
   featuredImage?: string;
 };
 export type AdjacentPostsData = { prev?: AdjacentPost; next?: AdjacentPost };
-
-export const DEFAULT_CONTENT: PostNavigationContent = {
-  postId: '',
-  showThumbnail: false,
-  showLabel: true,
-  prevLabel: 'Previous Post',
-  nextLabel: 'Next Post',
-  className: '',
-};
 
 export const PLACEHOLDER_ADJACENT: AdjacentPostsData = {
   prev: {

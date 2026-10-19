@@ -21,6 +21,8 @@ export interface PageRenderOptions {
   scrollbarCss?: string;
   /** Open Graph and Twitter tags, already escaped. */
   socialMeta?: string;
+  /** The site's RSS feed, when Settings → Reading has it on: `{ title, href }`. */
+  feed?: { title: string; href: string };
 }
 
 export const PageTemplate = (
@@ -45,6 +47,7 @@ export const PageTemplate = (
       ${description ? `<meta name="description" content="${escapeHtml(description)}">` : ''}
       <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
       ${options.socialMeta ?? ''}
+      ${options.feed ? `<link rel="alternate" type="application/rss+xml" title="${escapeHtml(options.feed.title)}" href="${escapeHtml(options.feed.href)}">` : ''}
       ${options.noIndex ? '<meta name="robots" content="noindex, nofollow">' : ''}
       ${(options.customMeta || []).filter(m => m.name && m.content).map(m => {
         const attr = m.name.startsWith('og:') || m.name.startsWith('article:') ? 'property' : 'name';

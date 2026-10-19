@@ -1,5 +1,5 @@
 /**
- * Video block data model: content shape, defaults, and pure YouTube URL helpers.
+ * Video block data model: content shape and pure YouTube URL helpers. Defaults live in shared/block-catalog.
  * No React here — see `video-settings.tsx` for the editor UI.
  */
 
@@ -25,24 +25,6 @@ export type VideoContent = BlockContent & {
   className?: string;
   sources?: Array<{ src: string; type: string }>;
   id?: number;
-};
-
-export const DEFAULT_CONTENT: VideoContent = {
-  kind: 'media',
-  mediaType: 'video',
-  url: '',
-  id: undefined,
-  poster: '',
-  autoplay: false,
-  controls: true,
-  loop: false,
-  muted: false,
-  playsInline: true,
-  preload: 'metadata',
-  align: undefined,
-  caption: '',
-  anchor: '',
-  className: '',
 };
 
 export {

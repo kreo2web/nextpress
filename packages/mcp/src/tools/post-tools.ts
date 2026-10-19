@@ -35,7 +35,8 @@ export function registerPostTools({ server, client }: ToolDeps): void {
 		"get_post",
 		{
 			title: "Get post",
-			description: "Load a post by UUID including blocks. Note version for updates.",
+			description:
+				"Load a post by UUID including all its blocks (can be long). Note version for updates. To work on the blocks, start with get_page_outline using content_type \"post\".",
 			inputSchema: {
 				id: z.string().min(1),
 			},
@@ -77,7 +78,8 @@ export function registerPostTools({ server, client }: ToolDeps): void {
 		"update_post",
 		{
 			title: "Update post",
-			description: "Update a post. Requires expectedVersion from get_post.",
+			description:
+				"Update a post's title, slug, excerpt or status, or replace its whole block tree. Requires expectedVersion from get_post. To change blocks, prefer change_page_blocks with content_type \"post\".",
 			inputSchema: {
 				id: z.string().min(1),
 				expectedVersion: z.number().int().min(0),

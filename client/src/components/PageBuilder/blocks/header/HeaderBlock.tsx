@@ -1,6 +1,7 @@
 import React from "react";
 import { PanelTop } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import {
 	DEFAULT_HEADER_CONTENT,
 	normalizeHeaderContent,
@@ -11,21 +12,10 @@ import { HeaderCanvas } from "./header-canvas";
 import { HeaderSettings } from "./header-settings";
 
 const HeaderBlock = createBlockDefinition<HeaderContent>({
-	id: "core/header",
-	label: "Header",
+	...catalogMeta("core/header"),
 	icon: PanelTop,
-	description: "Site header with brand, links, and buttons",
-	category: "layout",
-	// Children only appear in the "Blocks" layout, but the header must be a container to hold them.
-	isContainer: true,
 	handlesOwnChildren: true,
 	defaultContent: DEFAULT_HEADER_CONTENT,
-	defaultStyles: {
-		width: "100%",
-		boxSizing: "border-box",
-		padding: "0px",
-		margin: "0px",
-	},
 	settings: HeaderSettings,
 	hasSettings: true,
 	parseContent: readHeaderContent,

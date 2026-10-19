@@ -8,6 +8,7 @@ import { db } from "../db";
 import { getAuthBaseUrl, getAuthSecret } from "../config";
 import { resolveAuthTrustedOrigins } from "./auth-trusted-origins";
 import { models } from "../storage";
+import { giveVisitorRole } from "./accounts/visitor-sign-up";
 
 /** Drizzle tables keyed for Better Auth modelName lookups (users, auth_sessions, …). */
 const authSchema = {
@@ -103,23 +104,18 @@ export const auth = betterAuth({
 	databaseHooks: {
 		user: {
 			create: {
-				after: async (user) => {
+				// Only a web sign-up gets a role here (subscriber, on the site it came to). Accounts made on
+				// the server (setup wizard, admins, invite links) get their role from the code that made them.
+				after: async (user, context) => {
+					if (!context?.request || context.path !== "/sign-up/email") return;
 					try {
-						const defaultSite = await models.sites.findDefaultSite();
-						const subscriberRole =
-							await models.roles.findByName("subscriber");
-						if (defaultSite && subscriberRole) {
-							await models.userRoles.assignRole(
-								user.id,
-								subscriberRole.id,
-								defaultSite.id,
-							);
-						}
+						await giveVisitorRole({ models, userId: user.id, host: context.request.headers.get("host") });
 					} catch (error) {
-						console.error(
-							"Better Auth: subscriber role assignment failed:",
-							error,
-						);
+						console.error({
+							atFunction: "betterAuth.giveVisitorRole",
+							data: { userId: user.id, error },
+							message: "A new web sign-up could not get its subscriber role",
+						});
 					}
 				},
 			},

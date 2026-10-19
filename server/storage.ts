@@ -1,6 +1,8 @@
+import { eq } from "drizzle-orm";
 import { db } from "./db";
 import { createModel, type DatabaseInstance } from "@shared/create-models";
 import { normalizeSiteHostname } from "./utils/validate-domain";
+import { createInviteModel } from "./lib/invites/invite-model";
 import { pickPreferredSite, readSiteAddress, siteAnswersHost } from "./utils/site-address";
 import type { Site } from "@shared/schema-types";
 import {
@@ -65,6 +67,18 @@ export function createUserModel(dbInstance: DatabaseInstance = db) {
 		 */
 		async findByStatus(status: string) {
 			return baseModel.findManyWhere([{ where: "status", equals: status }]);
+		},
+
+		/**
+		 * Removes a person together with their site roles, or neither. Content they wrote still points
+		 * at them, so for someone who owns content the database refuses and nothing is removed.
+		 */
+		async deleteWithRoles(userId: string): Promise<boolean> {
+			return dbInstance.transaction(async (tx: DatabaseInstance) => {
+				await tx.delete(userRoles).where(eq(userRoles.userId, userId));
+				const removed = await tx.delete(users).where(eq(users.id, userId)).returning({ id: users.id });
+				return removed.length > 0;
+			});
 		},
 	};
 }
@@ -512,7 +526,11 @@ export function createSiteModel(dbInstance: DatabaseInstance = db) {
 			}
 
 			const storedSettings = site.settings || {};
-			const merged = deepMerge(DEFAULT_SETTINGS, storedSettings as any);
+			const { settingsSchema } = await import("@shared/settings-schema");
+			const combined = deepMerge(DEFAULT_SETTINGS, storedSettings as any);
+			// Known settings only: values left by removed switches are not handed out.
+			const cleaned = settingsSchema.safeParse(combined);
+			const merged = cleaned.success ? cleaned.data : combined;
 			// Settings shows the address visitors are really matched by (the site record's own field).
 			return { ...merged, general: { ...merged.general, siteUrl: readSiteAddress(site) } };
 		},
@@ -572,6 +590,7 @@ export const models = {
 	formSubmissions: createModel(formSubmissions, db),
 
 	// Specialized models
+	invites: createInviteModel(db),
 	users: createUserModel(),
 	posts: createPostModel(),
 	comments: createCommentModel(),

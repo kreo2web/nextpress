@@ -4,8 +4,12 @@ import { readStructuredBlockData } from "@shared/read-block-content";
 import { sanitizeHtml } from "../../utils";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
-import { type CoverContent, type CoverData, DEFAULT_CONTENT, DEFAULT_DATA } from './cover-model';
+import { type CoverContent, type CoverData } from './cover-model';
+import { COVER_DEFAULT_CONTENT, COVER_DEFAULT_DATA } from '@shared/block-catalog/media-blocks';
+import { catalogMeta } from '../catalog-meta';
 import { CoverSettings } from './cover-settings';
+
+const DEFAULT_DATA: CoverData = COVER_DEFAULT_DATA;
 
 // ============================================================================
 // RENDERER
@@ -138,13 +142,9 @@ function CoverRenderer({ content, styles }: CoverRendererProps) {
 // ============================================================================
 
 const CoverBlock = createBlockDefinition<CoverContent>({
-  id: 'core/cover',
-  label: 'Cover',
+  ...catalogMeta('core/cover'),
   icon: CoverIcon,
-  description: 'Add an image or video with a text overlay',
-  category: 'media',
-  defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {},
+  defaultContent: COVER_DEFAULT_CONTENT,
   settings: CoverSettings,
   hasSettings: true,
   render: ({ content, styles }) => <CoverRenderer content={content} styles={styles} />,

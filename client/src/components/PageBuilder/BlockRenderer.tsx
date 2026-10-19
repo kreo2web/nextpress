@@ -48,6 +48,7 @@ import {
 import { headerFloatWrapperStyles, headerOverlayPaintStyles } from '@shared/header-model';
 import { usePageColumnInset } from '@shared/page-column-context';
 import { useCanvasBlockToolbar } from './use-canvas-block-toolbar';
+import { AskAiButton } from './assistant/ask-ai-button';
 import {
   type CanvasChromeMode,
   defaultCanvasChromeMode,
@@ -295,6 +296,7 @@ function BlockEditorToolbarPanel({
   engageHandlers,
   chromeMode,
   onToggleChromeMode,
+  blockId,
 }: {
   label: string;
   /** Full toolbar string when `label` is JS-truncated (block name, icon ref, etc.). */
@@ -313,6 +315,7 @@ function BlockEditorToolbarPanel({
   };
   chromeMode: CanvasChromeMode;
   onToggleChromeMode: () => void;
+  blockId: string;
 }) {
   const labelClass =
     'block min-w-0 flex-1 px-2 text-left text-xs text-npb-text-secondary';
@@ -421,6 +424,7 @@ function BlockEditorToolbarPanel({
             {chromeMode === "hug" ? "Span full width" : "Hug content"}
           </TooltipContent>
         </Tooltip>
+        {!isEditing ? <AskAiButton blockId={blockId} /> : null}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -708,6 +712,7 @@ export default function BlockRenderer({
     chromeMode,
     onToggleChromeMode: () =>
       setEditorChromeMode((mode) => (mode === "hug" ? "span" : "hug")),
+    blockId: block.id,
   };
 
   return (

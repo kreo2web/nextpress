@@ -5,6 +5,7 @@ import { ContainerChildren } from "../../BlockRenderer";
 import { getContainerOuterShellStyle } from "@shared/block-container-placement";
 import { Box } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import { type ContainerContent, DEFAULT_CONTENT } from "./container-model";
 import { ContainerSettings } from "./container-settings";
 
@@ -62,27 +63,10 @@ function ContainerRenderer({
 // ============================================================================
 
 const ContainerBlock = createBlockDefinition<ContainerContent>({
-  id: "core/container",
-  label: "Container",
+  ...catalogMeta("core/container"),
   icon: Box,
-  description: "Wrap blocks in a box with background, padding, and max width",
-  category: "layout",
-  isContainer: true,
   handlesOwnChildren: true,
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    padding: "24px",
-    width: "100%",
-    maxWidth: "100%",
-    marginLeft: "auto",
-    marginRight: "auto",
-    backgroundColor: "#f8fafc",
-    borderRadius: "8px",
-    boxSizing: "border-box",
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-  },
   settings: ContainerSettings,
   hasSettings: true,
   render: ({ content, styles, value, isPreview, onNestedBlockChange }) => (

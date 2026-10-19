@@ -38,6 +38,8 @@ export const CONFIG = {
 		DEFAULT_COMMENTS_PER_PAGE: 10,
 		DEFAULT_MEDIA_PER_PAGE: 20,
 		DEFAULT_TEMPLATES_PER_PAGE: 10,
+		/** Most rows one list request returns, whatever `per_page` asks for. */
+		MAX_PAGE_SIZE: 100,
 		DEFAULT_BLOCKS_PER_PAGE: 10,
 	},
 
@@ -112,6 +114,9 @@ export function getAuthBaseUrl(): string {
 	return `http://localhost:${port}`;
 }
 
+/** The sign-in secret used when none is set. Fine on a laptop, never on a server that holds real keys. */
+export const BUILT_IN_AUTH_SECRET = "dev-better-auth-secret-change-in-production";
+
 /**
  * Better Auth signing secret. Reuses SESSION_SECRET when BETTER_AUTH_SECRET is unset.
  */
@@ -124,7 +129,15 @@ export function getAuthSecret(): string {
 	if (sessionSecret && sessionSecret.length > 0) {
 		return sessionSecret;
 	}
-	return "dev-better-auth-secret-change-in-production";
+	return BUILT_IN_AUTH_SECRET;
+}
+
+/**
+ * True when `secret` is the built-in development one. Saved AI keys are locked with a key made from the
+ * sign-in secret, and that default is public in the source, so a production server must not store keys under it.
+ */
+export function isBuiltInAuthSecret(secret: string): boolean {
+	return secret === BUILT_IN_AUTH_SECRET;
 }
 
 /**
@@ -172,8 +185,9 @@ export function parsePaginationParams(
 	query: any,
 	defaultPageSize: number = CONFIG.PAGINATION.DEFAULT_PAGE_SIZE,
 ) {
-	const page = parseInt(query.page as string) || 1;
-	const per_page = parseInt(query.per_page as string) || defaultPageSize;
+	const page = Math.max(1, parseInt(query.page as string) || 1);
+	// Capped: one request must not be able to ask for every row at once.
+	const per_page = Math.min(CONFIG.PAGINATION.MAX_PAGE_SIZE, Math.max(1, parseInt(query.per_page as string) || defaultPageSize));
 	const limit = per_page;
 	const offset = (page - 1) * limit;
 

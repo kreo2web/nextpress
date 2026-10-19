@@ -3,6 +3,8 @@
  * length helpers. No React here — see `container-settings.tsx` for the UI.
  */
 
+import { CONTAINER_DEFAULT_CONTENT } from "@shared/block-catalog/layout-blocks";
+
 /**
  * Content for the container block: semantic tag + optional class name.
  * Visual sizing lives on `styles` (padding, maxWidth, background, etc.).
@@ -12,10 +14,7 @@ export type ContainerContent = {
   className?: string;
 };
 
-export const DEFAULT_CONTENT: ContainerContent = {
-  tagName: "div",
-  className: "",
-};
+export const DEFAULT_CONTENT: ContainerContent = CONTAINER_DEFAULT_CONTENT;
 
 /** Align with page design “Container width” options (`PageSettings.tsx`). */
 export const MAX_WIDTH_PRESETS: ReadonlyArray<{ value: string; label: string }> = [

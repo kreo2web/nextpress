@@ -1,7 +1,9 @@
 import type { BlockConfig, BlockContent } from "../types/domain.js";
-import { BLOCK_NAMES, isBlockName } from "./block-definitions.js";
+import type { BLOCK_NAMES, isBlockName } from "./block-definitions.js";
+import type { BlockEditorSettings } from "./block-editor-settings.js";
 import type {
 	AudioBlockParams,
+	BlockShellParams,
 	ButtonBlockParams,
 	ButtonsBlockParams,
 	CodeBlockParams,
@@ -11,6 +13,7 @@ import type {
 	CustomBlockParams,
 	DividerBlockParams,
 	FileBlockParams,
+	FormBlockParams,
 	GalleryBlockParams,
 	GroupBlockParams,
 	HeadingBlockParams,
@@ -31,19 +34,18 @@ import type {
 	PostProgressBlockParams,
 	PostTitleBlockParams,
 	PostTocBlockParams,
+	PreformattedBlockParams,
 	PullquoteBlockParams,
 	QuoteBlockParams,
-	PreformattedBlockParams,
-	SeparatorBlockParams,
 	SelectBlockParams,
+	SeparatorBlockParams,
 	SpacerBlockParams,
+	SubmitButtonBlockParams,
 	TableBlockParams,
-	TextBlockParams,
 	TextareaBlockParams,
+	TextBlockParams,
 	VideoBlockParams,
 } from "./block-params.js";
-import type { BlockEditorSettings } from "./block-editor-settings.js";
-import type { BlockShellParams } from "./block-params.js";
 
 /**
  * Type-safe block tree builder matching the dashboard page builder.
@@ -91,7 +93,7 @@ export type BlocksBuilder = {
 	/** Button — Content: label, url, linkTarget. Style: button chrome. */
 	button: (params: ButtonBlockParams) => BlockConfig;
 
-	/** Buttons row — Content: orientation/layout. Children: `core/button` blocks. */
+	/** Buttons row — Content: `buttons` (text, url, look), layout, orientation. A plain block: no children. */
 	buttons: (params?: ButtonsBlockParams) => BlockConfig;
 
 	/** Gallery — Content: images, columns, crop options. */
@@ -150,6 +152,16 @@ export type BlocksBuilder = {
 
 	/** Divider — Content: line style. */
 	divider: (params?: DividerBlockParams) => BlockConfig;
+
+	/**
+	 * Form — Content: name (shown next to each answer in Forms), successMessage. Starts with a name,
+	 * an email, a message field and a Send button, like a form added in the editor. Pass `children`
+	 * (from `input`, `textarea`, `select` and `submitButton`) to use your own fields instead.
+	 */
+	form: (params?: FormBlockParams) => BlockConfig;
+
+	/** Send button for a form — Content: text (default "Send"). Sends the form when pressed. */
+	submitButton: (params?: SubmitButtonBlockParams) => BlockConfig;
 
 	/** Text field — Content: name, placeholder, input type. */
 	input: (params?: InputBlockParams) => BlockConfig;

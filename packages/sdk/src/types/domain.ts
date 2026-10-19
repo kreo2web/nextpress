@@ -239,19 +239,12 @@ export type GeneralSettings = {
 	siteDescription: string;
 	siteUrl: string;
 	adminEmail: string;
+	/** IANA name; post dates on published pages use it. */
 	timezone: string;
-	dateFormat: string;
-	timeFormat: string;
-};
-
-export type WritingSettings = {
-	richTextEnabled: boolean;
-	autosaveEnabled: boolean;
-	syntaxHighlighting: boolean;
 };
 
 export type ReadingSettings = {
-	postsPerPage: number;
+	/** How many recent posts the RSS feed lists. */
 	rssPosts: number;
 	rssEnabled: boolean;
 	discourageSearchIndexing: boolean;
@@ -260,36 +253,22 @@ export type ReadingSettings = {
 
 export type DiscussionSettings = {
 	enableComments: boolean;
+	/** New comments wait for approval. */
 	moderateComments: boolean;
-	emailNotifications: boolean;
+	/** Visitors may make an account (commenters only). */
 	enableRegistration: boolean;
-	defaultRole: string;
-};
-
-export type SystemSettingsSection = {
-	cachingEnabled: boolean;
-	compressionEnabled: boolean;
-	securityHeadersEnabled: boolean;
-	debugMode: boolean;
-	restApiEnabled: boolean;
-	graphqlEnabled: boolean;
-	webhooksEnabled: boolean;
 };
 
 export type Settings = {
 	general: GeneralSettings;
-	writing: WritingSettings;
 	reading: ReadingSettings;
 	discussion: DiscussionSettings;
-	system: SystemSettingsSection;
 };
 
 export type PartialSettings = {
 	general?: Partial<GeneralSettings>;
-	writing?: Partial<WritingSettings>;
 	reading?: Partial<ReadingSettings>;
 	discussion?: Partial<DiscussionSettings>;
-	system?: Partial<SystemSettingsSection>;
 };
 
 export type DashboardStats = {

@@ -92,46 +92,27 @@ export const buildGoogleSearchPageBlocks = (blocks: BlocksBuilder): BlockConfig[
 		],
 	});
 
+	// One buttons row: the editor keeps the buttons inside the block, not as child blocks.
+	const pillButton = {
+		look: "solid",
+		size: "md",
+		backgroundColor: "#f8f9fa",
+		color: "#3c4043",
+		borderRadius: "4px",
+		linkTarget: "_blank",
+	} as const;
 	const actionButtons = blocks.buttons({
 		settings: {
-			content: { orientation: "horizontal", layout: "center" },
-			styles: {
-				display: "flex",
-				flexDirection: "row",
-				justifyContent: "center",
-				flexWrap: "nowrap",
-				width: "100%",
-				gap: "12px",
+			content: {
+				orientation: "horizontal",
+				layout: "center",
+				buttons: [
+					{ ...pillButton, text: "Google Search", url: "https://www.google.com" },
+					{ ...pillButton, text: "I'm Feeling Lucky", url: "https://www.google.com/doodles" },
+				],
 			},
+			styles: { width: "100%" },
 		},
-		children: [
-			blocks.button({
-				settings: {
-					content: { text: "Google Search", url: "https://www.google.com", linkTarget: "_blank" },
-					styles: {
-						backgroundColor: "#f8f9fa",
-						color: "#3c4043",
-						padding: "11px 18px",
-						borderRadius: "4px",
-						border: "1px solid #f8f9fa",
-						fontSize: "14px",
-					},
-				},
-			}),
-			blocks.button({
-				settings: {
-					content: { text: "I'm Feeling Lucky", url: "https://www.google.com/doodles", linkTarget: "_blank" },
-					styles: {
-						backgroundColor: "#f8f9fa",
-						color: "#3c4043",
-						padding: "11px 18px",
-						borderRadius: "4px",
-						border: "1px solid #f8f9fa",
-						fontSize: "14px",
-					},
-				},
-			}),
-		],
 	});
 
 	const footer = blocks.paragraph({

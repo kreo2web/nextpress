@@ -1,4 +1,4 @@
-import { fetchWpJson, getWpTotal, getWpTotalPages } from "../fetch-wp-api";
+import { fetchWpJson, type WpFetch, getWpTotal, getWpTotalPages } from "../fetch-wp-api";
 import { mapWpPage } from "../map-wp-page";
 import { stripHtml } from "../strip-html";
 import type { WpListResult, WpPostPreview, WpPostRaw } from "../types";
@@ -23,12 +23,13 @@ export type WordPressPagesAdapter = {
 	map: typeof mapWpPage;
 };
 
-export const createPagesAdapter = (): WordPressPagesAdapter => ({
+export const createPagesAdapter = ({ fetchImpl }: { fetchImpl: WpFetch }): WordPressPagesAdapter => ({
 	entity: "pages",
 
 	list: async ({ baseUrl, page, perPage }) => {
 		const result = await fetchWpJson<WpPostRaw[]>({
 			url: `${baseUrl}/wp-json/wp/v2/pages?per_page=${perPage}&page=${page}&status=publish`,
+			fetchImpl,
 		});
 
 		if (!result.ok) {
@@ -47,6 +48,7 @@ export const createPagesAdapter = (): WordPressPagesAdapter => ({
 	fetchOne: async ({ baseUrl, wpId }) => {
 		const result = await fetchWpJson<WpPostRaw>({
 			url: `${baseUrl}/wp-json/wp/v2/pages/${wpId}`,
+			fetchImpl,
 		});
 
 		if (!result.ok) {
@@ -62,9 +64,11 @@ export const createPagesAdapter = (): WordPressPagesAdapter => ({
 /** Page count probe for discovery. */
 export const discoverWpPages = async (params: {
 	baseUrl: string;
+	fetchImpl: WpFetch;
 }): Promise<{ total: number; reachable: boolean }> => {
 	const result = await fetchWpJson<WpPostRaw[]>({
 		url: `${params.baseUrl}/wp-json/wp/v2/pages?per_page=1&status=publish`,
+		fetchImpl: params.fetchImpl,
 	});
 
 	if (!result.ok) {

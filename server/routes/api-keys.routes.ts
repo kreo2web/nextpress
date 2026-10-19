@@ -12,7 +12,7 @@ import { getRequestAuthUserId, requireSessionAuth } from "../auth";
 import { db } from "../db";
 import { apiKeys } from "@shared/schema";
 import { generateApiKeyMaterial, hashSecret } from "../lib/sdk-auth";
-import { resolveAccessibleSites } from "./shared/resolve-accessible-sites";
+import { canOnSite } from "../lib/access";
 
 const DEFAULT_KEY_TTL_DAYS = 365;
 const MAX_ACTIVE_KEYS = 25;
@@ -98,9 +98,11 @@ export function createApiKeysRoutes(deps: Deps): Router {
 				return res.status(400).json({ message: "Select a site for this API key" });
 			}
 
-			const accessible = await resolveAccessibleSites({ models: deps.models, userId });
-			if (!accessible.some((site) => site.id === siteId)) {
-				return res.status(403).json({ message: "You do not have access to that site" });
+			// Keys are a site admin's tool. A key always acts as the person who made it, so it never
+			// does more than they can do at the time it is used, whatever permissions it lists.
+			if (!(await canOnSite({ models: deps.models, userId, siteId, action: "manage_site" }))) {
+				console.warn({ atFunction: "apiKeys.create", data: { userId, siteId }, message: "Refused: only site admins make API keys" });
+				return res.status(403).json({ message: "Only this site's admins can make API keys." });
 			}
 
 			const expiresInDays =

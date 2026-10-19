@@ -53,6 +53,9 @@ import { SkipLink } from '@/components/a11y/skip-link';
 import { MotionSidebarPanel } from '@/components/motion/motion-primitives';
 import { EditorColorMemoryProvider } from './color-memory';
 import { EditorPopupsProvider } from './popup-links';
+import { AssistantLockFrame, PageAssistantProvider, type AssistantPageRef } from './assistant';
+import { useOptionalActiveSite } from '@/hooks/useActiveSite';
+import type { BuilderSidebarTab } from './BuilderSidebar';
 
 function useMountEffect(effect: () => void | (() => void)) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -284,6 +287,30 @@ export default function PageBuilder({
     [pushState, replaceCurrentState],
   );
 
+  /**
+   * The assistant's changes. A run's first change opens one history step and its later changes replace
+   * it, so one Undo takes the page back to before the request. Outside the 300ms typing coalesce on purpose.
+   */
+  const applyAssistantBlocks = useCallback(
+    (next: BlockConfig[], { newStep }: { newStep: boolean }) => {
+      isCoalescingRef.current = false;
+      if (coalesceTimerRef.current !== null) {
+        clearTimeout(coalesceTimerRef.current);
+        coalesceTimerRef.current = null;
+      }
+      const resolved = setParentIds(next, null);
+      historyMutationRef.current += 1;
+      pendingDeleteUndoRef.current = null;
+      if (newStep) pushState(resolved);
+      else replaceCurrentState(resolved);
+      lastEmittedRef.current = resolved;
+      onBlocksChangeRef.current?.(resolved, { cause: 'edit' });
+    },
+    [pushState, replaceCurrentState],
+  );
+  const getCurrentBlocks = useCallback(() => currentStateRef.current, []);
+  const assistantLockedRef = useRef(false);
+
   const updateBlockPartial = useCallback(
     (blockId: string, updates: Partial<BlockConfig>) => {
       commitBlocks((prev) => {
@@ -308,7 +335,7 @@ export default function PageBuilder({
   );
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
-  const [activeTab, setActiveTab] = useState<'blocks' | 'settings'>('settings');
+  const [activeTab, setActiveTab] = useState<BuilderSidebarTab>('settings');
   const [hoverHighlight, setHoverHighlight] = useState<
     'padding' | 'margin' | null
   >(null);
@@ -502,6 +529,8 @@ export default function PageBuilder({
 
   useMountEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // The canvas is read-only while the assistant works; its changes are one undo step afterwards.
+      if (assistantLockedRef.current) return;
       const isMod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
 
@@ -825,6 +854,20 @@ export default function PageBuilder({
         }
       : null;
 
+  const activeSiteId = useOptionalActiveSite()?.activeSiteId ?? '';
+  const pageSiteId = (data as { siteId?: string | null } | undefined)?.siteId ?? '';
+  const assistantContentId = resolvedContentType === 'post' ? (currentPostId ?? data?.id) : data?.id;
+  const assistantPage = useMemo<AssistantPageRef | null>(() => {
+    const siteId = pageSiteId || activeSiteId;
+    if (isTemplate || !assistantContentId || !siteId) return null;
+    return { siteId, pageId: String(assistantContentId), contentType: resolvedContentType === 'post' ? 'post' : 'page' };
+  }, [activeSiteId, assistantContentId, isTemplate, pageSiteId, resolvedContentType]);
+
+  const selectBlockForAssistant = useCallback((id: string) => {
+    setSelectedBlockId(id);
+    if (id !== editingBlockIdRef.current) setEditingBlockId(null);
+  }, []);
+
   return (
     <div className="npb-editor-shell flex h-full min-h-0 flex-col bg-npb-canvas-bg">
       <SkipLink href="#builder-canvas">Skip to canvas</SkipLink>
@@ -892,6 +935,13 @@ export default function PageBuilder({
               </div>
             );
           }}>
+          <PageAssistantProvider
+            page={assistantPage}
+            getBlocks={getCurrentBlocks}
+            applyBlocks={applyAssistantBlocks}
+            selectedBlockId={selectedBlockId}
+            selectBlock={selectBlockForAssistant}
+            lockedRef={assistantLockedRef}>
           <div className="flex min-h-0 flex-1">
             {sidebarVisible ? (
               <MotionSidebarPanel visible={sidebarVisible} className="h-full shrink-0">
@@ -911,7 +961,7 @@ export default function PageBuilder({
                 />
               </MotionSidebarPanel>
             ) : null}
-            <div className="npb-editor-main flex min-h-0 min-w-0 flex-1 flex-col">
+            <AssistantLockFrame className="npb-editor-main flex min-h-0 min-w-0 flex-1 flex-col">
               <BuilderTopBar
                 data={data}
                 isTemplate={isTemplate}
@@ -976,8 +1026,9 @@ export default function PageBuilder({
                   </MotionSidebarPanel>
                 ) : null}
               </div>
-            </div>
+            </AssistantLockFrame>
           </div>
+          </PageAssistantProvider>
         </DragDropContext>
         <PageSettingsModal
           key={`${data?.id ?? ''}:${pageSettingsOpen}`}

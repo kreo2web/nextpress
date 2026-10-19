@@ -7,14 +7,8 @@ import {
 	postListPublicSort,
 	readPostListContent,
 } from "@shared/bind-post-list";
+import { formatPostListDate } from "@shared/post-info-date";
 
-function formatListDate(iso: string): string {
-	return new Date(iso).toLocaleDateString(undefined, {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
-}
 
 /**
  * Post List — published posts when bound; otherwise empty (no dummy titles).
@@ -92,7 +86,7 @@ export function PostListBlock(block: BlockConfig) {
 								) : null}
 								{(data.showDate || data.showAuthor) && (post.publishedAt || post.authorName) ? (
 									<small className="np-post-list__meta">
-										{data.showDate && post.publishedAt ? formatListDate(post.publishedAt) : null}
+										{data.showDate && post.publishedAt ? formatPostListDate(post.publishedAt, data.timeZone ?? undefined) : null}
 										{data.showDate && data.showAuthor && post.publishedAt && post.authorName ? " · " : null}
 										{data.showAuthor ? post.authorName : null}
 									</small>

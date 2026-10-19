@@ -65,6 +65,8 @@ type PublishedSite = {
 	discourageIndexing?: boolean;
 	descriptionFrom?: string;
 	logoUrl?: string;
+	/** Settings → Reading → RSS feed is on. */
+	hasFeed?: boolean;
 };
 
 type BuildPublishedPageHtmlParams = {
@@ -211,6 +213,7 @@ export function buildPublishedPageHtml({
 		noIndex: seo.noIndex === true || site?.discourageIndexing === true,
 		customMeta: seo.customMeta,
 		socialMeta: renderPublishedSocialMeta(meta),
+		...(site?.hasFeed ? { feed: { title: site.name || 'Feed', href: `${(site.url || '').replace(/\/+$/, '')}/feed` } } : {}),
 	};
 
 	return PageTemplate(

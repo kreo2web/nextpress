@@ -2,7 +2,8 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { CoverSettings } from "../components/PageBuilder/blocks/cover/cover-settings";
-import { DEFAULT_DATA, type CoverData } from "../components/PageBuilder/blocks/cover/cover-model";
+import { type CoverData } from "../components/PageBuilder/blocks/cover/cover-model";
+import { COVER_DEFAULT_DATA as DEFAULT_DATA } from "@shared/block-catalog/media-blocks";
 import type { BlockConfig, BlockContent } from "@shared/schema-types";
 
 vi.mock("../components/PageBuilder/blocks/shared/media-url-field", () => ({

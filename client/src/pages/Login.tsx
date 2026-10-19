@@ -19,6 +19,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff } from 'lucide-react';
 import { BrandedFormLayout } from '@/components/auth';
 import { authClient } from '@/lib/auth-client';
+import { readSafeNextPath } from '@/lib/safe-next-path';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -70,7 +71,7 @@ export default function Login() {
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      setLocation('/admin/dashboard');
+      setLocation(readSafeNextPath(window.location.search) ?? '/admin/dashboard');
     } catch (error) {
       toast({
         title: 'Error',

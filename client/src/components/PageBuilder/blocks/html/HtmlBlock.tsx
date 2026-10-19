@@ -7,6 +7,8 @@ import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { useSettingsState } from "../useSettingsState";
 import { sanitizeHtml } from "../../utils";
+import { HTML_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -17,10 +19,7 @@ type HtmlContent = {
   className?: string;
 };
 
-const DEFAULT_CONTENT: HtmlContent = {
-  content: '<div class="custom-element">\n  <!-- Your HTML here -->\n</div>',
-  className: '',
-};
+const DEFAULT_CONTENT: HtmlContent = HTML_DEFAULT_CONTENT;
 
 // ============================================================================
 // RENDERER
@@ -120,15 +119,9 @@ function HtmlSettings({ block, onUpdate }: HtmlSettingsProps) {
 // ============================================================================
 
 const HtmlBlock = createBlockDefinition<HtmlContent>({
-  id: 'core/html',
-  label: 'Custom HTML',
+  ...catalogMeta('core/html'),
   icon: HtmlIcon,
-  description: 'Add custom HTML code',
-  category: 'advanced',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    margin: '1em 0',
-  },
   settings: HtmlSettings,
   hasSettings: true,
   render: ({ content, styles, isPreview }) => (

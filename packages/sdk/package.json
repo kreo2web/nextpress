@@ -1,6 +1,6 @@
 {
   "name": "@nextpress-org/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Official NextPress SDK for managing content, pages, posts, and blocks programmatically",
   "type": "module",
   "license": "MIT",
@@ -43,7 +43,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/check-dist.mjs",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:bun": "bun vitest run",
@@ -52,7 +52,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "prepublishOnly": "tsup"
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "slang-ts": "0.0.7",

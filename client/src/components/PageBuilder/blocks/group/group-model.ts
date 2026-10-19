@@ -3,6 +3,8 @@
  * No React here — see `group-settings.tsx` for the UI.
  */
 
+import { GROUP_DEFAULT_CONTENT } from "@shared/block-catalog/layout-blocks";
+
 /** Semantic content only — layout CSS lives on `block.styles`. */
 export type GroupSemanticContent = {
   tagName?: string;
@@ -37,10 +39,7 @@ export type GroupContent = GroupSemanticContent & {
   height?: string;
 };
 
-export const DEFAULT_SEMANTIC_CONTENT: GroupSemanticContent = {
-  tagName: "div",
-  className: "",
-};
+export const DEFAULT_SEMANTIC_CONTENT: GroupSemanticContent = GROUP_DEFAULT_CONTENT;
 
 /** @deprecated Use DEFAULT_SEMANTIC_CONTENT — layout defaults are on styles. */
 export const DEFAULT_CONTENT: GroupContent = {

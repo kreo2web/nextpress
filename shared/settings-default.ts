@@ -1,9 +1,8 @@
 /**
- * Default site-wide settings structure
- * 
- * Used as fallback when sites.settings is empty or incomplete.
- * Date/time formats use date-fns tokens.
- * Timezone uses IANA standard identifiers.
+ * Default settings for one site, used when `sites.settings` is empty or missing a value.
+ * Every switch here does something on the server for its own site only; switches that did nothing
+ * (writing, system, email, default role) were removed on 2026-10-19. Old stored values are ignored.
+ * Timezone uses IANA identifiers.
  */
 export const DEFAULT_SETTINGS = {
   general: {
@@ -11,17 +10,11 @@ export const DEFAULT_SETTINGS = {
     siteDescription: 'WordPress-Compatible CMS',
     siteUrl: '',
     adminEmail: '',
+    /** Post dates on published pages are shown in this timezone. */
     timezone: 'UTC',
-    dateFormat: 'LLLL d, yyyy',  // September 21, 2025
-    timeFormat: 'h:mm a',        // 3:45 pm
-  },
-  writing: {
-    richTextEnabled: true,
-    autosaveEnabled: true,
-    syntaxHighlighting: true,
   },
   reading: {
-    postsPerPage: 10,
+    /** How many recent posts the site's RSS feed lists. */
     rssPosts: 10,
     rssEnabled: true,
     discourageSearchIndexing: false,
@@ -29,19 +22,10 @@ export const DEFAULT_SETTINGS = {
   },
   discussion: {
     enableComments: true,
+    /** New comments wait for approval. */
     moderateComments: true,
-    emailNotifications: true,
+    /** "Let visitors create an account": accounts made this way can only comment. */
     enableRegistration: false,
-    defaultRole: 'subscriber',
-  },
-  system: {
-    cachingEnabled: true,
-    compressionEnabled: true,
-    securityHeadersEnabled: true,
-    debugMode: false,
-    restApiEnabled: true,
-    graphqlEnabled: false,
-    webhooksEnabled: false,
   },
 } as const;
 

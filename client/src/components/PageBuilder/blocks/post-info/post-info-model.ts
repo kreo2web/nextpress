@@ -1,6 +1,6 @@
 /**
- * Post Info block data model: content shape, meta type, defaults, constants, and
- * pure date/read-time helpers. No React here — see `post-info-settings.tsx` for
+ * Post Info block data model: content shape, meta type, constants, and
+ * pure date/read-time helpers. Defaults live in shared/block-catalog. No React here — see `post-info-settings.tsx` for
  * the UI and `PostInfoBlock.tsx` for the renderer (which owns the data fetch).
  */
 
@@ -29,17 +29,6 @@ export type PostMeta = {
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
-export const DEFAULT_CONTENT: PostInfoContent = {
-  postId: '',
-  showDate: true,
-  showCategories: true,
-  showTags: true,
-  showReadTime: true,
-  dateFormat: 'long',
-  layout: 'inline',
-  className: '',
-};
 
 export const PLACEHOLDER_META: PostMeta = {
   publishedAt: '2025-01-15T00:00:00Z',

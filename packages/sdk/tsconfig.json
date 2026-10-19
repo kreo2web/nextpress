@@ -14,7 +14,8 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "isolatedModules": true,
-    "rootDir": "src",
+    "rootDir": "../..",
+    "paths": { "@shared/*": ["../../shared/*"] },
     "outDir": "dist"
   },
   "include": ["src/**/*.ts"],

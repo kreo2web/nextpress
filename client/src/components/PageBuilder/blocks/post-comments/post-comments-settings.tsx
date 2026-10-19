@@ -3,7 +3,8 @@ import type { BlockConfig } from '@shared/schema-types';
 import { SettingsLabel, SettingsSection } from '../../shared';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { type PostCommentsContent, DEFAULT_CONTENT } from './post-comments-model';
+import { type PostCommentsContent } from './post-comments-model';
+import { POST_COMMENTS_DEFAULT_CONTENT as DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
 
 /** Sidebar settings panel for the post comments block. */
 export function PostCommentsSettings({

@@ -35,13 +35,17 @@ describe("block builder overrides", () => {
 		const block = blocks.html({
 			value: '<p onclick="x">Hi</p><script>bad()</script>',
 		});
-		expect(block.content).toMatchObject({
-			kind: "html",
-			sanitized: true,
-		});
-		if (block.content?.kind === "html") {
-			expect(block.content.value).not.toContain("<script");
-			expect(block.content.value).not.toContain("onclick");
-		}
+		const data = block.content?.kind === "structured" ? block.content.data : {};
+		expect(typeof data.content).toBe("string");
+		expect(data.content).toContain("<p>Hi</p>");
+		expect(data.content).not.toContain("<script");
+		expect(data.content).not.toContain("onclick");
+	});
+
+	it("keeps core/html content as given when sanitized is false", () => {
+		const raw = '<p onclick="x">Hi</p>';
+		const block = blocks.html({ value: raw, sanitized: false });
+		const data = block.content?.kind === "structured" ? block.content.data : {};
+		expect(data.content).toBe(raw);
 	});
 });

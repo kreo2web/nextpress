@@ -12,6 +12,8 @@ import { useSettingsState } from "../useSettingsState";
 import { sanitizeHtml } from "@shared/sanitize-html";
 import { readTextAlign } from "@shared/text-align";
 import { headingAnchorId } from "@shared/page-headings";
+import { HEADING_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -29,13 +31,7 @@ type HeadingContent = BlockContent & {
 // CONSTANTS & DATA
 // ============================================================================
 
-const DEFAULT_CONTENT: HeadingContent = {
-  kind: "text",
-  value: "Your heading here",
-  level: 2,
-  anchor: "",
-  className: "",
-};
+const DEFAULT_CONTENT: HeadingContent = HEADING_DEFAULT_CONTENT;
 
 const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
 
@@ -190,15 +186,9 @@ function LegacyHeadingSettings({ block, onUpdate }: HeadingSettingsProps) {
 // ============================================================================
 
 export const HeadingBlock = createBlockDefinition<HeadingContent>({
-  id: "core/heading",
-  label: "Heading",
+  ...catalogMeta("core/heading"),
   icon: Heading1,
-  description: "Add a heading text",
-  category: "basic",
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    margin: "0",
-  },
   settings: LegacyHeadingSettings,
   hasSettings: true,
   render: ({ content, styles, isEditing, setContent }) => (

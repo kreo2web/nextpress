@@ -78,15 +78,21 @@ async function main(): Promise<void> {
 		}),
 		blocks.spacer({ content: { height: "24px" } }),
 		blocks.buttons({
-			children: [
-				blocks.button({ text: "Get started", url: "/admin", linkTarget: "_self" }),
-				blocks.button({
-					text: "View docs",
-					url: "https://github.com/nextpress-org/nextpress",
-					linkTarget: "_blank",
-					styles: { backgroundColor: "#1e293b", color: "#ffffff", padding: "12px 24px", borderRadius: "4px" },
-				}),
-			],
+			settings: {
+				content: {
+					buttons: [
+						{ text: "Get started", url: "/admin", linkTarget: "_self" },
+						{
+							text: "View docs",
+							url: "https://github.com/nextpress-org/nextpress",
+							linkTarget: "_blank",
+							backgroundColor: "#1e293b",
+							color: "#ffffff",
+							borderRadius: "4px",
+						},
+					],
+				},
+			},
 		}),
 		blocks.separator(),
 		blocks.quote({

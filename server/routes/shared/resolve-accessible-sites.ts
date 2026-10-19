@@ -1,5 +1,5 @@
 import type { Deps } from "./deps";
-import type { Site } from "@shared/schema-types";
+import { listWorkableSites } from "../../lib/access/workable-sites";
 import { readSiteAddress } from "../../utils/site-address";
 
 export type SiteListItem = {
@@ -10,42 +10,15 @@ export type SiteListItem = {
 };
 
 /**
- * Sites the current user may manage (owned or role-assigned).
- * Falls back to the default site when none are linked yet.
+ * Sites the current person works on in the dashboard (editor or above, owned, or every site for a
+ * main-site admin). A subscriber role or no role at all gives none.
  */
 export const resolveAccessibleSites = async (params: {
-	models: Pick<Deps["models"], "sites" | "userRoles">;
+	models: Pick<Deps["models"], "sites" | "roles" | "userRoles">;
 	userId: string;
 }): Promise<SiteListItem[]> => {
-	const { models, userId } = params;
-	const byId = new Map<string, Site>();
-
-	const ownedSites = await models.sites.findByOwner(userId);
-	for (const site of ownedSites) {
-		byId.set(site.id, site);
-	}
-
-	const roleAssignments = await models.userRoles.findByUser(userId);
-	const roleSiteIds = [
-		...new Set(
-			roleAssignments
-				.map((assignment) => assignment.siteId)
-				.filter((id): id is string => typeof id === "string" && id.length > 0),
-		),
-	];
-
-	for (const siteId of roleSiteIds) {
-		if (byId.has(siteId)) continue;
-		const site = await models.sites.findById(siteId);
-		if (site) byId.set(site.id, site);
-	}
-
-	if (byId.size === 0) {
-		const defaultSite = await models.sites.findDefaultSite();
-		if (defaultSite) byId.set(defaultSite.id, defaultSite);
-	}
-
-	return [...byId.values()]
+	const sites = await listWorkableSites(params);
+	return sites
 		.map((site) => ({
 			id: site.id,
 			name: site.name ?? null,

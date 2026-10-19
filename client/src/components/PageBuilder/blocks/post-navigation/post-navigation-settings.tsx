@@ -3,7 +3,8 @@ import type { BlockConfig } from '@shared/schema-types';
 import { SettingsLabel, SettingsSection } from '../../shared';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { type PostNavigationContent, DEFAULT_CONTENT } from './post-navigation-model';
+import { type PostNavigationContent } from './post-navigation-model';
+import { POST_NAVIGATION_DEFAULT_CONTENT as DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
 
 // ============================================================================
 // SETTINGS COMPONENT

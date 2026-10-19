@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ListFilter, Plus, Trash2 } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import { SelectFieldView, selectOptionsWithLabels } from "@shared/select-field-view";
 import { BlockShell } from "../shared/block-shell";
 import { SettingsLabel } from "../../shared";
@@ -139,13 +140,9 @@ function SelectSettings({
 }
 
 const SelectBlock = createBlockDefinition<SelectFieldContent>({
-	id: "core/select",
-	label: "Dropdown",
+	...catalogMeta("core/select"),
 	icon: ListFilter,
-	description: "Select one option from a list",
-	category: "form",
 	defaultContent: DEFAULT_SELECT_CONTENT,
-	defaultStyles: DEFAULT_FORM_FIELD_STYLES,
 	settings: SelectSettings,
 	hasSettings: true,
 	render: ({ content, styles, value }) => <SelectRenderer content={content} styles={styles} blockId={value.id} />,

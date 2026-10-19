@@ -26,8 +26,10 @@ const findByOwner = vi.fn();
 const findById = vi.fn();
 const findDefaultSite = vi.fn();
 const findByUser = vi.fn();
+const findRolesWhere = vi.fn();
 const models = {
 	sites: { findByOwner, findById, findDefaultSite },
+	roles: { findManyWhere: findRolesWhere },
 	userRoles: { findByUser },
 } as unknown as Deps["models"];
 
@@ -50,6 +52,7 @@ describe("non-public content list access", () => {
 			},
 		]);
 		findByUser.mockResolvedValue([]);
+		findRolesWhere.mockResolvedValue([]);
 		findById.mockResolvedValue(undefined);
 		findDefaultSite.mockResolvedValue(undefined);
 		vi.mocked(getRequestAuthSiteId).mockReturnValue(undefined);

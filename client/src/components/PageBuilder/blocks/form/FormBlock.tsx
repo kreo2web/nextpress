@@ -1,48 +1,12 @@
-import type { BlockConfig, BlockContent } from "@shared/schema-types";
+import type { BlockConfig } from "@shared/schema-types";
 import { Send } from "lucide-react";
-import { DEFAULT_FORM_CONTENT, FORM_BLOCK_NAME, readFormContent, type FormContent } from "@shared/form-model";
+import { DEFAULT_FORM_CONTENT, readFormContent, type FormContent } from "@shared/form-model";
 import { FormHiddenFields } from "@shared/form-hidden-fields";
 import { ContainerChildren } from "../../BlockRenderer";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { FormSettings } from "./form-settings";
+import { catalogMeta } from "../catalog-meta";
 import { buildGroupShellStyles, readGroupShellContent } from "@shared/group-shell-styles";
-
-const UNITS = { spacing: "px", font: "rem", dimension: "px", border: "px" } as const;
-
-/** A new form asks for a name, an email and a message, with a Send button that submits it. */
-function buildStarterFormChildren({ parentId, newId }: { parentId: string; newId: () => string }): BlockConfig[] {
-	const base = { parentId, type: "block" as const, settings: {}, other: { tokenMap: {}, units: { ...UNITS } } };
-	const field = (name: string, blockName: string, label: string, data: Record<string, unknown>): BlockConfig => ({
-		...base,
-		id: newId(),
-		name: blockName,
-		label,
-		category: "form",
-		content: { kind: "structured", data: { name, label, ...data } },
-		styles: {},
-	});
-	// Same shape the button block reads: text plus what the button does.
-	const sendContent: BlockContent & { action: "submit"; url: string } = { kind: "text", value: "Send", action: "submit", url: "" };
-	return [
-		field("name", "core/input", "Text field", { label: "Your name", type: "text", placeholder: "e.g. John Doe" }),
-		field("email", "core/input", "Text field", {
-			label: "Your email",
-			type: "email",
-			placeholder: "e.g. john@acme.com",
-			required: true,
-		}),
-		field("message", "core/textarea", "Text area", { label: "Message", placeholder: "Text here", rows: 4 }),
-		{
-			...base,
-			id: newId(),
-			name: "core/button",
-			label: "Button",
-			category: "basic",
-			content: sendContent,
-			styles: {},
-		},
-	];
-}
 
 type FormCanvasProps = {
 	hostBlock: BlockConfig;
@@ -94,27 +58,10 @@ function FormCanvas({ hostBlock, content, isPreview, onNestedBlockChange }: Form
 }
 
 const FormBlock = createBlockDefinition<FormContent>({
-	id: FORM_BLOCK_NAME,
-	label: "Form",
+	...catalogMeta("core/form"),
 	icon: Send,
-	description: "Collect sign-ups and messages; they appear in Forms",
-	category: "form",
-	isContainer: true,
 	handlesOwnChildren: true,
 	defaultContent: DEFAULT_FORM_CONTENT,
-	// Same starting point as a Group, so the Layout panel shows direction, gap and alignment at once;
-	// fields stretch to the form's width.
-	defaultStyles: {
-		width: "100%",
-		boxSizing: "border-box",
-		display: "flex",
-		flexDirection: "column",
-		gap: "12px",
-		alignItems: "stretch",
-		justifyContent: "flex-start",
-		margin: "0",
-	},
-	defaultChildren: buildStarterFormChildren,
 	parseContent: (raw) => readFormContent(raw),
 	settings: FormSettings,
 	hasSettings: true,

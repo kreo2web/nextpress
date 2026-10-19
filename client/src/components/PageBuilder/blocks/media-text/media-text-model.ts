@@ -1,14 +1,10 @@
 /**
- * Media & Text block data model: data/content shapes and defaults. No React here
+ * Media & Text block data model: data/content shapes. Defaults live in shared/block-catalog. No React here
  * — see `media-text-settings.tsx` for the UI and `MediaTextBlock.tsx` for the
  * renderer.
  */
 
 import type { BlockContent } from "@shared/schema-types";
-import {
-  PLACEHOLDER_IMAGE_ALT,
-  PLACEHOLDER_IMAGE_URL,
-} from "@shared/placeholder-image";
 
 // ============================================================================
 // TYPES
@@ -35,32 +31,4 @@ export type MediaTextData = {
 
 export type MediaTextContent = BlockContent & {
   data?: MediaTextData;
-};
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-export const DEFAULT_DATA: MediaTextData = {
-  mediaId: undefined,
-  mediaUrl: PLACEHOLDER_IMAGE_URL,
-  mediaType: 'image',
-  mediaAlt: PLACEHOLDER_IMAGE_ALT,
-  mediaPosition: 'left',
-  mediaWidth: 50,
-  isStackedOnMobile: true,
-  imageFill: false,
-  verticalAlignment: 'center',
-  href: '',
-  linkTarget: '_self',
-  rel: '',
-  title: '',
-  content: '<p>Add your content…</p>',
-  anchor: '',
-  className: '',
-};
-
-export const DEFAULT_CONTENT: MediaTextContent = {
-  kind: 'structured',
-  data: DEFAULT_DATA,
 };

@@ -12,10 +12,11 @@ import { createBlockDefinition } from '../createBlockDefinition';
 import { BlockShell } from '../shared/block-shell';
 import { usePostDocument } from '../../PageContext';
 import {
-  DEFAULT_EXCERPT_MAX_LENGTH,
   DEFAULT_READ_MORE_TEXT,
   truncateExcerpt,
 } from '@shared/excerpt-display';
+import { POST_EXCERPT_DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
+import { catalogMeta } from '../catalog-meta';
 
 // ============================================================================
 // TYPES
@@ -33,13 +34,7 @@ export type PostExcerptContent = {
 // CONSTANTS
 // ============================================================================
 
-const DEFAULT_CONTENT: PostExcerptContent = {
-  text: 'This is a brief summary of the post content that gives readers a preview of what to expect...',
-  maxLength: DEFAULT_EXCERPT_MAX_LENGTH,
-  showReadMore: true,
-  readMoreText: DEFAULT_READ_MORE_TEXT,
-  className: '',
-};
+const DEFAULT_CONTENT: PostExcerptContent = POST_EXCERPT_DEFAULT_CONTENT;
 
 const MAX_LENGTH_MIN = 50;
 const MAX_LENGTH_MAX = 500;
@@ -221,13 +216,9 @@ function PostExcerptSettings({ block, onUpdate }: PostExcerptSettingsProps) {
  * Content is edited on the canvas or in the sidebar.
  */
 const PostExcerptBlock = createBlockDefinition<PostExcerptContent>({
-  id: 'post/excerpt',
-  label: 'Post Excerpt',
+  ...catalogMeta('post/excerpt'),
   icon: FileText,
-  description: 'Display a summary excerpt of the post',
-  category: 'post',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '0' },
   settings: PostExcerptSettings,
   hasSettings: true,
   render: ({ content, styles, setContent, isPreview }) => (

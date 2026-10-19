@@ -388,6 +388,32 @@ export const formSubmissions = pgTable(
 	(table) => [index("form_submissions_site_created_idx").on(table.siteId, table.createdAt)],
 );
 
+/**
+ * Invite links. An admin picks a site, a role, how many people may use the link (null = no limit)
+ * and when it ends (null = never). The code is kept so the admin can copy the link again.
+ */
+export const invites = pgTable(
+	"invites",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		siteId: uuid("site_id")
+			.references(() => sites.id, { onDelete: "cascade" })
+			.notNull(),
+		roleId: uuid("role_id")
+			.references(() => roles.id, { onDelete: "cascade" })
+			.notNull(),
+		code: varchar("code").notNull().unique(),
+		note: varchar("note"),
+		maxUses: integer("max_uses"),
+		uses: integer("uses").notNull().default(0),
+		expiresAt: timestamp("expires_at"),
+		createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+		cancelledAt: timestamp("cancelled_at"),
+		createdAt: timestamp("created_at").defaultNow(),
+	},
+	(table) => [index("invites_site_idx").on(table.siteId)],
+);
+
 // Todo: add relations and set them with drizzle relations
 export const usersRelations = relations(users, ({ many }) => ({
 	posts: many(posts),

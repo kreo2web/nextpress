@@ -15,6 +15,8 @@ import { Code as CodeIcon, Copy as CopyIcon, Check } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { useSettingsState } from "../useSettingsState";
+import { CODE_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -29,14 +31,7 @@ export type CodeContent = {
   showCopyButton?: boolean;
 };
 
-const DEFAULT_CONTENT: CodeContent = {
-  content: '// Write your code here\nfunction hello() {\n  console.log("Hello, World!");\n}',
-  language: "javascript",
-  className: "",
-  showLineNumbers: false,
-  wrapLines: true,
-  showCopyButton: false,
-};
+const DEFAULT_CONTENT: CodeContent = CODE_DEFAULT_CONTENT;
 
 const POPULAR_LANGUAGES = [
   { value: "javascript", label: "JavaScript" },
@@ -309,15 +304,9 @@ function CodeSettings({ block, onUpdate }: CodeSettingsProps) {
 // ============================================================================
 
 const CodeBlock = createBlockDefinition<CodeContent>({
-  id: "core/code",
-  label: "Code",
+  ...catalogMeta("core/code"),
   icon: CodeIcon,
-  description: "Display code with language tagging and line numbers",
-  category: "advanced",
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    margin: "1em 0",
-  },
   settings: CodeSettings,
   hasSettings: true,
   render: ({ content, styles, isEditing, setContent }) => (

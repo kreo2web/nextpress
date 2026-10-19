@@ -1,11 +1,13 @@
 import type { HttpClient } from "../client/http-client.js";
 import { parseInput } from "../client/validate-input.js";
+import { copyBrandLogoSchema } from "../schemas/brand-logo.js";
 import {
 	idParamSchema,
 	listMediaQuerySchema,
 	updateMediaSchema,
 	uploadMediaSchema,
 } from "../schemas/index.js";
+import type { CopyBrandLogoInput } from "../types/brand-logo.js";
 import type { DeleteMessage, Media, PaginatedResponse } from "../types/domain.js";
 import type { ListMediaQuery, UpdateMediaInput, UploadMediaInput } from "../types/inputs.js";
 
@@ -20,6 +22,13 @@ export type MediaResource = {
 	update: (params: { id: string } & UpdateMediaInput) => Promise<Media>;
 	/** Remove orphaned assets from the library. */
 	delete: (params: { id: string }) => Promise<DeleteMessage>;
+	/**
+	 * Save a brand logo from svgl.app into this site's library, then use the returned `url` in an
+	 * image or icon block. Use it instead of hot-linking: the site serves its own copy. Asking for
+	 * the same logo again returns the copy already saved. Only `https://svgl.app/library/*.svg`
+	 * addresses are accepted; anything else fails before the request.
+	 */
+	copyBrandLogo: (input: CopyBrandLogoInput) => Promise<Media>;
 };
 
 export function createMediaResource({ http }: { http: HttpClient }): MediaResource {
@@ -71,6 +80,16 @@ export function createMediaResource({ http }: { http: HttpClient }): MediaResour
 		delete: async ({ id }: { id: string }): Promise<DeleteMessage> => {
 			parseInput({ schema: idParamSchema, input: { id }, label: "media.delete id" });
 			return http.request(`/api/media/${id}`, { method: "DELETE" });
+		},
+
+		/** Save a brand logo from svgl.app into this site's library (see {@link MediaResource.copyBrandLogo}). */
+		copyBrandLogo: async (input: CopyBrandLogoInput): Promise<Media> => {
+			const body = parseInput({
+				schema: copyBrandLogoSchema,
+				input,
+				label: "media.copyBrandLogo input",
+			});
+			return http.request("/api/media/svgl", { method: "POST", body });
 		},
 	};
 }

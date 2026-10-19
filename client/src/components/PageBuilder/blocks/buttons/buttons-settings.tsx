@@ -5,6 +5,7 @@ import { SettingsDisclosure, SettingsLabel, SettingsSection } from "../../shared
 import { SettingsChipGroup } from "../../settings-chip-group";
 import { LinkTargetChips } from "../shared/link-settings";
 import { Plus, Trash2 } from "lucide-react";
+import { BUTTONS_DEFAULT_DATA } from "@shared/block-catalog/layout-blocks";
 import { useSettingsState } from "../useSettingsState";
 import ColorField from "../../ColorField";
 import {
@@ -84,22 +85,7 @@ function hasItemLook(button: ButtonItem): boolean {
 	);
 }
 
-export const DEFAULT_DATA: ButtonsData = {
-	buttons: [
-		{
-			id: "btn-1",
-			text: "Click Me",
-			url: "#",
-			linkTarget: "_self",
-			rel: "",
-			title: "",
-			className: "",
-		},
-	],
-	layout: "flex-start",
-	orientation: "horizontal",
-	className: "",
-};
+export const DEFAULT_DATA: ButtonsData = BUTTONS_DEFAULT_DATA;
 
 export function ButtonsSettings({
 	block,

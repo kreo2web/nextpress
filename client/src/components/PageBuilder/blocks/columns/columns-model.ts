@@ -3,22 +3,11 @@
  * (clone, redistribute, remove). No React here — see `columns-settings.tsx`.
  */
 import type { BlockConfig, BlockContent } from "@shared/schema-types";
+import { COLUMNS_DEFAULT_CONTENT } from "@shared/block-catalog/layout-blocks";
 import { generateBlockId } from "../../utils";
 import type { ColumnLayout, ColumnsContent } from "@shared/columns-layout";
 
-export const DEFAULT_CONTENT: ColumnsContent = {
-  kind: "structured",
-  data: {
-    layoutMode: "flex",
-    gap: "20px",
-    minColumnWidth: "220px",
-    verticalAlignment: "top",
-    horizontalAlignment: "left",
-    direction: "row",
-    columnVerticalAlignment: "top",
-    columnHorizontalAlignment: "stretch",
-  },
-};
+export const DEFAULT_CONTENT: ColumnsContent = COLUMNS_DEFAULT_CONTENT;
 
 /**
  * Scopes editor droppable IDs by block and position so legacy duplicate column

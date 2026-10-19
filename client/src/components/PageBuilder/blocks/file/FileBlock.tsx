@@ -11,6 +11,8 @@ import { useSettingsState } from "../useSettingsState";
 import { SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
 import { LinkTargetSelect } from "../shared/link-settings";
+import { catalogMeta } from "../catalog-meta";
+import { FILE_DEFAULT_CONTENT, FILE_DEFAULT_DATA } from "@shared/block-catalog/media-blocks";
 
 // ============================================================================
 // TYPES
@@ -32,22 +34,7 @@ type FileContent = BlockContent & {
   data?: FileData;
 };
 
-const DEFAULT_DATA: FileData = {
-  href: '',
-  fileName: '',
-  textLinkHref: '',
-  textLinkTarget: '_self',
-  showDownloadButton: true,
-  downloadButtonText: 'Download',
-  displayPreview: true,
-  fileSize: '',
-  className: '',
-};
-
-const DEFAULT_CONTENT: FileContent = {
-  kind: 'structured',
-  data: DEFAULT_DATA,
-};
+const DEFAULT_DATA: FileData = FILE_DEFAULT_DATA;
 
 // ============================================================================
 // UTILITIES
@@ -280,15 +267,9 @@ function FileSettings({ block, onUpdate }: FileSettingsProps) {
 // ============================================================================
 
 const FileBlock = createBlockDefinition<FileContent>({
-  id: 'core/file',
-  label: 'File',
+  ...catalogMeta('core/file'),
   icon: FileIcon,
-  description: 'Add a link to a downloadable file',
-  category: 'media',
-  defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    margin: '1em 0',
-  },
+  defaultContent: FILE_DEFAULT_CONTENT,
   settings: FileSettings,
   hasSettings: true,
   render: ({ content, styles }) => <FileRenderer content={content} styles={styles} />,

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { Deps } from './shared/deps';
 import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
+import { assertCanChangeTheme, assertCanMakeTheme } from '../lib/access';
 import { readPublicSiteIdHint, resolvePublicSite } from './shared/resolve-public-site';
 import { getRequestAuthSiteId } from '../auth';
 import { themeSettingsSchema, parseThemeSettings, DEFAULT_THEME_SETTINGS } from '@shared/theme-settings';
@@ -72,7 +73,7 @@ export function createThemesRoutes(deps: Deps) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      const site = await resolveRequestSite({ models, req, userId });
+      const site = await resolveRequestSite({ models, req, userId, need: 'manage_site' });
       const theme = await models.themes.findById(req.params.id);
       if (!theme) {
         return res.status(404).json({ message: 'Theme not found' });
@@ -104,6 +105,8 @@ export function createThemesRoutes(deps: Deps) {
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
+
+      await assertCanMakeTheme({ models, userId });
 
       const parsed = createThemeInputSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -174,6 +177,8 @@ export function createThemesRoutes(deps: Deps) {
         return res.status(403).json({ message: 'The built-in Default theme cannot be edited' });
       }
 
+      await assertCanChangeTheme({ models, userId, theme: existing });
+
       const parsed = updateThemeInputSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: 'Invalid theme update' });
@@ -227,6 +232,8 @@ export function createThemesRoutes(deps: Deps) {
       if (isSystemDefaultTheme(existing)) {
         return res.status(403).json({ message: 'The built-in Default theme cannot be edited' });
       }
+
+      await assertCanChangeTheme({ models, userId, theme: existing });
 
       const parsedBody = themeSettingsSchema.safeParse(req.body?.settings ?? req.body);
       if (!parsedBody.success) {

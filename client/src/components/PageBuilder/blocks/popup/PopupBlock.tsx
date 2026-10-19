@@ -11,36 +11,8 @@ import {
 import { ContainerChildren } from "../../BlockRenderer";
 import { usePagePopups } from "../../popup-links";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import { PopupSettings } from "./popup-settings";
-
-const UNITS = { spacing: "px", font: "rem", dimension: "px", border: "px" } as const;
-
-/** A new popup starts with a heading and a line of text to replace. */
-function buildStarterPopupChildren({ parentId, newId }: { parentId: string; newId: () => string }): BlockConfig[] {
-	const base = { parentId, settings: {}, other: { tokenMap: {}, units: { ...UNITS } } };
-	return [
-		{
-			...base,
-			id: newId(),
-			name: "core/heading",
-			label: "Heading",
-			type: "block",
-			category: "basic",
-			content: { kind: "text", value: "Stay in the loop", level: 2 },
-			styles: { margin: "0 0 8px", fontSize: "1.5rem", fontWeight: "600" },
-		},
-		{
-			...base,
-			id: newId(),
-			name: "core/paragraph",
-			label: "Paragraph",
-			type: "block",
-			category: "basic",
-			content: { kind: "text", value: "Tell visitors what they get, then add a button or form." },
-			styles: { margin: "0" },
-		},
-	];
-}
 
 type PopupCanvasProps = {
 	hostBlock: BlockConfig;
@@ -100,16 +72,10 @@ function PopupCanvas({ hostBlock, content, isPreview, onNestedBlockChange }: Pop
 }
 
 const PopupBlock = createBlockDefinition<PopupContent>({
-	id: "core/popup",
-	label: "Popup",
+	...catalogMeta("core/popup"),
 	icon: MessageSquareShare,
-	description: "A window over the page, opened by a button or link",
-	category: "layout",
-	isContainer: true,
 	handlesOwnChildren: true,
 	defaultContent: DEFAULT_POPUP_CONTENT,
-	defaultStyles: { padding: "0", margin: "0" },
-	defaultChildren: buildStarterPopupChildren,
 	parseContent: (raw) => readPopupContent(raw),
 	settings: PopupSettings,
 	hasSettings: true,

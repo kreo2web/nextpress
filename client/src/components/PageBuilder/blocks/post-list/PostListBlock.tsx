@@ -10,16 +10,19 @@ import {
 import {
   type PostListContent,
   type PostItem,
-  DEFAULT_CONTENT,
   buildPlaceholderPosts,
   formatDate,
   readPostListResponse,
 } from './post-list-model';
+import { POST_LIST_DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
+import { catalogMeta } from '../catalog-meta';
 import { PostListSettings } from './post-list-settings';
 import { openOverlayHash, PostListOverlay } from './post-list-overlay';
 import { appendSiteIdToUrl, readVisitorSiteIdHint } from '@/lib/site-api';
 import { useOptionalActiveSite } from '@/hooks/useActiveSite';
 import { isSafePublicMediaUrl } from '@shared/bind-post-list';
+
+const DEFAULT_CONTENT: PostListContent = POST_LIST_DEFAULT_CONTENT;
 
 // ============================================================================
 // RENDERER
@@ -359,13 +362,9 @@ function PostMeta({
 // ============================================================================
 
 const PostListBlock = createBlockDefinition<PostListContent>({
-  id: 'post/list',
-  label: 'Post List',
+  ...catalogMeta('post/list'),
   icon: LayoutList,
-  description: 'Display a list of posts in grid, list, or card layout',
-  category: 'post',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '1em 0' },
   settings: PostListSettings,
   hasSettings: true,
   render: ({ content, styles, isPreview }) => (

@@ -42,6 +42,19 @@ export type RequestOptions = {
 	raw?: boolean;
 	/** When false, omit Bearer auth (for public share-token preview fetches). Default true. */
 	auth?: boolean;
+	/**
+	 * `"file"` returns the body as bytes with its file name and content type (for downloads).
+	 * Errors still become `NextpressError`. Default: JSON or text, by the response's content type.
+	 */
+	responseType?: "auto" | "file";
+};
+
+/** A downloaded file: the bytes plus what the server said about it. */
+export type DownloadedFile = {
+	bytes: Uint8Array;
+	/** Name from the server's `Content-Disposition`, or null when it sent none. */
+	fileName: string | null;
+	contentType: string;
 };
 
 /** Shape returned by block builder helpers. */

@@ -8,7 +8,6 @@ import { MessageSquare } from 'lucide-react';
 import {
   type PostCommentsContent,
   type CommentItem,
-  DEFAULT_CONTENT,
   buildPlaceholderComments,
   formatDate,
   getInitials,
@@ -17,6 +16,10 @@ import { PostCommentsSettings } from './post-comments-settings';
 import { usePostDocument } from '../../PageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
+import { POST_COMMENTS_DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
+import { catalogMeta } from '../catalog-meta';
+
+const DEFAULT_CONTENT: PostCommentsContent = POST_COMMENTS_DEFAULT_CONTENT;
 
 // --- Comment Entry ---
 
@@ -98,13 +101,7 @@ function mapCommentItem(c: {
 }
 
 /** Renders the comment form and posts to the comments API. */
-function CommentForm({
-  postId,
-  publishNow,
-}: {
-  postId: string;
-  publishNow?: boolean;
-}) {
+function CommentForm({ postId }: { postId: string }) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const userName =
@@ -120,6 +117,7 @@ function CommentForm({
   const [body, setBody] = React.useState('');
   const [isSending, setIsSending] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [notice, setNotice] = React.useState('');
 
   const canSend = Boolean(postId && name.trim() && body.trim());
 
@@ -127,21 +125,21 @@ function CommentForm({
     if (!canSend || isSending) return;
     setIsSending(true);
     setError('');
+    setNotice('');
     try {
-      await apiRequest('POST', '/api/comments', {
+      const response = await apiRequest('POST', '/api/comments', {
         postId,
         content: body.trim(),
         authorName: name.trim(),
         authorEmail: email.trim() || undefined,
-        authorId: user && typeof user === 'object' && 'id' in user
-          ? String((user as { id?: string }).id ?? '') || undefined
-          : undefined,
-        ...(publishNow ? { status: 'approved' } : {}),
       });
+      const saved = (await response.json()) as { status?: string };
       setBody('');
+      if (saved.status === 'pending') setNotice('Thanks! Your comment will show once it is approved.');
       await queryClient.invalidateQueries({ queryKey: ['comments', postId] });
-    } catch {
-      setError('Could not post the comment. Try again.');
+    } catch (sendError) {
+      console.error({ atFunction: 'CommentForm.submit', data: { postId, error: sendError }, message: 'Posting a comment failed' });
+      setError(sendError instanceof Error && sendError.message ? sendError.message : 'Could not post the comment. Try again.');
     } finally {
       setIsSending(false);
     }
@@ -176,7 +174,10 @@ function CommentForm({
           onChange={(e) => setBody(e.target.value)}
         />
         {error ? (
-          <p className="text-sm text-npb-status-error">{error}</p>
+          <p className="text-sm text-npb-status-error" role="alert">{error}</p>
+        ) : null}
+        {notice ? (
+          <p className="text-sm text-npb-text-secondary" role="status">{notice}</p>
         ) : null}
         <Button
           size="sm"
@@ -285,7 +286,7 @@ function PostCommentsRenderer({
         </div>
       )}
       {cfg.showForm && postId ? (
-        <CommentForm postId={postId} publishNow={!isPreview} />
+        <CommentForm postId={postId} />
       ) : null}
     </div>
   );
@@ -299,13 +300,9 @@ function PostCommentsRenderer({
  * preview mode fetches real comments from the API.
  */
 const PostCommentsBlock = createBlockDefinition<PostCommentsContent>({
-  id: 'post/comments',
-  label: 'Post Comments',
+  ...catalogMeta('post/comments'),
   icon: MessageSquare,
-  description: 'Display post comments and a comment submission form',
-  category: 'post',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '1em 0' },
   settings: PostCommentsSettings,
   hasSettings: true,
   render: ({ content, styles, isPreview }) => (

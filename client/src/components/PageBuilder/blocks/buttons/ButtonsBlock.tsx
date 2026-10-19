@@ -6,6 +6,7 @@ import { createBlockDefinition } from '../createBlockDefinition';
 import { BlockShell } from '../shared/block-shell';
 import { buttonsGroupStyle } from '@shared/buttons-group-style';
 import { buttonsItemLinkStyle } from '@shared/buttons-item-look';
+import { catalogMeta } from '../catalog-meta';
 import {
   ButtonsSettings,
   DEFAULT_DATA,
@@ -68,13 +69,9 @@ function ButtonsRenderer({ content, styles }: ButtonsRendererProps) {
 }
 
 const ButtonsBlock = createBlockDefinition<ButtonsContent>({
-  id: 'core/buttons',
-  label: 'Buttons',
+  ...catalogMeta('core/buttons'),
   icon: SquareMousePointer,
-  description: 'A row of buttons',
-  category: 'basic',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '1em 0' },
   settings: ButtonsSettings,
   hasSettings: true,
   render: ({ content, styles }) => <ButtonsRenderer content={content} styles={styles} />,

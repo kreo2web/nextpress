@@ -1,4 +1,4 @@
-export { canManageTemplate } from "./template-part-access";
+export { canChangeTemplate, canManageTemplate } from "./template-part-access";
 export { resolvePageTemplateParts } from "./resolve-page-template-parts";
 export {
 	resolveTemplateParts,

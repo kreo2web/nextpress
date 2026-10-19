@@ -9,6 +9,8 @@ import { InlineTextEditor } from "../shared/inline-text-editor";
 import { useSettingsState } from "../useSettingsState";
 import { sanitizeHtml } from "@shared/sanitize-html";
 import { readTextAlign } from "@shared/text-align";
+import { PARAGRAPH_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -23,13 +25,7 @@ type TextBlockContent = BlockContent & {
   dropCap?: boolean;
 };
 
-const DEFAULT_CONTENT: TextBlockContent = {
-  kind: 'text',
-  value: 'Add your text content here. You can edit this text and customize its appearance.',
-  dropCap: false,
-  anchor: '',
-  className: '',
-};
+const DEFAULT_CONTENT: TextBlockContent = PARAGRAPH_DEFAULT_CONTENT;
 
 // ============================================================================
 // RENDERER
@@ -164,16 +160,9 @@ function TextSettings({ block, onUpdate }: TextSettingsProps) {
 // ============================================================================
 
 const TextBlock = createBlockDefinition<TextBlockContent>({
-  id: 'core/paragraph',
-  label: 'Paragraph',
+  ...catalogMeta('core/paragraph'),
   icon: Type,
-  description: 'Add a paragraph of text',
-  category: 'basic',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    fontSize: '16px',
-    lineHeight: '1.6',
-  },
   settings: TextSettings,
   hasSettings: true,
   render: ({ content, styles, isEditing, setContent }) => (

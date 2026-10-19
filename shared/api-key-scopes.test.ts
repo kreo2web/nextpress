@@ -219,6 +219,25 @@ describe("resolveRequiredApiKeyScopes", () => {
 		).toEqual(["system:write"]);
 	});
 
+	it("keeps settings scopes in front of the AI settings routes", () => {
+		expect(
+			resolveRequiredApiKeyScopes({ method: "GET", path: "/api/ai-builder/settings" }),
+		).toEqual(["settings:read"]);
+		expect(
+			resolveRequiredApiKeyScopes({ method: "PUT", path: "/api/ai-builder/settings" }),
+		).toEqual(["settings:write"]);
+		expect(
+			resolveRequiredApiKeyScopes({ method: "DELETE", path: "/api/ai-builder/settings" }),
+		).toEqual(["settings:write"]);
+		expect(
+			resolveRequiredApiKeyScopes({ method: "GET", path: "/api/ai-builder/status" }),
+		).toEqual(["settings:read"]);
+		// A lookalike path is not this feature and stays fail-closed.
+		expect(
+			resolveRequiredApiKeyScopes({ method: "GET", path: "/api/ai-builders" }),
+		).toEqual([...API_KEY_SCOPE_CATALOG.map((entry) => entry.id)]);
+	});
+
 	it("requires full access for unmapped api routes", () => {
 		expect(
 			resolveRequiredApiKeyScopes({ method: "GET", path: "/api/future-endpoint" }),

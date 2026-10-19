@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Deps } from "./shared/deps";
 import { asyncHandler } from "./shared/async-handler";
+import { requireMainSiteAdmin } from "../lib/access";
 import { createPluginInputSchema, pluginNameTaken } from "@shared/plugin-record";
 
 const DEFAULT_PLUGIN_VERSION = "1.0.0";
@@ -18,10 +19,13 @@ function isPluginNameConflict(error: unknown): boolean {
 export function createPluginsRoutes(deps: Deps) {
 	const router = Router();
 	const { models, requireAuth, authService, hooks } = deps;
+	// Plugins run for every site on the install, so only main-site admins see or change them.
+	const mainSiteAdmin = requireMainSiteAdmin({ models });
 
 	router.get(
 		"/plugins",
 		requireAuth,
+		mainSiteAdmin,
 		asyncHandler(async (_req, res) => {
 			const plugins = await models.plugins.findMany();
 			res.json(plugins);
@@ -31,6 +35,7 @@ export function createPluginsRoutes(deps: Deps) {
 	router.post(
 		"/plugins",
 		requireAuth,
+		mainSiteAdmin,
 		asyncHandler(async (req, res) => {
 			const userId = authService.getCurrentUserId(req);
 			if (!userId) {
@@ -81,6 +86,7 @@ export function createPluginsRoutes(deps: Deps) {
 	router.post(
 		"/plugins/:id/activate",
 		requireAuth,
+		mainSiteAdmin,
 		asyncHandler(async (req, res) => {
 			const plugin = await models.plugins.findById(req.params.id);
 			if (!plugin) {
@@ -95,6 +101,7 @@ export function createPluginsRoutes(deps: Deps) {
 	router.post(
 		"/plugins/:id/deactivate",
 		requireAuth,
+		mainSiteAdmin,
 		asyncHandler(async (req, res) => {
 			const plugin = await models.plugins.findById(req.params.id);
 			if (!plugin) {
@@ -109,6 +116,7 @@ export function createPluginsRoutes(deps: Deps) {
 	router.delete(
 		"/plugins/:id",
 		requireAuth,
+		mainSiteAdmin,
 		asyncHandler(async (req, res) => {
 			const plugin = await models.plugins.findById(req.params.id);
 			if (!plugin) {

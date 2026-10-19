@@ -1,12 +1,7 @@
 /**
- * Image block data model: content shape, defaults, and the alignment-button
- * class helper. No React here — see `image-settings.tsx` for the UI.
+ * Image block data model: content shape and the alignment-button class helper.
+ * Defaults live in shared/block-catalog. No React here — see `image-settings.tsx` for the UI.
  */
-
-import {
-  PLACEHOLDER_IMAGE_ALT,
-  PLACEHOLDER_IMAGE_URL,
-} from "@shared/placeholder-image";
 
 // ============================================================================
 // TYPES
@@ -33,23 +28,6 @@ export type ImageContent = {
   intrinsicHeight?: string;
   objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
   aspectRatio?: string;
-};
-
-export const DEFAULT_CONTENT: ImageContent = {
-  kind: 'media',
-  url: PLACEHOLDER_IMAGE_URL,
-  mediaType: 'image',
-  alt: PLACEHOLDER_IMAGE_ALT,
-  caption: '',
-  id: undefined,
-  sizeSlug: 'full',
-  align: '',
-  linkDestination: 'none',
-  href: '',
-  linkTarget: '_self',
-  rel: '',
-  title: '',
-  className: '',
 };
 
 // ============================================================================

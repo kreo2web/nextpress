@@ -1,5 +1,6 @@
 import type { BlockDefinition } from './types';
 import type { BlockConfig } from '@shared/schema-types';
+import { createDefaultBlock } from '@shared/block-catalog';
 import { generateBlockId } from '../utils';
 import HeadingBlock from './heading/HeadingBlock';
 import TextBlock from './text/TextBlock';
@@ -155,41 +156,10 @@ export const blockRegistry: Record<string, BlockDefinition> = {
   'post/progress': PostProgressBlock,
 };
 
+/** A new block as the editor inserts it. Same helper the SDK and the AI builder use. */
 export function getDefaultBlock(type: string, id: string): BlockConfig | null {
-  const def = blockRegistry[type];
-  if (!def) return null;
-
-  // Deep clone default content to avoid shared references across instances
-  const content = structuredClone(def.defaultContent ?? {});
-
-  const block: BlockConfig = {
-    id,
-    name: def.id, // Canonical key (e.g., 'core/heading')
-    label: def.label, // User-facing display name (e.g., 'Heading')
-    type: def.isContainer ? 'container' : 'block',
-    parentId: null,
-    category: def.category,
-    content,
-    styles: {
-      padding: '20px 20px 0',
-      margin: '0px',
-      ...def.defaultStyles,
-    },
-    settings: {},
-    other: {
-      tokenMap: {},
-      units: { spacing: "px", font: "rem", dimension: "px", border: "px" },
-    },
-  };
-
-  // Only add children array for containers
-  if (def.isContainer) {
-    block.children = def.defaultChildren
-      ? def.defaultChildren({ parentId: id, newId: generateBlockId })
-      : [];
-  }
-
-  return block;
+  if (!blockRegistry[type]) return null;
+  return createDefaultBlock({ name: type, id, newId: generateBlockId });
 }
 
 export type { BlockDefinition } from './types';

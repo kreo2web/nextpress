@@ -1,11 +1,12 @@
+import { applySdkBlockDefaults, withStartingChildren } from "../defaults/block-defaults.js";
+import { applySanitizedBlockOverrides } from "../sanitize/apply-block-overrides.js";
 import type { BlockConfig, BlockContent, IconReference } from "../types/domain.js";
 import { BLOCK_DEFINITIONS, type BlockName } from "./block-definitions.js";
 import type { BlockEditorSettings } from "./block-editor-settings.js";
 import type { BlockStyles } from "./block-params.js";
 import { createBlockId } from "./create-block-id.js";
-import { applySanitizedBlockOverrides, sanitizeHtmlBlockContent } from "../sanitize/apply-block-overrides.js";
 import { serializeStructuredContent } from "./serialize-block-content.js";
-import { applySdkBlockDefaults } from "../defaults/block-defaults.js";
+import { toSavedContent } from "./to-saved-content.js";
 
 const GROUP_LAYOUT_KEYS = new Set([
 	"display",
@@ -50,13 +51,7 @@ const buildTextKindContent = (
 	defaultContent: BlockContent,
 ): BlockContent => {
 	const base = defaultContent as Extract<BlockContent, { kind: "text" }>;
-	const text = typeof semantic?.text === "string" ? semantic.text : semantic?.value ?? base.value;
-	const level =
-		typeof semantic?.level === "number"
-			? semantic.level
-			: typeof base.level === "number"
-				? base.level
-				: undefined;
+	const text = typeof semantic?.text === "string" ? semantic.text : (semantic?.value ?? base.value);
 	const icon =
 		semantic?.icon &&
 		typeof semantic.icon === "object" &&
@@ -64,9 +59,10 @@ const buildTextKindContent = (
 			? (semantic.icon as IconReference)
 			: undefined;
 	return {
+		...base,
 		kind: "text",
 		value: typeof text === "string" ? text : String(text ?? ""),
-		...(level !== undefined ? { level } : {}),
+		...(typeof semantic?.level === "number" ? { level: semantic.level } : {}),
 		...(typeof semantic?.url === "string" ? { url: semantic.url } : {}),
 		...(typeof semantic?.linkTarget === "string"
 			? { linkTarget: semantic.linkTarget as "_self" | "_blank" }
@@ -84,24 +80,40 @@ const buildMediaKindContent = (
 	defaultContent: BlockContent,
 ): BlockContent => {
 	const base = defaultContent as Extract<BlockContent, { kind: "media" }>;
+	const url = typeof semantic?.url === "string" ? semantic.url : (base.url ?? "");
+	// The sample alt text describes the sample picture only, so another picture starts without one.
+	// Video and audio have no alt text at all.
+	const sampleAlt = url === base.url || base.alt === undefined ? base.alt : "";
+	const alt = typeof semantic?.alt === "string" ? semantic.alt : sampleAlt;
 	return {
+		...base,
 		kind: "media",
-		url: typeof semantic?.url === "string" ? semantic.url : base.url ?? "",
-		mediaType: base.mediaType,
-		...(typeof semantic?.alt === "string" ? { alt: semantic.alt } : {}),
+		url,
+		...(alt !== undefined ? { alt } : {}),
 		...(typeof semantic?.caption === "string" ? { caption: semantic.caption } : {}),
 	};
 };
 
+/** `post/toc`, `post/info` and `post/progress` are saved without a `kind` wrapper, exactly as the editor saves them. */
+const readPlainContent = (content: BlockContent): Record<string, unknown> | undefined =>
+	content && typeof content === "object" && !("kind" in content) ? content : undefined;
+
 const buildContent = (name: BlockName, editorSettings: BlockEditorSettings): BlockContent => {
 	const def = BLOCK_DEFINITIONS[name];
 	const defaultContent = def.defaultContent();
-	const semantic = stripLayoutFromSemantic(
+	const semantic = toSavedContent({
 		name,
-		editorSettings.content as Record<string, unknown> | undefined,
-	);
+		semantic: stripLayoutFromSemantic(
+			name,
+			editorSettings.content as Record<string, unknown> | undefined,
+		),
+	});
 
-	if (defaultContent && typeof defaultContent === "object" && "kind" in defaultContent) {
+	const plain = readPlainContent(defaultContent);
+	// Cast: a plain default has no `kind`, which `BlockContent` cannot say.
+	if (plain) return { ...plain, ...semantic } as BlockContent;
+
+	if (defaultContent && typeof defaultContent === "object") {
 		if (defaultContent.kind === "structured") {
 			return serializeStructuredContent({
 				name,
@@ -113,28 +125,6 @@ const buildContent = (name: BlockName, editorSettings: BlockEditorSettings): Blo
 		}
 		if (defaultContent.kind === "media") {
 			return buildMediaKindContent(semantic, defaultContent);
-		}
-		if (defaultContent.kind === "markdown") {
-			return {
-				kind: "markdown",
-				value:
-					typeof semantic?.value === "string"
-						? semantic.value
-						: (defaultContent as Extract<BlockContent, { kind: "markdown" }>).value,
-			};
-		}
-		if (defaultContent.kind === "html") {
-			const raw =
-				typeof semantic?.value === "string"
-					? semantic.value
-					: (defaultContent as Extract<BlockContent, { kind: "html" }>).value;
-			const sanitized =
-				typeof semantic?.sanitized === "boolean" ? semantic.sanitized : true;
-			return {
-				kind: "html",
-				value: sanitizeHtmlBlockContent(raw, sanitized),
-				sanitized,
-			};
 		}
 	}
 
@@ -184,5 +174,8 @@ export const applyEditorSettings = ({
 		settings: settings.advanced ?? {},
 		children,
 	};
-	return applySdkBlockDefaults(applySanitizedBlockOverrides(built, { html, js, css }));
+	const withDefaults = applySdkBlockDefaults(
+		applySanitizedBlockOverrides(built, { html, js, css }),
+	);
+	return withStartingChildren(withDefaults);
 };

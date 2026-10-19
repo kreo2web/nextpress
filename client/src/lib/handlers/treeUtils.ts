@@ -6,36 +6,13 @@ import {
   findRootPageShell,
   PAGE_SHELL_BLOCK_NAME,
 } from '@shared/page-shell-model';
-import { HEADER_BLOCK_NAME } from '@shared/header-model';
+import { retargetRootIntoShell } from '@shared/page-tools/retarget-root-into-shell';
 
 export type InsertBlockResult = {
   blocks: BlockConfig[];
   newId?: string;
   refused?: "page-shell-exists";
 };
-
-function retargetRootIntoShell({
-  blocks,
-  type,
-  destParentId,
-  destIndex,
-}: {
-  blocks: BlockConfig[];
-  type: string;
-  destParentId: string | null;
-  destIndex: number;
-}): { parentId: string | null; index: number } {
-  if (destParentId !== null || type === PAGE_SHELL_BLOCK_NAME) {
-    return { parentId: destParentId, index: destIndex };
-  }
-  const shell = findRootPageShell(blocks);
-  if (!shell) return { parentId: destParentId, index: destIndex };
-  const childCount = Array.isArray(shell.children) ? shell.children.length : 0;
-  return {
-    parentId: shell.id,
-    index: type === HEADER_BLOCK_NAME ? 0 : Math.min(Math.max(destIndex, 0), childCount),
-  };
-}
 
 export function findBlock(rootBlocks: BlockConfig[], targetId: string): BlockConfig | null {
   function search(list: BlockConfig[]): BlockConfig | null {
@@ -92,9 +69,9 @@ export function insertNewBlock(rootBlocks: BlockConfig[], parentId: string | nul
 
   const target = retargetRootIntoShell({
     blocks: clone,
-    type,
-    destParentId: parentId,
-    destIndex: index,
+    name: type,
+    parentId,
+    index,
   });
   
   // Set parentId
@@ -166,9 +143,9 @@ export function moveExistingBlock(rootBlocks: BlockConfig[], sourceParentId: str
   if (movedBlock.name !== PAGE_SHELL_BLOCK_NAME) {
     const retargeted = retargetRootIntoShell({
       blocks: clone,
-      type: movedBlock.name,
-      destParentId: nextDestParentId,
-      destIndex: nextDestIndex,
+      name: movedBlock.name,
+      parentId: nextDestParentId,
+      index: nextDestIndex,
     });
     nextDestParentId = retargeted.parentId;
     nextDestIndex = retargeted.index;

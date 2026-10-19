@@ -14,6 +14,8 @@ import { InlineTextEditor } from "../shared/inline-text-editor";
 import { useSettingsState } from "../useSettingsState";
 import { SettingsChipGroup } from "../../settings-chip-group";
 import { sanitizeHtml } from "../../utils";
+import { LIST_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -30,15 +32,7 @@ type ListContent = {
   className?: string;
 };
 
-const DEFAULT_CONTENT: ListContent = {
-  ordered: false,
-  values: '<li>List item 1</li><li>List item 2</li><li>List item 3</li>',
-  start: undefined,
-  reversed: undefined,
-  type: undefined,
-  anchor: '',
-  className: '',
-};
+const DEFAULT_CONTENT: ListContent = LIST_DEFAULT_CONTENT;
 
 const LIST_KIND_OPTIONS = [
   { value: "unordered", label: "Bullets" },
@@ -349,13 +343,9 @@ function ListSettings({ block, onUpdate }: ListSettingsProps) {
 // ============================================================================
 
 const ListBlock = createBlockDefinition<ListContent>({
-  id: 'core/list',
-  label: 'List',
+  ...catalogMeta('core/list'),
   icon: ListIcon,
-  description: 'Add a bulleted or numbered list',
-  category: 'advanced',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '1em 0' },
   settings: ListSettings,
   hasSettings: true,
   render: ({ content, styles, isEditing, setContent }) => (

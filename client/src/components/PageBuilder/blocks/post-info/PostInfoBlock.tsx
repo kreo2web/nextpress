@@ -15,14 +15,17 @@ import { parsePostOther } from '@shared/posts/post-other';
 import {
   type PostInfoContent,
   type PostMeta,
-  DEFAULT_CONTENT,
   PLACEHOLDER_META,
   formatDate,
   computeReadTime,
   buildClassName,
 } from './post-info-model';
+import { POST_INFO_DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
+import { catalogMeta } from '../catalog-meta';
 import { PostInfoSettings } from './post-info-settings';
 import { usePostDocument } from '../../PageContext';
+
+const DEFAULT_CONTENT: PostInfoContent = POST_INFO_DEFAULT_CONTENT;
 
 // ============================================================================
 // DATA FETCH
@@ -221,13 +224,9 @@ export function PostInfoBlockComponent({
  * Displays post metadata: date, categories, tags, and estimated read time.
  */
 const PostInfoBlock: BlockDefinition = {
-  id: 'post/info',
-  label: 'Post Info',
+  ...catalogMeta('post/info'),
   icon: Info,
-  description: 'Display post metadata: date, categories, tags, and read time',
-  category: 'post',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '0.5em 0' },
   component: PostInfoBlockComponent,
   settings: PostInfoSettings,
   hasSettings: true,

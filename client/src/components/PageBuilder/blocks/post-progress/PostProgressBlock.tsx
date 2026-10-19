@@ -13,6 +13,12 @@ import { useSettingsState } from '../useSettingsState';
 import { useBlockState } from '../useBlockState';
 import { BlockShell } from '../shared/block-shell';
 import { defaultParseContent, defaultSerializeContent } from '../createBlockDefinition';
+import { catalogMeta } from '../catalog-meta';
+import {
+  POST_PROGRESS_BACKGROUND_COLOR,
+  POST_PROGRESS_BAR_COLOR,
+  POST_PROGRESS_DEFAULT_CONTENT,
+} from '@shared/block-catalog/post-blocks';
 
 // ============================================================================
 // TYPES
@@ -27,19 +33,12 @@ export type PostProgressContent = {
   className?: string;
 };
 
-const DEFAULT_BAR_COLOR = 'var(--npb-accent)';
-const DEFAULT_BACKGROUND_COLOR = 'transparent';
+const DEFAULT_BAR_COLOR = POST_PROGRESS_BAR_COLOR;
+const DEFAULT_BACKGROUND_COLOR = POST_PROGRESS_BACKGROUND_COLOR;
 const SAMPLE_HINT =
   'On the live page this follows reading. The canvas shows a sample.';
 
-const DEFAULT_CONTENT: PostProgressContent = {
-  color: DEFAULT_BAR_COLOR,
-  height: 4,
-  position: 'top',
-  showPercentage: false,
-  backgroundColor: DEFAULT_BACKGROUND_COLOR,
-  className: '',
-};
+const DEFAULT_CONTENT: PostProgressContent = POST_PROGRESS_DEFAULT_CONTENT;
 
 const EDITOR_PREVIEW_FILL = 40;
 
@@ -388,13 +387,9 @@ function PostProgressSettings({
  * Fixed progress bar that fills as the reader scrolls. Static inline preview in editor.
  */
 const PostProgressBlock: BlockDefinition = {
-  id: 'post/progress',
-  label: 'Reading Progress',
+  ...catalogMeta('post/progress'),
   icon: BarChart3,
-  description: 'Show a reading progress indicator bar',
-  category: 'post',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {},
   component: PostProgressBlockComponent,
   settings: PostProgressSettings,
   hasSettings: true,

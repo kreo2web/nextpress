@@ -111,8 +111,10 @@ export function readPostListContent(content: unknown): Required<
 	hasMore: boolean;
 	totalPages: number;
 	posts: BoundPostListItem[];
+	/** The site's timezone for the dates, set when the published page is built. */
+	timeZone: string | null;
 } {
-	const data = readBlockContentData(content) as PostListContentShape;
+	const data = readBlockContentData(content) as PostListContentShape & { timeZone?: unknown };
 	const openIn = data.openIn === "page" ? "page" : "overlay";
 	const layout =
 		data.layout === "list" || data.layout === "cards" || data.layout === "grid"
@@ -142,6 +144,7 @@ export function readPostListContent(content: unknown): Required<
 		hasMore: data.hasMore === true || (Number(data.page) || 1) < totalPages,
 		totalPages,
 		posts,
+		timeZone: typeof data.timeZone === "string" ? data.timeZone : null,
 	};
 }
 
@@ -152,12 +155,14 @@ export function bindPostListBlock({
 	page,
 	hasMore,
 	totalPages,
+	timeZone,
 }: {
 	block: BlockConfig;
 	posts: BoundPostListItem[];
 	page?: number;
 	hasMore?: boolean;
 	totalPages?: number;
+	timeZone?: string;
 }): BlockConfig {
 	if (block.name !== "post/list") return block;
 	const data = readBlockContentData(block.content);
@@ -169,6 +174,7 @@ export function bindPostListBlock({
 			page: page ?? 1,
 			hasMore: Boolean(hasMore),
 			totalPages: totalPages ?? 1,
+			...(timeZone ? { timeZone } : {}),
 		}),
 	};
 }

@@ -2,13 +2,14 @@ import { z } from "zod";
 import { formatJson, runTool } from "../format-result.js";
 import type { ToolDeps } from "./tool-deps.js";
 
-/** Media list/upload. */
+/** Media list/upload, and brand logos copied in from svgl.app. */
 export function registerMediaTools({ server, client }: ToolDeps): void {
 	server.registerTool(
 		"list_media",
 		{
 			title: "List media",
-			description: "Browse the media library.",
+			description:
+				"Browse the media library. Each file has a url to use as an image block's url. Look here before using any picture, and never point images at other websites. If nothing fits, use /placeholder.png and tell the owner.",
 			inputSchema: {
 				page: z.number().int().min(1).optional(),
 				per_page: z.number().int().min(1).max(100).optional(),
@@ -44,6 +45,21 @@ export function registerMediaTools({ server, client }: ToolDeps): void {
 				});
 				return formatJson(media);
 			}),
+	);
+
+	server.registerTool(
+		"copy_brand_logo",
+		{
+			title: "Copy brand logo",
+			description:
+				"Saves a brand logo from svgl.app into this site's media library and returns the media item; use its url in an image or icon block. Use it for logos of well-known brands (payment providers, tools, social networks) instead of linking to another website. Asking for the same logo again returns the copy already saved. Only logo files on svgl.app are accepted, such as https://svgl.app/library/github.svg.",
+			inputSchema: {
+				url: z.string().min(1).describe("A logo file on svgl.app, e.g. https://svgl.app/library/github.svg"),
+				title: z.string().optional().describe("Becomes the logo's alt text, e.g. the brand name"),
+			},
+		},
+		async ({ url, title }) =>
+			runTool(async () => formatJson(await client.media.copyBrandLogo({ url, title }))),
 	);
 }
 

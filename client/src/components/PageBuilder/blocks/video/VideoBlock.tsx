@@ -4,10 +4,11 @@ import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import {
   type VideoContent,
-  DEFAULT_CONTENT,
   isYouTubeUrl,
   buildYouTubeEmbedUrl,
 } from "./video-model";
+import { VIDEO_DEFAULT_CONTENT } from "@shared/block-catalog/media-blocks";
+import { catalogMeta } from "../catalog-meta";
 import { VideoSettings } from "./video-settings";
 import { readVideoPlayback, videoElementStyle, videoWrapperStyle, youtubeEmbedFrameStyle } from "@shared/video-playback";
 
@@ -126,13 +127,9 @@ function VideoRenderer({ content, styles }: VideoRendererProps) {
 // ============================================================================
 
 const VideoBlock = createBlockDefinition<VideoContent>({
-  id: 'core/video',
-  label: 'Video',
+  ...catalogMeta('core/video'),
   icon: VideoIcon,
-  description: 'Add a video player',
-  category: 'media',
-  defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { width: '100%' },
+  defaultContent: VIDEO_DEFAULT_CONTENT,
   settings: VideoSettings,
   hasSettings: true,
   render: ({ content, styles }) => <VideoRenderer content={content} styles={styles} />,

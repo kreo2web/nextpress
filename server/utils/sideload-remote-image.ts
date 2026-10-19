@@ -1,6 +1,9 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { validateExternalUrl } from "./validate-external-url";
+import { createSafePublicFetch, type PublicFetch } from "./safe-public-fetch";
+
+const publicFetch = createSafePublicFetch();
 import { sanitizeSvgMarkup } from "@shared/icon-drawing";
 
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
@@ -25,6 +28,8 @@ export type SideloadRemoteImageParams = {
 	maxSize: number;
 	/** Start of the saved file name. Defaults to `wp-import` (the WordPress importer). */
 	filenamePrefix?: string;
+	/** Injected in tests; by default only public addresses, checked on every redirect. */
+	fetchImpl?: PublicFetch;
 };
 
 export type SideloadRemoteImageResult =
@@ -54,10 +59,8 @@ export const sideloadRemoteImage = async (
 	const timeout = setTimeout(() => controller.abort(), 15_000);
 
 	try {
-		const response = await fetch(params.imageUrl, {
-			signal: controller.signal,
-			redirect: "follow",
-		});
+		// Checked on every hop: a redirect to a private address is refused, not followed.
+		const response = await (params.fetchImpl ?? publicFetch)(params.imageUrl, { signal: controller.signal });
 
 		if (!response.ok) {
 			return { ok: false, message: `Image fetch failed (${response.status})` };
@@ -101,9 +104,11 @@ export const sideloadRemoteImage = async (
 			originalName,
 		};
 	} catch (err: unknown) {
+		const error = err instanceof Error ? err : new Error(String(err));
+		console.warn({ atFunction: "sideloadRemoteImage", data: { imageUrl: params.imageUrl, error }, message: "Remote image download failed" });
 		return {
 			ok: false,
-			message: err instanceof Error ? err.message : "Failed to download image",
+			message: (error as Error & { userMessage?: string }).userMessage ?? "We couldn't download that image.",
 		};
 	} finally {
 		clearTimeout(timeout);

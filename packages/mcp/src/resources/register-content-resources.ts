@@ -1,6 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { BLOCK_DEFINITIONS, type NextpressClient } from "@nextpress-org/sdk";
+import { BLOCK_DEFINITIONS, PAGE_DESIGN_GUIDE, type NextpressClient } from "@nextpress-org/sdk";
+import { toMcpText } from "../tools/mcp-tool-text.js";
 import { registerBlockSchemaResource } from "../tools/patch-tools.js";
+import { readBlockAgentNotes } from "./read-block-notes.js";
 
 /**
  * Register read-only MCP resources for site discovery.
@@ -19,10 +21,12 @@ export function registerContentResources({
 		"nextpress://blocks/catalog",
 		{
 			title: "Block catalog",
-			description: "Canonical NextPress block names and metadata",
+			description:
+				"Canonical NextPress block names and metadata, each with a note on when to use it",
 			mimeType: "application/json",
 		},
 		async (uri) => {
+			const notes = await readBlockAgentNotes();
 			const blocks = client.blocks.names.map((name) => {
 				const def = BLOCK_DEFINITIONS[name];
 				return {
@@ -30,6 +34,7 @@ export function registerContentResources({
 					label: def.label,
 					type: def.type,
 					category: def.category,
+					agentNote: notes[name],
 				};
 			});
 			return {
@@ -42,6 +47,26 @@ export function registerContentResources({
 				],
 			};
 		},
+	);
+
+	server.registerResource(
+		"design-guide",
+		"nextpress://design-guide",
+		{
+			title: "Page design guide",
+			description:
+				"How to build a good NextPress page: page shape, words, colours, spacing, phones, pictures and links",
+			mimeType: "text/markdown",
+		},
+		async (uri) => ({
+			contents: [
+				{
+					uri: uri.href,
+					mimeType: "text/markdown",
+					text: toMcpText(PAGE_DESIGN_GUIDE),
+				},
+			],
+		}),
 	);
 
 	server.registerResource(

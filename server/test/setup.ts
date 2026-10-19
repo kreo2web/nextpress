@@ -250,6 +250,20 @@ CREATE TABLE IF NOT EXISTS user_roles (
 	created_at TIMESTAMP DEFAULT NOW(),
 	updated_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS invites (
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+	role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+	code VARCHAR NOT NULL UNIQUE,
+	note VARCHAR,
+	max_uses INTEGER,
+	uses INTEGER NOT NULL DEFAULT 0,
+	expires_at TIMESTAMP,
+	created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+	cancelled_at TIMESTAMP,
+	created_at TIMESTAMP DEFAULT NOW()
+);
 `;
 
 beforeAll(async () => {

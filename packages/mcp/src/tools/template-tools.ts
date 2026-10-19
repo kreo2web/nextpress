@@ -8,7 +8,8 @@ export function registerTemplateTools({ server, client }: ToolDeps): void {
 		"list_templates",
 		{
 			title: "List templates",
-			description: "List page/post templates available on the site.",
+			description:
+				"List ready-made page/post templates: blocks that get copied into a page. For a shared header, footer or section that many pages show from one place, use list_template_parts instead.",
 			inputSchema: {
 				page: z.number().int().min(1).optional(),
 				per_page: z.number().int().min(1).max(100).optional(),

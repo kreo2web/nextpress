@@ -7,6 +7,8 @@ import { Space as SpaceIcon } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
 import { useSettingsState } from "../useSettingsState";
+import { SPACER_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -20,7 +22,7 @@ type SpacerContent = {
   className?: string;
 };
 
-const DEFAULT_SPACER_HEIGHT = "100px";
+const DEFAULT_SPACER_HEIGHT = SPACER_DEFAULT_CONTENT.height;
 
 /** Tight / Small / Medium / Large — local to this block, not the shared height list. */
 const SPACER_HEIGHT_PRESETS: readonly DimensionPreset[] = [
@@ -30,11 +32,7 @@ const SPACER_HEIGHT_PRESETS: readonly DimensionPreset[] = [
   { value: "160px", label: "Large" },
 ];
 
-const DEFAULT_CONTENT: SpacerContent = {
-  height: DEFAULT_SPACER_HEIGHT,
-  anchor: "",
-  className: "",
-};
+const DEFAULT_CONTENT: SpacerContent = SPACER_DEFAULT_CONTENT;
 
 /**
  * Legacy spacers store a pixel number (100). New writes are CSS lengths ("100px").
@@ -141,16 +139,9 @@ function SpacerSettings({ block, onUpdate }: SpacerSettingsProps) {
 // ============================================================================
 
 const SpacerBlock = createBlockDefinition<SpacerContent>({
-  id: 'core/spacer',
-  label: 'Spacer',
+  ...catalogMeta('core/spacer'),
   icon: SpaceIcon,
-  description: 'Add vertical spacing',
-  category: 'layout',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    padding: '0px',
-    margin: '0px',
-  },
   settings: SpacerSettings,
   hasSettings: true,
   render: ({ content, styles }) => <SpacerRenderer content={content} styles={styles} />,

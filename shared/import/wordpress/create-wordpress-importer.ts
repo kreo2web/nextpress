@@ -14,6 +14,7 @@ import type {
 } from "./types";
 import type { MappedPage } from "./map-wp-page";
 import { buildImportedWpMap } from "./build-imported-wp-map";
+import type { WpFetch } from "./fetch-wp-api";
 
 const IMPORT_DELAY_MS = 150;
 
@@ -21,7 +22,7 @@ const delay = (ms: number): Promise<void> =>
 	new Promise((resolve) => setTimeout(resolve, ms));
 
 export type WordPressImporter = {
-	discoverSite: typeof discoverWordPressSite;
+	discoverSite: (params: { siteUrl: string }) => ReturnType<typeof discoverWordPressSite>;
 	listPosts: ReturnType<typeof createPostsAdapter>["list"];
 	listPages: ReturnType<typeof createPagesAdapter>["list"];
 	importPosts: (params: {
@@ -58,15 +59,15 @@ export type WordPressImporter = {
 };
 
 /**
- * Factory for WordPress import operations. Each entity has an adapter;
- * only posts is implemented in phase 1.
+ * Factory for WordPress import operations. Each entity has an adapter. `fetchImpl` is the only way
+ * out to the WordPress site; the server passes one that refuses private addresses on every hop.
  */
-export const createWordPressImporter = (): WordPressImporter => {
-	const postsAdapter = createPostsAdapter();
-	const pagesAdapter = createPagesAdapter();
+export const createWordPressImporter = ({ fetchImpl }: { fetchImpl: WpFetch }): WordPressImporter => {
+	const postsAdapter = createPostsAdapter({ fetchImpl });
+	const pagesAdapter = createPagesAdapter({ fetchImpl });
 
 	return {
-		discoverSite: discoverWordPressSite,
+		discoverSite: ({ siteUrl }) => discoverWordPressSite({ siteUrl, fetchImpl }),
 		listPosts: postsAdapter.list,
 		listPages: pagesAdapter.list,
 		getSupportedEntities: () => ["posts", "pages"],
@@ -85,7 +86,7 @@ export const createWordPressImporter = (): WordPressImporter => {
 				updatePost,
 			} = params;
 
-			const { categoryNames, tagNames } = await fetchWpTermMaps({ baseUrl });
+			const { categoryNames, tagNames } = await fetchWpTermMaps({ baseUrl, fetchImpl });
 			const existingPostIdByWpId = buildImportedWpMap({
 				items: existingPosts,
 				domain: baseUrl,
@@ -174,7 +175,7 @@ export const createWordPressImporter = (): WordPressImporter => {
 				updatePage,
 			} = params;
 
-			const { categoryNames, tagNames } = await fetchWpTermMaps({ baseUrl });
+			const { categoryNames, tagNames } = await fetchWpTermMaps({ baseUrl, fetchImpl });
 			const existingPageIdByWpId = buildImportedWpMap({
 				items: existingPages,
 				domain: baseUrl,

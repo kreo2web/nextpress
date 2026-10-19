@@ -1,6 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
 	BLOCK_NAMES,
 	createNextpress,
@@ -10,39 +8,10 @@ import {
 	VERSION_STALE,
 	type NextpressClient,
 } from "@nextpress-org/sdk";
-import { createMcpServer } from "./create-mcp-server.js";
+import { connectMcpSession, resourceText, textPayload, type LinkedSession } from "./test/mcp-session.js";
 
 const SITE_ID = "00000000-0000-4000-8000-000000000001";
 const PAGE_ID = "00000000-0000-4000-8000-000000000004";
-
-type LinkedSession = {
-	client: Client;
-	close: () => Promise<void>;
-};
-
-async function connectMcpSession(sdkClient: NextpressClient): Promise<LinkedSession> {
-	const mcpServer = createMcpServer({ client: sdkClient });
-	const mcpClient = new Client({ name: "mcp-test", version: "0.0.0" });
-	const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-
-	await Promise.all([
-		mcpClient.connect(clientTransport),
-		mcpServer.server.connect(serverTransport),
-	]);
-
-	return {
-		client: mcpClient,
-		close: async () => {
-			await mcpClient.close();
-			await mcpServer.close();
-		},
-	};
-}
-
-function textPayload(result: { content: Array<{ type: string; text?: string }> }): string {
-	const block = result.content.find((item) => item.type === "text");
-	return block?.text ?? "";
-}
 
 describe("MCP tools via InMemoryTransport", () => {
 	let session: LinkedSession | undefined;
@@ -97,6 +66,20 @@ describe("MCP tools via InMemoryTransport", () => {
 				"update_post",
 				"upload_media",
 				"validate_blocks",
+				"apply_page_phone_fixes",
+				"change_page_blocks",
+				"check_page",
+				"copy_brand_logo",
+				"create_template_part",
+				"get_block_type",
+				"get_design_guide",
+				"get_page_block",
+				"get_page_history",
+				"get_page_outline",
+				"get_template_part_usage",
+				"list_form_submissions",
+				"list_template_parts",
+				"restore_page_version",
 			].sort(),
 		);
 
@@ -106,6 +89,7 @@ describe("MCP tools via InMemoryTransport", () => {
 			[
 				"nextpress://blocks/catalog",
 				"nextpress://blocks/schema",
+				"nextpress://design-guide",
 				"nextpress://site/context",
 				"nextpress://site/map",
 			].sort(),
@@ -269,10 +253,33 @@ describe("MCP tools via InMemoryTransport", () => {
 		const resource = await session.client.readResource({
 			uri: "nextpress://blocks/catalog",
 		});
-		const text = resource.contents[0]?.text;
+		const text = resourceText(resource);
 		expect(text).toBeTruthy();
-		const body = JSON.parse(text as string) as { blocks: Array<{ name: string }> };
+		const body = JSON.parse(text) as {
+			blocks: Array<{ name: string; agentNote?: string }>;
+		};
 		expect(body.blocks.length).toBeGreaterThan(10);
 		expect(body.blocks.some((block) => block.name === "core/heading")).toBe(true);
+	});
+
+	it("gives every block in the catalog resource a note on when to use it", async () => {
+		const sdk = createNextpress({
+			baseUrl: "https://cms.example.com",
+			apiKey: "npk_live_test",
+			siteId: SITE_ID,
+			fetch: vi.fn() as typeof fetch,
+		});
+		session = await connectMcpSession(sdk);
+
+		const resource = await session.client.readResource({ uri: "nextpress://blocks/catalog" });
+		const body = JSON.parse(resourceText(resource)) as {
+			blocks: Array<{ name: string; agentNote?: string }>;
+		};
+
+		expect(body.blocks.map((block) => block.name).sort()).toEqual([...BLOCK_NAMES].sort());
+		const withoutNote = body.blocks.filter((block) => !block.agentNote || block.agentNote.length < 20);
+		expect(withoutNote.map((block) => block.name)).toEqual([]);
+		const heading = body.blocks.find((block) => block.name === "core/heading");
+		expect(heading?.agentNote).toContain("One level-1 heading per page");
 	});
 });

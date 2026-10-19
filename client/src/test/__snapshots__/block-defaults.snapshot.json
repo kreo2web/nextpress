@@ -1,0 +1,3361 @@
+{
+  "core/accordion": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "faqSchema": false,
+        "firstOpen": true,
+        "gap": "12px",
+        "icon": {
+          "position": "start",
+          "preset": "plus-minus",
+          "size": "18px"
+        },
+        "itemPadding": "20px 24px",
+        "itemRadius": "14px",
+        "look": "cards",
+        "openMode": "one",
+        "titleSize": "16px",
+        "titleWeight": "500"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "padding": "0",
+      "width": "100%"
+    },
+    "description": "Questions or sections that open and close",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/accordion",
+    "inserted": {
+      "category": "layout",
+      "children": [
+        {
+          "category": "layout",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "Write the answer here."
+              },
+              "id": "id-2",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-1",
+              "settings": {},
+              "styles": {
+                "fontSize": "15px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "open": false,
+              "title": "First question"
+            },
+            "kind": "structured"
+          },
+          "id": "id-1",
+          "label": "Accordion item",
+          "name": "core/accordion-item",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {},
+          "type": "container"
+        },
+        {
+          "category": "layout",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "Write the answer here."
+              },
+              "id": "id-4",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-3",
+              "settings": {},
+              "styles": {
+                "fontSize": "15px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "open": false,
+              "title": "Second question"
+            },
+            "kind": "structured"
+          },
+          "id": "id-3",
+          "label": "Accordion item",
+          "name": "core/accordion-item",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {},
+          "type": "container"
+        },
+        {
+          "category": "layout",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "Write the answer here."
+              },
+              "id": "id-6",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-5",
+              "settings": {},
+              "styles": {
+                "fontSize": "15px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "open": false,
+              "title": "Third question"
+            },
+            "kind": "structured"
+          },
+          "id": "id-5",
+          "label": "Accordion item",
+          "name": "core/accordion-item",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {},
+          "type": "container"
+        }
+      ],
+      "content": {
+        "data": {
+          "faqSchema": false,
+          "firstOpen": true,
+          "gap": "12px",
+          "icon": {
+            "position": "start",
+            "preset": "plus-minus",
+            "size": "18px"
+          },
+          "itemPadding": "20px 24px",
+          "itemRadius": "14px",
+          "look": "cards",
+          "openMode": "one",
+          "titleSize": "16px",
+          "titleWeight": "500"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Accordion",
+      "name": "core/accordion",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0px",
+        "padding": "0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Accordion"
+  },
+  "core/accordion-item": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "open": false,
+        "title": "Question"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "0",
+      "padding": "0"
+    },
+    "description": "One question or section inside an accordion",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/accordion-item",
+    "inserted": {
+      "category": "layout",
+      "children": [],
+      "content": {
+        "data": {
+          "open": false,
+          "title": "Question"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Accordion item",
+      "name": "core/accordion-item",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0",
+        "padding": "0"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Accordion item"
+  },
+  "core/audio": {
+    "category": "media",
+    "defaultContent": {
+      "anchor": "",
+      "autoplay": false,
+      "caption": "",
+      "className": "",
+      "controls": true,
+      "kind": "media",
+      "loop": false,
+      "mediaType": "audio",
+      "preload": "none",
+      "url": ""
+    },
+    "defaultStyles": {
+      "width": "100%"
+    },
+    "description": "Add an audio player",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/audio",
+    "inserted": {
+      "category": "media",
+      "content": {
+        "anchor": "",
+        "autoplay": false,
+        "caption": "",
+        "className": "",
+        "controls": true,
+        "kind": "media",
+        "loop": false,
+        "mediaType": "audio",
+        "preload": "none",
+        "url": ""
+      },
+      "id": "block-under-test",
+      "label": "Audio",
+      "name": "core/audio",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0px",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Audio"
+  },
+  "core/button": {
+    "category": "basic",
+    "defaultContent": {
+      "className": "",
+      "kind": "text",
+      "linkTarget": "_self",
+      "rel": "",
+      "title": "",
+      "url": "#",
+      "value": "Click Me"
+    },
+    "defaultStyles": {
+      "backgroundColor": "#007cba",
+      "border": "none",
+      "borderRadius": "4px",
+      "color": "#ffffff",
+      "cursor": "pointer",
+      "display": "inline-block",
+      "fontSize": "16px",
+      "padding": "12px 24px",
+      "textAlign": "center"
+    },
+    "description": "Add a clickable button",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/button",
+    "inserted": {
+      "category": "basic",
+      "content": {
+        "className": "",
+        "kind": "text",
+        "linkTarget": "_self",
+        "rel": "",
+        "title": "",
+        "url": "#",
+        "value": "Click Me"
+      },
+      "id": "block-under-test",
+      "label": "Button",
+      "name": "core/button",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "backgroundColor": "#007cba",
+        "border": "none",
+        "borderRadius": "4px",
+        "color": "#ffffff",
+        "cursor": "pointer",
+        "display": "inline-block",
+        "fontSize": "16px",
+        "margin": "0px",
+        "padding": "12px 24px",
+        "textAlign": "center"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Button"
+  },
+  "core/buttons": {
+    "category": "basic",
+    "defaultContent": {
+      "data": {
+        "buttons": [
+          {
+            "className": "",
+            "id": "btn-1",
+            "linkTarget": "_self",
+            "rel": "",
+            "text": "Click Me",
+            "title": "",
+            "url": "#"
+          }
+        ],
+        "className": "",
+        "layout": "flex-start",
+        "orientation": "horizontal"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "A row of buttons",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/buttons",
+    "inserted": {
+      "category": "basic",
+      "content": {
+        "data": {
+          "buttons": [
+            {
+              "className": "",
+              "id": "btn-1",
+              "linkTarget": "_self",
+              "rel": "",
+              "text": "Click Me",
+              "title": "",
+              "url": "#"
+            }
+          ],
+          "className": "",
+          "layout": "flex-start",
+          "orientation": "horizontal"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Buttons",
+      "name": "core/buttons",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Buttons"
+  },
+  "core/code": {
+    "category": "advanced",
+    "defaultContent": {
+      "data": {
+        "className": "",
+        "content": "// Write your code here\nfunction hello() {\n  console.log(\"Hello, World!\");\n}",
+        "language": "javascript",
+        "showCopyButton": false,
+        "showLineNumbers": false,
+        "wrapLines": true
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Display code with language tagging and line numbers",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/code",
+    "inserted": {
+      "category": "advanced",
+      "content": {
+        "data": {
+          "className": "",
+          "content": "// Write your code here\nfunction hello() {\n  console.log(\"Hello, World!\");\n}",
+          "language": "javascript",
+          "showCopyButton": false,
+          "showLineNumbers": false,
+          "wrapLines": true
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Code",
+      "name": "core/code",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Code"
+  },
+  "core/columns": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "columnHorizontalAlignment": "stretch",
+        "columnVerticalAlignment": "top",
+        "direction": "row",
+        "gap": "20px",
+        "horizontalAlignment": "left",
+        "layoutMode": "flex",
+        "minColumnWidth": "220px",
+        "verticalAlignment": "top"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Flexible horizontal container for any blocks",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/columns",
+    "inserted": {
+      "category": "layout",
+      "children": [],
+      "content": {
+        "data": {
+          "columnHorizontalAlignment": "stretch",
+          "columnVerticalAlignment": "top",
+          "direction": "row",
+          "gap": "20px",
+          "horizontalAlignment": "left",
+          "layoutMode": "flex",
+          "minColumnWidth": "220px",
+          "verticalAlignment": "top"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Columns",
+      "name": "core/columns",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Columns"
+  },
+  "core/container": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "className": "",
+        "tagName": "div"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "backgroundColor": "#f8fafc",
+      "borderRadius": "8px",
+      "boxSizing": "border-box",
+      "display": "flex",
+      "flexDirection": "column",
+      "gap": "1rem",
+      "marginLeft": "auto",
+      "marginRight": "auto",
+      "maxWidth": "100%",
+      "padding": "24px",
+      "width": "100%"
+    },
+    "description": "Wrap blocks in a box with background, padding, and max width",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/container",
+    "inserted": {
+      "category": "layout",
+      "children": [],
+      "content": {
+        "data": {
+          "className": "",
+          "tagName": "div"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Container",
+      "name": "core/container",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "backgroundColor": "#f8fafc",
+        "borderRadius": "8px",
+        "boxSizing": "border-box",
+        "display": "flex",
+        "flexDirection": "column",
+        "gap": "1rem",
+        "margin": "0px",
+        "marginLeft": "auto",
+        "marginRight": "auto",
+        "maxWidth": "100%",
+        "padding": "24px",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Container"
+  },
+  "core/cover": {
+    "category": "media",
+    "defaultContent": {
+      "data": {
+        "alt": "",
+        "backgroundType": "image",
+        "className": "",
+        "contentPosition": "center center",
+        "customOverlayColor": "#000000",
+        "dimRatio": 50,
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "hasParallax": false,
+        "innerContent": "<p style=\"font-size: 2.5em; font-weight: bold;\">Write title…</p>",
+        "minHeight": 400,
+        "url": ""
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {},
+    "description": "Add an image or video with a text overlay",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/cover",
+    "inserted": {
+      "category": "media",
+      "content": {
+        "data": {
+          "alt": "",
+          "backgroundType": "image",
+          "className": "",
+          "contentPosition": "center center",
+          "customOverlayColor": "#000000",
+          "dimRatio": 50,
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "hasParallax": false,
+          "innerContent": "<p style=\"font-size: 2.5em; font-weight: bold;\">Write title…</p>",
+          "minHeight": 400,
+          "url": ""
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Cover",
+      "name": "core/cover",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0px",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Cover"
+  },
+  "core/divider": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "color": "#cccccc",
+        "style": "solid",
+        "width": 100
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "padding": "20px 0px"
+    },
+    "description": "Add a horizontal line",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/divider",
+    "inserted": {
+      "category": "layout",
+      "content": {
+        "data": {
+          "color": "#cccccc",
+          "style": "solid",
+          "width": 100
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Divider",
+      "name": "core/divider",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0px",
+        "padding": "20px 0px"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Divider"
+  },
+  "core/file": {
+    "category": "media",
+    "defaultContent": {
+      "data": {
+        "className": "",
+        "displayPreview": true,
+        "downloadButtonText": "Download",
+        "fileName": "",
+        "fileSize": "",
+        "href": "",
+        "showDownloadButton": true,
+        "textLinkHref": "",
+        "textLinkTarget": "_self"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Add a link to a downloadable file",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/file",
+    "inserted": {
+      "category": "media",
+      "content": {
+        "data": {
+          "className": "",
+          "displayPreview": true,
+          "downloadButtonText": "Download",
+          "fileName": "",
+          "fileSize": "",
+          "href": "",
+          "showDownloadButton": true,
+          "textLinkHref": "",
+          "textLinkTarget": "_self"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "File",
+      "name": "core/file",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "File"
+  },
+  "core/form": {
+    "category": "form",
+    "defaultContent": {
+      "data": {
+        "name": "Contact",
+        "successMessage": "Thanks! We got your message and will be in touch."
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "alignItems": "stretch",
+      "boxSizing": "border-box",
+      "display": "flex",
+      "flexDirection": "column",
+      "gap": "12px",
+      "justifyContent": "flex-start",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "Collect sign-ups and messages; they appear in Forms",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/form",
+    "inserted": {
+      "category": "form",
+      "children": [
+        {
+          "category": "form",
+          "content": {
+            "data": {
+              "label": "Your name",
+              "name": "name",
+              "placeholder": "e.g. John Doe",
+              "type": "text"
+            },
+            "kind": "structured"
+          },
+          "id": "id-1",
+          "label": "Text field",
+          "name": "core/input",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {},
+          "type": "block"
+        },
+        {
+          "category": "form",
+          "content": {
+            "data": {
+              "label": "Your email",
+              "name": "email",
+              "placeholder": "e.g. john@acme.com",
+              "required": true,
+              "type": "email"
+            },
+            "kind": "structured"
+          },
+          "id": "id-2",
+          "label": "Text field",
+          "name": "core/input",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {},
+          "type": "block"
+        },
+        {
+          "category": "form",
+          "content": {
+            "data": {
+              "label": "Message",
+              "name": "message",
+              "placeholder": "Text here",
+              "rows": 4
+            },
+            "kind": "structured"
+          },
+          "id": "id-3",
+          "label": "Text area",
+          "name": "core/textarea",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {},
+          "type": "block"
+        },
+        {
+          "category": "basic",
+          "content": {
+            "action": "submit",
+            "kind": "text",
+            "url": "",
+            "value": "Send"
+          },
+          "id": "id-4",
+          "label": "Button",
+          "name": "core/button",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {},
+          "type": "block"
+        }
+      ],
+      "content": {
+        "data": {
+          "name": "Contact",
+          "successMessage": "Thanks! We got your message and will be in touch."
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Form",
+      "name": "core/form",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "alignItems": "stretch",
+        "boxSizing": "border-box",
+        "display": "flex",
+        "flexDirection": "column",
+        "gap": "12px",
+        "justifyContent": "flex-start",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Form"
+  },
+  "core/gallery": {
+    "category": "media",
+    "defaultContent": {
+      "data": {
+        "caption": "",
+        "className": "",
+        "columns": 3,
+        "imageCrop": true,
+        "images": [],
+        "linkTo": "none",
+        "sizeSlug": "large"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0",
+      "width": "100%"
+    },
+    "description": "Display multiple images in a rich gallery",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/gallery",
+    "inserted": {
+      "category": "media",
+      "content": {
+        "data": {
+          "caption": "",
+          "className": "",
+          "columns": 3,
+          "imageCrop": true,
+          "images": [],
+          "linkTo": "none",
+          "sizeSlug": "large"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Gallery",
+      "name": "core/gallery",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Gallery"
+  },
+  "core/group": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "className": "",
+        "tagName": "div"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "alignItems": "flex-start",
+      "boxSizing": "border-box",
+      "display": "flex",
+      "flexDirection": "column",
+      "gap": "1rem",
+      "justifyContent": "flex-start",
+      "padding": "1rem 1.25rem",
+      "width": "100%"
+    },
+    "description": "Gather blocks in a layout container",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/group",
+    "inserted": {
+      "category": "layout",
+      "children": [],
+      "content": {
+        "data": {
+          "className": "",
+          "tagName": "div"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Group",
+      "name": "core/group",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "alignItems": "flex-start",
+        "boxSizing": "border-box",
+        "display": "flex",
+        "flexDirection": "column",
+        "gap": "1rem",
+        "justifyContent": "flex-start",
+        "margin": "0px",
+        "padding": "1rem 1.25rem",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Group"
+  },
+  "core/header": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "actions": [
+          {
+            "href": "/signin",
+            "id": "action-1",
+            "label": "Sign in",
+            "radius": "9999px",
+            "size": "md",
+            "style": "ghost"
+          },
+          {
+            "href": "/start",
+            "id": "action-2",
+            "label": "Get started",
+            "radius": "9999px",
+            "size": "md",
+            "style": "solid"
+          }
+        ],
+        "actionsSlot": "right",
+        "brand": {
+          "href": "/",
+          "kind": "wordmark",
+          "logoRadius": "0",
+          "logoSize": "1.75rem",
+          "showName": false,
+          "text": "Site"
+        },
+        "brandSlot": "left",
+        "matchPagePadding": false,
+        "nav": [
+          {
+            "children": [
+              {
+                "href": "/products",
+                "id": "nav-dropdown-1",
+                "label": "Overview"
+              },
+              {
+                "href": "/pricing",
+                "id": "nav-dropdown-2",
+                "label": "Pricing"
+              }
+            ],
+            "href": "/products",
+            "id": "nav-dropdown",
+            "label": "Products"
+          },
+          {
+            "href": "/about",
+            "id": "nav-1",
+            "label": "About"
+          },
+          {
+            "href": "/blog",
+            "id": "nav-2",
+            "label": "Blog"
+          },
+          {
+            "href": "/contact",
+            "id": "nav-3",
+            "label": "Contact"
+          }
+        ],
+        "navSlot": "right",
+        "sticky": false,
+        "variant": "links-and-actions"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0px",
+      "padding": "0px",
+      "width": "100%"
+    },
+    "description": "Site header with brand, links, and buttons",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/header",
+    "inserted": {
+      "category": "layout",
+      "children": [],
+      "content": {
+        "data": {
+          "actions": [
+            {
+              "href": "/signin",
+              "id": "action-1",
+              "label": "Sign in",
+              "radius": "9999px",
+              "size": "md",
+              "style": "ghost"
+            },
+            {
+              "href": "/start",
+              "id": "action-2",
+              "label": "Get started",
+              "radius": "9999px",
+              "size": "md",
+              "style": "solid"
+            }
+          ],
+          "actionsSlot": "right",
+          "brand": {
+            "href": "/",
+            "kind": "wordmark",
+            "logoRadius": "0",
+            "logoSize": "1.75rem",
+            "showName": false,
+            "text": "Site"
+          },
+          "brandSlot": "left",
+          "matchPagePadding": false,
+          "nav": [
+            {
+              "children": [
+                {
+                  "href": "/products",
+                  "id": "nav-dropdown-1",
+                  "label": "Overview"
+                },
+                {
+                  "href": "/pricing",
+                  "id": "nav-dropdown-2",
+                  "label": "Pricing"
+                }
+              ],
+              "href": "/products",
+              "id": "nav-dropdown",
+              "label": "Products"
+            },
+            {
+              "href": "/about",
+              "id": "nav-1",
+              "label": "About"
+            },
+            {
+              "href": "/blog",
+              "id": "nav-2",
+              "label": "Blog"
+            },
+            {
+              "href": "/contact",
+              "id": "nav-3",
+              "label": "Contact"
+            }
+          ],
+          "navSlot": "right",
+          "sticky": false,
+          "variant": "links-and-actions"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Header",
+      "name": "core/header",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0px",
+        "padding": "0px",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Header"
+  },
+  "core/heading": {
+    "category": "basic",
+    "defaultContent": {
+      "anchor": "",
+      "className": "",
+      "kind": "text",
+      "level": 2,
+      "value": "Your heading here"
+    },
+    "defaultStyles": {
+      "margin": "0"
+    },
+    "description": "Add a heading text",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/heading",
+    "inserted": {
+      "category": "basic",
+      "content": {
+        "anchor": "",
+        "className": "",
+        "kind": "text",
+        "level": 2,
+        "value": "Your heading here"
+      },
+      "id": "block-under-test",
+      "label": "Heading",
+      "name": "core/heading",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Heading"
+  },
+  "core/html": {
+    "category": "advanced",
+    "defaultContent": {
+      "data": {
+        "className": "",
+        "content": "<div class=\"custom-element\">\n  <!-- Your HTML here -->\n</div>"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Add custom HTML code",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/html",
+    "inserted": {
+      "category": "advanced",
+      "content": {
+        "data": {
+          "className": "",
+          "content": "<div class=\"custom-element\">\n  <!-- Your HTML here -->\n</div>"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Custom HTML",
+      "name": "core/html",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Custom HTML"
+  },
+  "core/icon": {
+    "category": "basic",
+    "defaultContent": {
+      "data": {
+        "icon": {
+          "color": "currentColor",
+          "iconName": "star",
+          "iconSet": "lucide",
+          "size": 24,
+          "strokeWidth": 2
+        },
+        "label": "",
+        "link": "",
+        "linkTarget": "_self"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "alignItems": "center",
+      "display": "inline-flex",
+      "justifyContent": "center"
+    },
+    "description": "Add an icon from various icon sets",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/icon",
+    "inserted": {
+      "category": "basic",
+      "content": {
+        "data": {
+          "icon": {
+            "color": "currentColor",
+            "iconName": "star",
+            "iconSet": "lucide",
+            "size": 24,
+            "strokeWidth": 2
+          },
+          "label": "",
+          "link": "",
+          "linkTarget": "_self"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Icon",
+      "name": "core/icon",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "alignItems": "center",
+        "display": "inline-flex",
+        "justifyContent": "center",
+        "margin": "0px",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Icon"
+  },
+  "core/image": {
+    "category": "media",
+    "defaultContent": {
+      "align": "",
+      "alt": "Placeholder image",
+      "caption": "",
+      "className": "",
+      "href": "",
+      "kind": "media",
+      "linkDestination": "none",
+      "linkTarget": "_self",
+      "mediaType": "image",
+      "rel": "",
+      "sizeSlug": "full",
+      "title": "",
+      "url": "/placeholder.png"
+    },
+    "defaultStyles": {
+      "height": "auto",
+      "maxWidth": "100%",
+      "width": "100%"
+    },
+    "description": "Add an image",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/image",
+    "inserted": {
+      "category": "media",
+      "content": {
+        "align": "",
+        "alt": "Placeholder image",
+        "caption": "",
+        "className": "",
+        "href": "",
+        "kind": "media",
+        "linkDestination": "none",
+        "linkTarget": "_self",
+        "mediaType": "image",
+        "rel": "",
+        "sizeSlug": "full",
+        "title": "",
+        "url": "/placeholder.png"
+      },
+      "id": "block-under-test",
+      "label": "Image",
+      "name": "core/image",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "height": "auto",
+        "margin": "0px",
+        "maxWidth": "100%",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Image"
+  },
+  "core/input": {
+    "category": "form",
+    "defaultContent": {
+      "data": {
+        "defaultValue": "",
+        "disabled": false,
+        "name": "field",
+        "placeholder": "Enter text",
+        "required": false,
+        "type": "text"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "backgroundColor": "#ffffff",
+      "border": "1px solid #d1d5db",
+      "borderRadius": "0.375rem",
+      "boxSizing": "border-box",
+      "color": "#111827",
+      "fontSize": "16px",
+      "lineHeight": "1.5",
+      "padding": "8px 12px",
+      "width": "100%"
+    },
+    "description": "Single-line text, search, email, or number input",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/input",
+    "inserted": {
+      "category": "form",
+      "content": {
+        "data": {
+          "defaultValue": "",
+          "disabled": false,
+          "name": "field",
+          "placeholder": "Enter text",
+          "required": false,
+          "type": "text"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Text field",
+      "name": "core/input",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "backgroundColor": "#ffffff",
+        "border": "1px solid #d1d5db",
+        "borderRadius": "0.375rem",
+        "boxSizing": "border-box",
+        "color": "#111827",
+        "fontSize": "16px",
+        "lineHeight": "1.5",
+        "margin": "0px",
+        "padding": "8px 12px",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Text field"
+  },
+  "core/list": {
+    "category": "advanced",
+    "defaultContent": {
+      "data": {
+        "anchor": "",
+        "className": "",
+        "ordered": false,
+        "values": "<li>List item 1</li><li>List item 2</li><li>List item 3</li>"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Add a bulleted or numbered list",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/list",
+    "inserted": {
+      "category": "advanced",
+      "content": {
+        "data": {
+          "anchor": "",
+          "className": "",
+          "ordered": false,
+          "values": "<li>List item 1</li><li>List item 2</li><li>List item 3</li>"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "List",
+      "name": "core/list",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "List"
+  },
+  "core/markdown": {
+    "category": "advanced",
+    "defaultContent": {
+      "data": {
+        "className": "",
+        "content": ""
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Add rich text using Markdown format",
+    "handlesOwnChildren": false,
+    "hasSettings": false,
+    "id": "core/markdown",
+    "inserted": {
+      "category": "advanced",
+      "content": {
+        "data": {
+          "className": "",
+          "content": ""
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Markdown",
+      "name": "core/markdown",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Markdown"
+  },
+  "core/media-text": {
+    "category": "media",
+    "defaultContent": {
+      "data": {
+        "anchor": "",
+        "className": "",
+        "content": "<p>Add your content…</p>",
+        "href": "",
+        "imageFill": false,
+        "isStackedOnMobile": true,
+        "linkTarget": "_self",
+        "mediaAlt": "Placeholder image",
+        "mediaPosition": "left",
+        "mediaType": "image",
+        "mediaUrl": "/placeholder.png",
+        "mediaWidth": 50,
+        "rel": "",
+        "title": "",
+        "verticalAlignment": "center"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Display media and text side by side",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/media-text",
+    "inserted": {
+      "category": "media",
+      "content": {
+        "data": {
+          "anchor": "",
+          "className": "",
+          "content": "<p>Add your content…</p>",
+          "href": "",
+          "imageFill": false,
+          "isStackedOnMobile": true,
+          "linkTarget": "_self",
+          "mediaAlt": "Placeholder image",
+          "mediaPosition": "left",
+          "mediaType": "image",
+          "mediaUrl": "/placeholder.png",
+          "mediaWidth": 50,
+          "rel": "",
+          "title": "",
+          "verticalAlignment": "center"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Media & Text",
+      "name": "core/media-text",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Media & Text"
+  },
+  "core/page-shell": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "containerWidth": "1200px",
+        "fontFamily": "system-ui",
+        "padding": "2rem 1rem"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0px",
+      "padding": "0px",
+      "width": "100%"
+    },
+    "description": "Page-wide canvas: padding, font, width, and colors",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/page-shell",
+    "inserted": {
+      "category": "layout",
+      "children": [],
+      "content": {
+        "data": {
+          "containerWidth": "1200px",
+          "fontFamily": "system-ui",
+          "padding": "2rem 1rem"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Page shell",
+      "name": "core/page-shell",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0px",
+        "padding": "0px",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Page shell"
+  },
+  "core/paragraph": {
+    "category": "basic",
+    "defaultContent": {
+      "anchor": "",
+      "className": "",
+      "dropCap": false,
+      "kind": "text",
+      "value": "Add your text content here. You can edit this text and customize its appearance."
+    },
+    "defaultStyles": {
+      "fontSize": "16px",
+      "lineHeight": "1.6"
+    },
+    "description": "Add a paragraph of text",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/paragraph",
+    "inserted": {
+      "category": "basic",
+      "content": {
+        "anchor": "",
+        "className": "",
+        "dropCap": false,
+        "kind": "text",
+        "value": "Add your text content here. You can edit this text and customize its appearance."
+      },
+      "id": "block-under-test",
+      "label": "Paragraph",
+      "name": "core/paragraph",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "fontSize": "16px",
+        "lineHeight": "1.6",
+        "margin": "0px",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Paragraph"
+  },
+  "core/popup": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "animation": "scale",
+        "backdropBlur": 0,
+        "bottomOnPhones": false,
+        "closeButton": true,
+        "closeOnBackdrop": true,
+        "name": "Popup",
+        "padding": "24px",
+        "radius": "12px",
+        "size": "md",
+        "slug": "popup"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "0",
+      "padding": "0"
+    },
+    "description": "A window over the page, opened by a button or link",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/popup",
+    "inserted": {
+      "category": "layout",
+      "children": [
+        {
+          "category": "basic",
+          "content": {
+            "kind": "text",
+            "level": 2,
+            "value": "Stay in the loop"
+          },
+          "id": "id-1",
+          "label": "Heading",
+          "name": "core/heading",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "fontSize": "1.5rem",
+            "fontWeight": "600",
+            "margin": "0 0 8px"
+          },
+          "type": "block"
+        },
+        {
+          "category": "basic",
+          "content": {
+            "kind": "text",
+            "value": "Tell visitors what they get, then add a button or form."
+          },
+          "id": "id-2",
+          "label": "Paragraph",
+          "name": "core/paragraph",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "margin": "0"
+          },
+          "type": "block"
+        }
+      ],
+      "content": {
+        "data": {
+          "animation": "scale",
+          "backdropBlur": 0,
+          "bottomOnPhones": false,
+          "closeButton": true,
+          "closeOnBackdrop": true,
+          "name": "Popup",
+          "padding": "24px",
+          "radius": "12px",
+          "size": "md",
+          "slug": "popup"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Popup",
+      "name": "core/popup",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0",
+        "padding": "0"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Popup"
+  },
+  "core/preformatted": {
+    "category": "advanced",
+    "defaultContent": {
+      "data": {
+        "className": "",
+        "content": "This is preformatted text.\nIt preserves    spacing   and\n\teven\ttabs!"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "backgroundColor": "#f8f9fa",
+      "color": "#000000",
+      "fontSize": "14px"
+    },
+    "description": "Add text that respects your spacing and tabs",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/preformatted",
+    "inserted": {
+      "category": "advanced",
+      "content": {
+        "data": {
+          "className": "",
+          "content": "This is preformatted text.\nIt preserves    spacing   and\n\teven\ttabs!"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Preformatted",
+      "name": "core/preformatted",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "backgroundColor": "#f8f9fa",
+        "color": "#000000",
+        "fontSize": "14px",
+        "margin": "0px",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Preformatted"
+  },
+  "core/pullquote": {
+    "category": "advanced",
+    "defaultContent": {
+      "data": {
+        "citation": "",
+        "className": "",
+        "value": "<p>Add a quote that stands out from the rest of your content.</p>"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "backgroundColor": "#f8f9fa",
+      "color": "#000000",
+      "textAlign": "center"
+    },
+    "description": "Give special visual emphasis to a quote from your text",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/pullquote",
+    "inserted": {
+      "category": "advanced",
+      "content": {
+        "data": {
+          "citation": "",
+          "className": "",
+          "value": "<p>Add a quote that stands out from the rest of your content.</p>"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Pullquote",
+      "name": "core/pullquote",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "backgroundColor": "#f8f9fa",
+        "color": "#000000",
+        "margin": "0px",
+        "padding": "20px 20px 0",
+        "textAlign": "center"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Pullquote"
+  },
+  "core/quote": {
+    "category": "advanced",
+    "defaultContent": {
+      "data": {
+        "anchor": "",
+        "citation": "",
+        "className": "",
+        "value": "<p>Add a quote</p>"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Add a blockquote",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/quote",
+    "inserted": {
+      "category": "advanced",
+      "content": {
+        "data": {
+          "anchor": "",
+          "citation": "",
+          "className": "",
+          "value": "<p>Add a quote</p>"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Quote",
+      "name": "core/quote",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Quote"
+  },
+  "core/select": {
+    "category": "form",
+    "defaultContent": {
+      "data": {
+        "defaultValue": "",
+        "disabled": false,
+        "name": "choice",
+        "options": [
+          {
+            "label": "Option one",
+            "value": "option-1"
+          },
+          {
+            "label": "Option two",
+            "value": "option-2"
+          }
+        ],
+        "placeholder": "Choose an option",
+        "required": false
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "backgroundColor": "#ffffff",
+      "border": "1px solid #d1d5db",
+      "borderRadius": "0.375rem",
+      "boxSizing": "border-box",
+      "color": "#111827",
+      "fontSize": "16px",
+      "lineHeight": "1.5",
+      "padding": "8px 12px",
+      "width": "100%"
+    },
+    "description": "Select one option from a list",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/select",
+    "inserted": {
+      "category": "form",
+      "content": {
+        "data": {
+          "defaultValue": "",
+          "disabled": false,
+          "name": "choice",
+          "options": [
+            {
+              "label": "Option one",
+              "value": "option-1"
+            },
+            {
+              "label": "Option two",
+              "value": "option-2"
+            }
+          ],
+          "placeholder": "Choose an option",
+          "required": false
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Dropdown",
+      "name": "core/select",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "backgroundColor": "#ffffff",
+        "border": "1px solid #d1d5db",
+        "borderRadius": "0.375rem",
+        "boxSizing": "border-box",
+        "color": "#111827",
+        "fontSize": "16px",
+        "lineHeight": "1.5",
+        "margin": "0px",
+        "padding": "8px 12px",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Dropdown"
+  },
+  "core/separator": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "className": "",
+        "lineStyle": "solid"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "color": "#000000",
+      "margin": "2.5em auto",
+      "width": "100px"
+    },
+    "description": "A line across the content, solid, dashed, or dotted.",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/separator",
+    "inserted": {
+      "category": "layout",
+      "content": {
+        "data": {
+          "className": "",
+          "lineStyle": "solid"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Separator",
+      "name": "core/separator",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "color": "#000000",
+        "margin": "2.5em auto",
+        "padding": "20px 20px 0",
+        "width": "100px"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Separator"
+  },
+  "core/spacer": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "anchor": "",
+        "className": "",
+        "height": "100px"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "0px",
+      "padding": "0px"
+    },
+    "description": "Add vertical spacing",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/spacer",
+    "inserted": {
+      "category": "layout",
+      "content": {
+        "data": {
+          "anchor": "",
+          "className": "",
+          "height": "100px"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Spacer",
+      "name": "core/spacer",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0px",
+        "padding": "0px"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Spacer"
+  },
+  "core/stack": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "stackType": "vertical"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "alignItems": "flex-start",
+      "boxSizing": "border-box",
+      "display": "flex",
+      "flexDirection": "column",
+      "flexWrap": "nowrap",
+      "gap": "1rem",
+      "justifyContent": "flex-start",
+      "margin": "0px",
+      "padding": "0px",
+      "width": "100%"
+    },
+    "description": "Stack blocks vertically, in a row, or layered AB",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/stack",
+    "inserted": {
+      "category": "layout",
+      "children": [],
+      "content": {
+        "data": {
+          "stackType": "vertical"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Stack",
+      "name": "core/stack",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "alignItems": "flex-start",
+        "boxSizing": "border-box",
+        "display": "flex",
+        "flexDirection": "column",
+        "flexWrap": "nowrap",
+        "gap": "1rem",
+        "justifyContent": "flex-start",
+        "margin": "0px",
+        "padding": "0px",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Stack"
+  },
+  "core/table": {
+    "category": "advanced",
+    "defaultContent": {
+      "data": {
+        "body": [
+          {
+            "cells": [
+              {
+                "content": "Cell 1",
+                "tag": "td"
+              },
+              {
+                "content": "Cell 2",
+                "tag": "td"
+              },
+              {
+                "content": "Cell 3",
+                "tag": "td"
+              }
+            ]
+          },
+          {
+            "cells": [
+              {
+                "content": "Cell 4",
+                "tag": "td"
+              },
+              {
+                "content": "Cell 5",
+                "tag": "td"
+              },
+              {
+                "content": "Cell 6",
+                "tag": "td"
+              }
+            ]
+          }
+        ],
+        "bordered": true,
+        "caption": "",
+        "className": "",
+        "compact": false,
+        "foot": [],
+        "hasFixedLayout": false,
+        "head": [
+          {
+            "cells": [
+              {
+                "content": "Header 1",
+                "tag": "th"
+              },
+              {
+                "content": "Header 2",
+                "tag": "th"
+              },
+              {
+                "content": "Header 3",
+                "tag": "th"
+              }
+            ]
+          }
+        ],
+        "striped": false
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Create a table to display data",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/table",
+    "inserted": {
+      "category": "advanced",
+      "content": {
+        "data": {
+          "body": [
+            {
+              "cells": [
+                {
+                  "content": "Cell 1",
+                  "tag": "td"
+                },
+                {
+                  "content": "Cell 2",
+                  "tag": "td"
+                },
+                {
+                  "content": "Cell 3",
+                  "tag": "td"
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "content": "Cell 4",
+                  "tag": "td"
+                },
+                {
+                  "content": "Cell 5",
+                  "tag": "td"
+                },
+                {
+                  "content": "Cell 6",
+                  "tag": "td"
+                }
+              ]
+            }
+          ],
+          "bordered": true,
+          "caption": "",
+          "className": "",
+          "compact": false,
+          "foot": [],
+          "hasFixedLayout": false,
+          "head": [
+            {
+              "cells": [
+                {
+                  "content": "Header 1",
+                  "tag": "th"
+                },
+                {
+                  "content": "Header 2",
+                  "tag": "th"
+                },
+                {
+                  "content": "Header 3",
+                  "tag": "th"
+                }
+              ]
+            }
+          ],
+          "striped": false
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Table",
+      "name": "core/table",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Table"
+  },
+  "core/template-part": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "templateId": ""
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {},
+    "description": "Shows a template that stays linked to this page",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/template-part",
+    "inserted": {
+      "category": "layout",
+      "content": {
+        "data": {
+          "templateId": ""
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Template",
+      "name": "core/template-part",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0px",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Template"
+  },
+  "core/textarea": {
+    "category": "form",
+    "defaultContent": {
+      "data": {
+        "defaultValue": "",
+        "disabled": false,
+        "name": "message",
+        "placeholder": "Enter your message",
+        "required": false,
+        "rows": 4
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "backgroundColor": "#ffffff",
+      "border": "1px solid #d1d5db",
+      "borderRadius": "0.375rem",
+      "boxSizing": "border-box",
+      "color": "#111827",
+      "fontSize": "16px",
+      "lineHeight": "1.5",
+      "padding": "8px 12px",
+      "width": "100%"
+    },
+    "description": "Multi-line text input",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/textarea",
+    "inserted": {
+      "category": "form",
+      "content": {
+        "data": {
+          "defaultValue": "",
+          "disabled": false,
+          "name": "message",
+          "placeholder": "Enter your message",
+          "required": false,
+          "rows": 4
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Text area",
+      "name": "core/textarea",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "backgroundColor": "#ffffff",
+        "border": "1px solid #d1d5db",
+        "borderRadius": "0.375rem",
+        "boxSizing": "border-box",
+        "color": "#111827",
+        "fontSize": "16px",
+        "lineHeight": "1.5",
+        "margin": "0px",
+        "padding": "8px 12px",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Text area"
+  },
+  "core/video": {
+    "category": "media",
+    "defaultContent": {
+      "anchor": "",
+      "autoplay": false,
+      "caption": "",
+      "className": "",
+      "controls": true,
+      "kind": "media",
+      "loop": false,
+      "mediaType": "video",
+      "muted": false,
+      "playsInline": true,
+      "poster": "",
+      "preload": "metadata",
+      "url": ""
+    },
+    "defaultStyles": {
+      "width": "100%"
+    },
+    "description": "Add a video player",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/video",
+    "inserted": {
+      "category": "media",
+      "content": {
+        "anchor": "",
+        "autoplay": false,
+        "caption": "",
+        "className": "",
+        "controls": true,
+        "kind": "media",
+        "loop": false,
+        "mediaType": "video",
+        "muted": false,
+        "playsInline": true,
+        "poster": "",
+        "preload": "metadata",
+        "url": ""
+      },
+      "id": "block-under-test",
+      "label": "Video",
+      "name": "core/video",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0px",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Video"
+  },
+  "post/author-box": {
+    "category": "post",
+    "defaultContent": {
+      "data": {
+        "authorId": "",
+        "avatarSize": 64,
+        "className": "",
+        "layout": "horizontal",
+        "postId": "",
+        "showAvatar": true,
+        "showBio": true,
+        "showName": true
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "0 0 1em 0"
+    },
+    "description": "Display the post author's avatar, name, and bio",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "post/author-box",
+    "inserted": {
+      "category": "post",
+      "content": {
+        "data": {
+          "authorId": "",
+          "avatarSize": 64,
+          "className": "",
+          "layout": "horizontal",
+          "postId": "",
+          "showAvatar": true,
+          "showBio": true,
+          "showName": true
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Author Box",
+      "name": "post/author-box",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0 0 1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Author Box"
+  },
+  "post/comments": {
+    "category": "post",
+    "defaultContent": {
+      "data": {
+        "allowReplies": true,
+        "className": "",
+        "commentsPerPage": 10,
+        "postId": "",
+        "showCount": true,
+        "showForm": true
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Display post comments and a comment submission form",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "post/comments",
+    "inserted": {
+      "category": "post",
+      "content": {
+        "data": {
+          "allowReplies": true,
+          "className": "",
+          "commentsPerPage": 10,
+          "postId": "",
+          "showCount": true,
+          "showForm": true
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Post Comments",
+      "name": "post/comments",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Post Comments"
+  },
+  "post/excerpt": {
+    "category": "post",
+    "defaultContent": {
+      "data": {
+        "className": "",
+        "maxLength": 200,
+        "readMoreText": "Read More",
+        "showReadMore": true,
+        "text": "This is a brief summary of the post content that gives readers a preview of what to expect..."
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "0"
+    },
+    "description": "Display a summary excerpt of the post",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "post/excerpt",
+    "inserted": {
+      "category": "post",
+      "content": {
+        "data": {
+          "className": "",
+          "maxLength": 200,
+          "readMoreText": "Read More",
+          "showReadMore": true,
+          "text": "This is a brief summary of the post content that gives readers a preview of what to expect..."
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Post Excerpt",
+      "name": "post/excerpt",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Post Excerpt"
+  },
+  "post/featured-image": {
+    "category": "post",
+    "defaultContent": {
+      "data": {
+        "alt": "Featured image",
+        "aspectRatio": "16/9",
+        "caption": "",
+        "className": "",
+        "objectFit": "cover",
+        "url": ""
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "width": "100%"
+    },
+    "description": "Display and set the post featured image",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "post/featured-image",
+    "inserted": {
+      "category": "post",
+      "content": {
+        "data": {
+          "alt": "Featured image",
+          "aspectRatio": "16/9",
+          "caption": "",
+          "className": "",
+          "objectFit": "cover",
+          "url": ""
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Featured Image",
+      "name": "post/featured-image",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0px",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Featured Image"
+  },
+  "post/info": {
+    "category": "post",
+    "defaultContent": {
+      "className": "",
+      "dateFormat": "long",
+      "layout": "inline",
+      "postId": "",
+      "showCategories": true,
+      "showDate": true,
+      "showReadTime": true,
+      "showTags": true
+    },
+    "defaultStyles": {
+      "margin": "0.5em 0"
+    },
+    "description": "Display post metadata: date, categories, tags, and read time",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "post/info",
+    "inserted": {
+      "category": "post",
+      "content": {
+        "className": "",
+        "dateFormat": "long",
+        "layout": "inline",
+        "postId": "",
+        "showCategories": true,
+        "showDate": true,
+        "showReadTime": true,
+        "showTags": true
+      },
+      "id": "block-under-test",
+      "label": "Post Info",
+      "name": "post/info",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0.5em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Post Info"
+  },
+  "post/list": {
+    "category": "post",
+    "defaultContent": {
+      "data": {
+        "blogId": "",
+        "category": "",
+        "className": "",
+        "layout": "grid",
+        "morePosts": "show-more",
+        "openIn": "overlay",
+        "order": "desc",
+        "orderBy": "date",
+        "postsPerPage": 6,
+        "showAuthor": true,
+        "showDate": true,
+        "showExcerpt": true,
+        "showFeaturedImage": true
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Display a list of posts in grid, list, or card layout",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "post/list",
+    "inserted": {
+      "category": "post",
+      "content": {
+        "data": {
+          "blogId": "",
+          "category": "",
+          "className": "",
+          "layout": "grid",
+          "morePosts": "show-more",
+          "openIn": "overlay",
+          "order": "desc",
+          "orderBy": "date",
+          "postsPerPage": 6,
+          "showAuthor": true,
+          "showDate": true,
+          "showExcerpt": true,
+          "showFeaturedImage": true
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Post List",
+      "name": "post/list",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Post List"
+  },
+  "post/navigation": {
+    "category": "post",
+    "defaultContent": {
+      "data": {
+        "className": "",
+        "nextLabel": "Next Post",
+        "postId": "",
+        "prevLabel": "Previous Post",
+        "showLabel": true,
+        "showThumbnail": false
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "2em 0"
+    },
+    "description": "Navigate between previous and next posts",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "post/navigation",
+    "inserted": {
+      "category": "post",
+      "content": {
+        "data": {
+          "className": "",
+          "nextLabel": "Next Post",
+          "postId": "",
+          "prevLabel": "Previous Post",
+          "showLabel": true,
+          "showThumbnail": false
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Post Navigation",
+      "name": "post/navigation",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "2em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Post Navigation"
+  },
+  "post/progress": {
+    "category": "post",
+    "defaultContent": {
+      "backgroundColor": "transparent",
+      "className": "",
+      "color": "var(--npb-accent)",
+      "height": 4,
+      "position": "top",
+      "showPercentage": false
+    },
+    "defaultStyles": {},
+    "description": "Show a reading progress indicator bar",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "post/progress",
+    "inserted": {
+      "category": "post",
+      "content": {
+        "backgroundColor": "transparent",
+        "className": "",
+        "color": "var(--npb-accent)",
+        "height": 4,
+        "position": "top",
+        "showPercentage": false
+      },
+      "id": "block-under-test",
+      "label": "Reading Progress",
+      "name": "post/progress",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0px",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Reading Progress"
+  },
+  "post/title": {
+    "category": "post",
+    "defaultContent": {
+      "data": {
+        "className": "",
+        "tag": "h1",
+        "text": "Post Title"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "0"
+    },
+    "description": "Display the post title as a heading",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "post/title",
+    "inserted": {
+      "category": "post",
+      "content": {
+        "data": {
+          "className": "",
+          "tag": "h1",
+          "text": "Post Title"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Post Title",
+      "name": "post/title",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Post Title"
+  },
+  "post/toc": {
+    "category": "post",
+    "defaultContent": {
+      "className": "",
+      "maxDepth": 3,
+      "ordered": false,
+      "sticky": false,
+      "title": "Table of Contents"
+    },
+    "defaultStyles": {
+      "margin": "1em 0"
+    },
+    "description": "Auto-generated table of contents from page headings",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "post/toc",
+    "inserted": {
+      "category": "post",
+      "content": {
+        "className": "",
+        "maxDepth": 3,
+        "ordered": false,
+        "sticky": false,
+        "title": "Table of Contents"
+      },
+      "id": "block-under-test",
+      "label": "Table of Contents",
+      "name": "post/toc",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "1em 0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Table of Contents"
+  }
+}

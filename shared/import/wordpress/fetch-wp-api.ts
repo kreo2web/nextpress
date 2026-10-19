@@ -32,20 +32,26 @@ const buildError = (code: WpApiErrorCode, message: string): WpFetchError => ({
 });
 
 /**
+ * The fetch the importer uses. The server passes one that reaches only the open internet and checks
+ * every redirect (`createSafePublicFetch`), so a typed address can't reach the server's own network.
+ */
+export type WpFetch = (url: string, init?: RequestInit) => Promise<Response>;
+
+/**
  * Fetches a WordPress REST endpoint with timeout and classifies common failures.
  */
 export const fetchWpJson = async <T>(params: {
 	url: string;
 	signal?: AbortSignal;
+	fetchImpl: WpFetch;
 }): Promise<WpFetchResult<T>> => {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
 	try {
-		const response = await fetch(params.url, {
+		const response = await params.fetchImpl(params.url, {
 			signal: params.signal ?? controller.signal,
 			headers: { Accept: "application/json" },
-			redirect: "follow",
 		});
 
 		if (response.status === 401 || response.status === 403) {

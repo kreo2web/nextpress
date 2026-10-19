@@ -328,6 +328,21 @@ const SCOPE_RULES: ScopeRule[] = [
 		scopes: () => [],
 	},
 	{
+		// Opening and joining through an invite link: public, rate-limited, no key involved.
+		matches: ({ path }) => path.startsWith("/api/invites/code/"),
+		scopes: () => null,
+	},
+	{
+		// What the key's maker may do on the key's site; any valid key may ask.
+		matches: ({ method, path }) => method === "GET" && path === "/api/access",
+		scopes: () => [],
+	},
+	{
+		// Who has which role on a site, and invite links: managing people.
+		matches: ({ path }) => path.startsWith("/api/site-people") || path.startsWith("/api/invites"),
+		scopes: ({ method }) => writeOrReadScope({ method, read: "users:read", write: "users:write" }),
+	},
+	{
 		matches: ({ method, path }) => method === "POST" && path === "/api/preview/tokens",
 		scopes: () => ["preview:write"],
 	},
@@ -389,6 +404,13 @@ const SCOPE_RULES: ScopeRule[] = [
 		matches: ({ path }) => path === "/api/system/update" || path.startsWith("/api/system/update/"),
 		scopes: ({ method }) =>
 			writeOrReadScope({ method, read: "system:read", write: "system:write" }),
+	},
+	{
+		// A site's AI settings and key. The routes take a dashboard session only (an API key is refused there),
+		// so this rule keeps the settings scopes in front of them even if that ever changes.
+		matches: ({ path }) => path === "/api/ai-builder" || path.startsWith("/api/ai-builder/"),
+		scopes: ({ method }) =>
+			writeOrReadScope({ method, read: "settings:read", write: "settings:write" }),
 	},
 	{
 		matches: ({ path }) => path.startsWith("/api/system") || path.startsWith("/api/import"),

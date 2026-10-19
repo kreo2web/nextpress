@@ -7,13 +7,14 @@ import { PostAuthorBoxSettings } from './post-author-box-settings';
 import {
   type PostAuthorBoxContent,
   type AuthorData,
-  DEFAULT_CONTENT,
   PLACEHOLDER_AUTHOR,
   buildAuthorBoxClassName,
   mergeAuthorDisplay,
   useAuthorData,
 } from './post-author-box-model';
 import { normalizeWebsiteUrl, normalizeXProfileUrl } from '@shared/safe-http-url';
+import { POST_AUTHOR_BOX_DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
+import { catalogMeta } from '../catalog-meta';
 
 function boundAuthorFromContent(content: PostAuthorBoxContent): AuthorData | null {
   if (!content?.name && !content?.avatar && !content?.bio) return null;
@@ -130,13 +131,9 @@ function PostAuthorBoxRenderer({
  * Displays the post author's avatar, name, and bio in a configurable layout.
  */
 const PostAuthorBoxBlock = createBlockDefinition<PostAuthorBoxContent>({
-  id: 'post/author-box',
-  label: 'Author Box',
+  ...catalogMeta('post/author-box'),
   icon: UserCircle,
-  description: "Display the post author's avatar, name, and bio",
-  category: 'post',
-  defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '0 0 1em 0' },
+  defaultContent: POST_AUTHOR_BOX_DEFAULT_CONTENT,
   settings: PostAuthorBoxSettings,
   hasSettings: true,
   render: ({ content, styles }) => (

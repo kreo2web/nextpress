@@ -211,11 +211,12 @@ export function createPagesRoutes(deps: Deps): Router {
         siteId: parsed.data.siteId,
       });
 
+      // Check every page first, so a refused list changes nothing.
+      const existing = await Promise.all(parsed.data.items.map((item) => models.pages.findById(item.id)));
+      if (existing.some((page) => !page || page.siteId !== parsed.data.siteId)) {
+        return res.status(403).json({ message: 'One or more pages are not accessible on this site' });
+      }
       for (const item of parsed.data.items) {
-        const existing = await models.pages.findById(item.id);
-        if (!existing || existing.siteId !== parsed.data.siteId) {
-          return res.status(403).json({ message: 'One or more pages are not accessible on this site' });
-        }
         await models.pages.update(item.id, { menuOrder: item.menuOrder });
       }
 
@@ -256,6 +257,7 @@ export function createPagesRoutes(deps: Deps): Router {
           models,
           siteId: String(page.siteId),
           status: (page as { status?: string }).status,
+          password: (page as { password?: string | null }).password,
         });
         if (!allowed) {
           return;

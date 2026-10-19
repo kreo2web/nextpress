@@ -13,7 +13,13 @@ describe("createBlocksBuilder", () => {
 	it("builds a heading block", () => {
 		const block = blocks.heading({ text: "Hello", level: 1 });
 		expect(block.name).toBe("core/heading");
-		expect(block.content).toEqual({ kind: "text", value: "Hello", level: 1 });
+		expect(block.content).toEqual({
+			kind: "text",
+			value: "Hello",
+			level: 1,
+			anchor: "",
+			className: "",
+		});
 	});
 
 	it("builds any registered block via fromName", () => {
@@ -39,7 +45,13 @@ describe("createBlocksBuilder", () => {
 		const block = blocks.group({
 			settings: {
 				content: { tagName: "div" },
-				styles: { display: "flex", flexDirection: "row", gap: "8px", padding: "12px", backgroundColor: "#fff" },
+				styles: {
+					display: "flex",
+					flexDirection: "row",
+					gap: "8px",
+					padding: "12px",
+					backgroundColor: "#fff",
+				},
 			},
 		});
 		expect(block.content).toMatchObject({
@@ -109,6 +121,9 @@ describe("createBlocksBuilder", () => {
 			value: "Google Search",
 			url: "https://www.google.com",
 			linkTarget: "_blank",
+			rel: "",
+			title: "",
+			className: "",
 		});
 	});
 });

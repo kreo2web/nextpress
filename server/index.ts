@@ -7,19 +7,19 @@ import express, {
 import { registerRoutes } from './routes';
 import { serveStatic, log } from './vite';
 import { initDevDatabase } from './db';
-import { models } from './storage';
-import { safeTryAsync } from './utils';
-import {
-  responseCompression,
-  setResponseCompressionEnabled,
-} from './lib/response-compression';
+import { responseCompression } from './lib/response-compression';
+import { securityHeaders } from './lib/security-headers';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 
+// No response ever carries a `password` field: the legacy users column and the page/post one stay on the server.
+app.set('json replacer', (key: string, value: unknown) => (key === 'password' ? undefined : value));
+
 app.use(responseCompression());
+app.use(securityHeaders());
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -55,18 +55,6 @@ app.use((req, res, next) => {
   // Initialize PGlite schema in development mode
   await initDevDatabase();
 
-  const { err: compressionErr, result: bootSettings } = await safeTryAsync(() =>
-    models.sites.getSettings(),
-  );
-  if (compressionErr || !bootSettings) {
-    console.error({
-      atFunction: "start",
-      error: compressionErr,
-      message: "Could not read the compression setting",
-    });
-  } else {
-    setResponseCompressionEnabled(Boolean(bootSettings.system.compressionEnabled));
-  }
 
   const server = await registerRoutes(app);
 

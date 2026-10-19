@@ -9,11 +9,13 @@ import { createAuthResource } from "./resources/auth.js";
 import { createBlogsResource } from "./resources/blogs.js";
 import { createCommentsResource } from "./resources/comments.js";
 import { createDashboardResource } from "./resources/dashboard.js";
+import { createFormsResource } from "./resources/forms.js";
 import { createHealthResource } from "./resources/health.js";
 import { createHooksResource } from "./resources/hooks.js";
 import { createImportResource } from "./resources/import.js";
 import { createMediaResource } from "./resources/media.js";
 import { createOptionsResource } from "./resources/options.js";
+import { createPageTransferResource } from "./resources/page-transfer.js";
 import { createPagesResource } from "./resources/pages.js";
 import { createPluginsResource } from "./resources/plugins.js";
 import { createPostsResource } from "./resources/posts.js";
@@ -56,7 +58,7 @@ export function createNextpress(options: NextpressOptions): NextpressClient {
 	const blocks = createBlocksBuilder();
 	const pages = createPagesResource({ http });
 	const posts = createPostsResource({ http });
-	const templates = createTemplatesResource({ http });
+	const templates = createTemplatesResource({ http, blocks });
 	const preview = createPreviewResource({ http, baseUrl: parsed.baseUrl });
 
 	const editorDeps = { pages, posts, templates, preview, blocks, emit: events.emit };
@@ -83,6 +85,8 @@ export function createNextpress(options: NextpressOptions): NextpressClient {
 		settings: createSettingsResource({ http }),
 		options: createOptionsResource({ http }),
 		templates,
+		pageTransfer: createPageTransferResource({ http }),
+		forms: createFormsResource({ http }),
 		themes: createThemesResource({ http }),
 		plugins: createPluginsResource({ http }),
 		hooks: createHooksResource({ http }),

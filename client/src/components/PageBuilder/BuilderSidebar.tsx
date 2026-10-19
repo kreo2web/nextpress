@@ -16,14 +16,19 @@ import {
   Plus,
   Settings,
   Sidebar,
+  Sparkles,
 } from 'lucide-react';
 import type { BlockConfig } from '@shared/schema-types';
 import { ResponsiveHealthBanner } from './ResponsiveHealthBanner';
+import { AssistantPanel, usePageAssistantContext } from './assistant';
+
+/** `assistant` only appears when the page has one (not in templates). */
+export type BuilderSidebarTab = 'blocks' | 'settings' | 'assistant';
 
 /** Props shared by compact and wide builder sidebar shells. */
 export type BuilderSidebarProps = {
-  activeTab: 'blocks' | 'settings';
-  setActiveTab: (tab: 'blocks' | 'settings') => void;
+  activeTab: BuilderSidebarTab;
+  setActiveTab: (tab: BuilderSidebarTab) => void;
   selectedBlock: BlockConfig | null;
   parentBlock?: BlockConfig | null;
   updateBlock: (blockId: string, updates: Partial<BlockConfig>) => void;
@@ -72,11 +77,11 @@ export function BuilderSidebar({
   const headerIconBtnClass =
     'h-9 w-9 shrink-0 rounded-[var(--npb-radius-input)] p-0 text-npb-text-muted hover:bg-npb-interactive-bg-hover hover:text-npb-text-primary focus-visible:ring-npb-focus focus-visible:ring-offset-0';
 
-  const tabsListClass =
-    'grid h-auto min-h-10 w-full grid-cols-2 rounded-[var(--npb-radius-surface)] bg-npb-surface-inset p-1';
+  const hasAssistant = usePageAssistantContext() !== null;
+  const tabsListClass = `grid h-auto min-h-10 w-full ${hasAssistant ? 'grid-cols-3' : 'grid-cols-2'} rounded-[var(--npb-radius-surface)] bg-npb-surface-inset p-1`;
 
   const tabTriggerClass =
-    'flex min-h-9 items-center gap-2 rounded-[var(--npb-radius-input)] px-4 py-2.5 text-sm font-medium text-npb-text-muted hover:bg-npb-interactive-bg-hover hover:text-npb-text-primary data-[state=active]:bg-npb-interactive-bg-active data-[state=active]:text-npb-interactive-text-active transition-colors';
+    `flex min-h-9 items-center ${hasAssistant ? 'gap-1.5 px-2' : 'gap-2 px-4'} rounded-[var(--npb-radius-input)] py-2.5 text-sm font-medium text-npb-text-muted hover:bg-npb-interactive-bg-hover hover:text-npb-text-primary data-[state=active]:bg-npb-interactive-bg-active data-[state=active]:text-npb-interactive-text-active transition-colors`;
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -135,7 +140,7 @@ export function BuilderSidebar({
         />
         <Tabs
           value={activeTab}
-          onValueChange={(value) => setActiveTab(value as 'blocks' | 'settings')}
+          onValueChange={(value) => setActiveTab(value as BuilderSidebarTab)}
           className="flex min-h-0 flex-1 flex-col p-3 sm:p-4">
           <TabsList className={tabsListClass}>
             <TabsTrigger value="blocks" className={tabTriggerClass}>
@@ -144,6 +149,11 @@ export function BuilderSidebar({
             <TabsTrigger value="settings" className={tabTriggerClass}>
               <Settings className="h-4 w-4" /> Settings
             </TabsTrigger>
+            {hasAssistant ? (
+              <TabsTrigger value="assistant" className={tabTriggerClass}>
+                <Sparkles className="h-4 w-4" /> Assistant
+              </TabsTrigger>
+            ) : null}
           </TabsList>
           <TabsContent value="blocks" className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden">
             <BuilderLibraryPanel
@@ -161,6 +171,11 @@ export function BuilderSidebar({
               setHoverHighlight={setHoverHighlight}
             />
           </TabsContent>
+          {hasAssistant ? (
+            <TabsContent value="assistant" className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden">
+              <AssistantPanel />
+            </TabsContent>
+          ) : null}
         </Tabs>
       </div>
     </TooltipProvider>

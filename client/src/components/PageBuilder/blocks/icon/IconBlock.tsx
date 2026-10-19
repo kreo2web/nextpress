@@ -2,6 +2,7 @@ import React from "react";
 import type { JSX } from "react";
 import { Smile } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import { BlockShell } from "../shared/block-shell";
 import { IconRenderer } from "../shared/IconRenderer";
 import {
@@ -97,19 +98,11 @@ function IconBlockRenderer({ content, styles, isPreview }: IconRendererBlockProp
 // ============================================================================
 
 const IconBlock = createBlockDefinition<IconContent>({
-  id: "core/icon",
-  label: "Icon",
+  ...catalogMeta("core/icon"),
   icon: Smile,
-  description: "Add an icon from various icon sets",
-  category: "basic",
   defaultContent: {
     ...DEFAULT_ICON_CONTENT,
     icon: { ...DEFAULT_ICON_CONTENT.icon },
-  },
-  defaultStyles: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
   },
   settings: IconBlockSettings,
   hasSettings: true,

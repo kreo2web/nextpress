@@ -14,7 +14,8 @@ import { Video as VideoIcon, Settings, Clapperboard } from "lucide-react";
 import { useSettingsState } from "../useSettingsState";
 import { SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
-import { type VideoContent, DEFAULT_CONTENT } from "./video-model";
+import { type VideoContent } from "./video-model";
+import { VIDEO_DEFAULT_CONTENT as DEFAULT_CONTENT } from "@shared/block-catalog/media-blocks";
 import { SettingsChipGroup } from "../../settings-chip-group";
 import {
   BACKGROUND_VIDEO_CONTENT,

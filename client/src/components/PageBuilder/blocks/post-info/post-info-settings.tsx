@@ -15,10 +15,10 @@ import { defaultParseContent, defaultSerializeContent } from '../createBlockDefi
 import { usePostDocument } from '../../PageContext';
 import {
   type PostInfoContent,
-  DEFAULT_CONTENT,
   DATE_FORMAT_OPTIONS,
   LAYOUT_OPTIONS,
 } from './post-info-model';
+import { POST_INFO_DEFAULT_CONTENT as DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
 
 interface PostInfoSettingsProps {
   block: BlockConfig;

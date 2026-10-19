@@ -11,7 +11,8 @@ import { MediaUrlField } from "../shared/media-url-field";
 import { LinkUrlField, LinkTargetSelect } from "../shared/link-settings";
 import { SettingsChipGroup } from "../../settings-chip-group";
 import { sanitizeHtml } from "../../utils";
-import { type MediaTextData, DEFAULT_DATA } from './media-text-model';
+import { type MediaTextData } from './media-text-model';
+import { MEDIA_TEXT_DEFAULT_DATA as DEFAULT_DATA } from '@shared/block-catalog/media-blocks';
 
 type MediaTextSettingsProps = {
   block: BlockConfig;

@@ -1,6 +1,6 @@
 /**
- * Post List block data model: content shape, post item type, defaults, and pure
- * preview/date helpers. No React here — see `post-list-settings.tsx` for the UI.
+ * Post List block data model: content shape, post item type, and pure
+ * preview/date helpers. Defaults live in shared/block-catalog. No React here — see `post-list-settings.tsx` for the UI.
  */
 
 export type PostListMore = 'none' | 'show-more' | 'pages';
@@ -29,22 +29,6 @@ export type PostItem = {
   featuredImage?: string;
   publishedAt?: string;
   author?: { name: string };
-};
-
-export const DEFAULT_CONTENT: PostListContent = {
-  layout: 'grid',
-  postsPerPage: 6,
-  morePosts: 'show-more',
-  showExcerpt: true,
-  showFeaturedImage: true,
-  showDate: true,
-  showAuthor: true,
-  blogId: '',
-  category: '',
-  orderBy: 'date',
-  order: 'desc',
-  openIn: 'overlay',
-  className: '',
 };
 
 /** Generates placeholder posts for the editor preview. */

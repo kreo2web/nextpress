@@ -1,4 +1,4 @@
-import type { Express } from 'express';
+import type { Express, Request } from 'express';
 import type { Server } from 'node:http';
 import { createServer } from 'node:http';
 import { toNodeHandler } from 'better-auth/node';
@@ -30,6 +30,19 @@ import { createRenderRoutes } from './render.routes';
 import { createSetupRoutes } from './setup.routes';
 import { createWordPressImportRoutes } from './import.wordpress.routes';
 import { createSystemRoutes } from './system.routes';
+import { createAiBuilderRoutes } from './ai-builder.routes';
+import { createAiAssistantRoutes } from './ai-builder-chat.routes';
+import { createAiSettingsService, createConnectionTester, lookupHostAddresses } from '../lib/ai-builder';
+
+/** Big enough for a long page tree plus the recent chat. */
+const AI_CHAT_BODY_LIMIT = '4mb';
+import { getAuthSecret, getNodeEnv } from '../config';
+import { requireSessionAuth } from '../auth';
+import { createAccount, createSignUpGate } from '../lib/accounts';
+import { createInviteService } from '../lib/invites/invite-service';
+import { createAccessRoutes } from './access.routes';
+import { createInvitesRoutes } from './invites.routes';
+import { createSitePeopleRoutes } from './site-people.routes';
 import { setupCheck } from '../middleware/setupCheck';
 import { apiKeyScopeEnforcer } from '../middleware/api-key-scope-enforcer';
 import express from 'express';
@@ -66,8 +79,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/auth', createAuthRoutes(deps));
   app.use('/api/auth/api-keys', createApiKeysRoutes(deps));
 
+  // Each site decides whether visitors may make accounts; checked before Better Auth sees a web sign-up.
+  app.use('/api/auth/sign-up', createSignUpGate({ models: deps.models }));
+
   // Better Auth handler (sign-in, sign-up, sign-out, get-session, etc.)
   app.all('/api/auth/*', toNodeHandler(auth));
+
+  // The assistant posts the whole page open in the editor, so it gets a larger limit than the app-wide default.
+  // Registered first: the general parser below skips a body that is already read.
+  app.use('/api/ai-builder/chat', express.json({ limit: AI_CHAT_BODY_LIMIT }));
 
   // JSON body parsing for all non-Better-Auth routes
   app.use(express.json());
@@ -96,7 +116,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount route modules
   // ============================================
 
-  app.use('/api/users', createUsersRoutes(deps));
+  app.use('/api/users', createUsersRoutes(deps, { createAccount }));
+  app.use('/api/access', createAccessRoutes(deps));
+  app.use('/api/site-people', createSitePeopleRoutes(deps));
+  app.use('/api/invites', createInvitesRoutes({ ...deps, invites: createInviteService({ models: deps.models, createAccount }) }));
 
   app.use('/api/posts', createPostsRoutes(deps));
   app.use('/api/pages', createPagesRoutes(deps));
@@ -119,6 +142,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/dashboard', createDashboardRoutes(deps));
   app.use('/api/import/wordpress', createWordPressImportRoutes(deps));
   app.use('/api/system', createSystemRoutes(deps));
+  const aiSettings = createAiSettingsService({
+    models: deps.models,
+    getSecret: getAuthSecret,
+    isProduction: getNodeEnv() === 'production',
+    resolveDns: lookupHostAddresses,
+    now: () => new Date(),
+    testConnection: createConnectionTester({ models: deps.models, resolveDns: lookupHostAddresses }),
+  });
+  const aiRouteBase = {
+    models: deps.models,
+    requireSession: requireSessionAuth,
+    getUserId: (req: Request) => deps.authService.getCurrentUserId(req),
+    service: aiSettings,
+  };
+  app.use('/api/ai-builder', createAiBuilderRoutes(aiRouteBase));
+  app.use('/api/ai-builder', createAiAssistantRoutes({ ...aiRouteBase, resolveDns: lookupHostAddresses }));
 
   app.use('/api/preview', createPreviewRoutes(deps));
   app.use('/api/public', createPublicRoutes(deps));

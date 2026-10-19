@@ -16,8 +16,10 @@ import {
 	restorePageVersionSchema,
 	updatePageSchema,
 } from "../schemas/index.js";
+import { reorderPagesSchema } from "../schemas/page-order.js";
 import type { DeleteMessage, Page, PageHistoryResponse, PaginatedResponse } from "../types/domain.js";
 import type { CreatePageInput, DuplicatePageInput, ListPagesQuery, UpdatePageInput } from "../types/inputs.js";
+import type { ReorderPagesInput, ReorderPagesResult } from "../types/page-order.js";
 import { mergePageOtherOnWrite } from "../types/page-other.js";
 
 export type PagesResource = {
@@ -42,6 +44,12 @@ export type PagesResource = {
 	getHistory: (params: { id: string }) => Promise<PageHistoryResponse>;
 	/** Restore a prior block tree without manual copy-paste from history. */
 	restoreVersion: (params: { id: string; version: number }) => Promise<SdkResult<Page>>;
+	/**
+	 * Set the menu order of many pages in one call (lower `menuOrder` comes first), instead of
+	 * one `update` per page that would each need a version. Up to 100 pages on one site. The server
+	 * moves them one by one, so if one page is not on the site, the pages before it are already moved.
+	 */
+	reorder: (input: ReorderPagesInput) => Promise<SdkResult<ReorderPagesResult>>;
 };
 
 /** Pages CRUD — primary page builder entity (blocks stored on `blocks` field). */
@@ -134,6 +142,16 @@ export function createPagesResource({ http }: { http: HttpClient }): PagesResour
 				label: "pages.restoreVersion input",
 			});
 			return safeHttpRequest(http, `/api/pages/${id}/restore`, { method: "POST", body });
+		},
+
+		reorder: async (input: ReorderPagesInput): Promise<SdkResult<ReorderPagesResult>> => {
+			// The server reads the site from the body here, so the client's site fills it in.
+			const body = parseInput({
+				schema: reorderPagesSchema,
+				input: { ...input, siteId: input.siteId ?? http.config.siteId },
+				label: "pages.reorder input",
+			});
+			return safeHttpRequest(http, "/api/pages/reorder", { method: "PATCH", body });
 		},
 	};
 }

@@ -12,7 +12,8 @@ import { SettingsLabel } from '../../shared';
 import { MediaUrlField } from "../shared/media-url-field";
 import ColorField from "../../ColorField";
 import { sanitizeHtml } from "../../utils";
-import { type CoverData, DEFAULT_DATA } from './cover-model';
+import { type CoverData } from './cover-model';
+import { COVER_DEFAULT_DATA as DEFAULT_DATA } from '@shared/block-catalog/media-blocks';
 
 type CoverSettingsProps = {
   block: BlockConfig;

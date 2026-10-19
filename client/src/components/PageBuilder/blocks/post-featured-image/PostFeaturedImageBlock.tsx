@@ -13,6 +13,8 @@ import { MediaUrlField } from '../shared/media-url-field';
 import { usePostDocument } from '../../PageContext';
 import { SettingsChipGroup } from '../../settings-chip-group';
 import { IMAGE_ASPECT_PRESETS, isImageAspectPreset } from '@shared/image-frame';
+import { POST_FEATURED_IMAGE_DEFAULT_CONTENT } from '@shared/block-catalog/post-blocks';
+import { catalogMeta } from '../catalog-meta';
 
 // ============================================================================
 // TYPES
@@ -27,14 +29,7 @@ export type PostFeaturedImageContent = {
   className?: string;
 };
 
-const DEFAULT_CONTENT: PostFeaturedImageContent = {
-  url: '',
-  alt: 'Featured image',
-  caption: '',
-  objectFit: 'cover',
-  aspectRatio: '16/9',
-  className: '',
-};
+const DEFAULT_CONTENT: PostFeaturedImageContent = POST_FEATURED_IMAGE_DEFAULT_CONTENT;
 
 type FeaturedImageFit = NonNullable<PostFeaturedImageContent['objectFit']>;
 
@@ -304,13 +299,9 @@ function PostFeaturedImageSettings({
 // ============================================================================
 
 const PostFeaturedImageBlock = createBlockDefinition<PostFeaturedImageContent>({
-  id: 'post/featured-image',
-  label: 'Featured Image',
+  ...catalogMeta('post/featured-image'),
   icon: ImageIcon,
-  description: 'Display and set the post featured image',
-  category: 'post',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { width: '100%' },
   settings: PostFeaturedImageSettings,
   hasSettings: true,
   render: ({ content, styles, setContent, isPreview }) => (

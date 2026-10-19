@@ -8,12 +8,14 @@ import type {
 	BlogsResource,
 	CommentsResource,
 	DashboardResource,
+	FormsResource,
 	HealthResource,
 	HooksResource,
 	ImportResource,
 	MediaResource,
 	OptionsResource,
 	PagesResource,
+	PageTransferResource,
 	PluginsResource,
 	PostsResource,
 	PreviewResource,
@@ -51,6 +53,8 @@ export type NextpressClient = {
 	settings: SettingsResource;
 	options: OptionsResource;
 	templates: TemplatesResource;
+	pageTransfer: PageTransferResource;
+	forms: FormsResource;
 	themes: ThemesResource;
 	plugins: PluginsResource;
 	hooks: HooksResource;

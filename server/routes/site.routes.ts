@@ -99,7 +99,7 @@ export function createSiteRoutes(deps: Deps): Router {
       }
 
       const { err, result } = await safeTryAsync(async () => {
-        const site = await resolveRequestSite({ models, req, userId });
+        const site = await resolveRequestSite({ models, req, userId, need: 'manage_site' });
 
         // Update only provided fields
         const updateData: any = {

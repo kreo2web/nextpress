@@ -8,6 +8,7 @@ import type {
 	CoverContent,
 	DividerContent,
 	FileContent,
+	FormContent,
 	GalleryContent,
 	GroupContent,
 	IconContent,
@@ -143,6 +144,9 @@ export type PostCommentsBlockParams = BlockWithEditorSettings<Record<string, nev
 export type PostNavigationBlockParams = BlockWithEditorSettings<Partial<PostNavigationContent>>;
 export type PostInfoBlockParams = BlockWithEditorSettings<Partial<PostInfoContent>>;
 export type PostProgressBlockParams = BlockWithEditorSettings<Partial<PostProgressContent>>;
+export type FormBlockParams = BlockWithEditorSettings<Partial<FormContent>>;
+/** The button that sends a form. Text defaults to "Send". */
+export type SubmitButtonBlockParams = BlockWithEditorSettings<{ text: string }> & { text?: string };
 export type InputBlockParams = BlockWithEditorSettings<Partial<InputFieldContent>>;
 export type TextareaBlockParams = BlockWithEditorSettings<Partial<TextareaFieldContent>>;
 export type SelectBlockParams = BlockWithEditorSettings<Partial<SelectFieldContent>>;

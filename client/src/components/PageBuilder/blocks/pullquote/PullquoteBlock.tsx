@@ -10,6 +10,8 @@ import { InlineTextEditor } from "../shared/inline-text-editor";
 import { useSettingsState } from "../useSettingsState";
 import { readTextAlign } from "@shared/text-align";
 import { sanitizeHtml } from "../../utils";
+import { PULLQUOTE_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
 // TYPES
@@ -34,11 +36,7 @@ function quoteHtmlFromPlain(text: string): string {
   return `<p>${escaped}</p>`;
 }
 
-const DEFAULT_CONTENT: PullquoteContent = {
-  value: '<p>Add a quote that stands out from the rest of your content.</p>',
-  citation: '',
-  className: '',
-};
+const DEFAULT_CONTENT: PullquoteContent = PULLQUOTE_DEFAULT_CONTENT;
 
 // ============================================================================
 // RENDERER
@@ -185,17 +183,9 @@ function PullquoteSettings({ block, onUpdate }: PullquoteSettingsProps) {
 // ============================================================================
 
 const PullquoteBlock = createBlockDefinition<PullquoteContent>({
-  id: 'core/pullquote',
-  label: 'Pullquote',
+  ...catalogMeta('core/pullquote'),
   icon: QuoteIcon,
-  description: 'Give special visual emphasis to a quote from your text',
-  category: 'advanced',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    backgroundColor: '#f8f9fa',
-    color: '#000000',
-    textAlign: 'center',
-  },
   settings: PullquoteSettings,
   hasSettings: true,
   render: ({ content, styles, isEditing, setContent }) => (

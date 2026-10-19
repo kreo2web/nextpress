@@ -3,6 +3,8 @@ import type { Deps } from "../routes/shared/deps";
 import { resolveAccessibleSites } from "../routes/shared/resolve-accessible-sites";
 import { resolvePublicSite } from "../routes/shared/resolve-public-site";
 import { isSiteIdShape } from "../routes/shared/read-request-site-id";
+import { isPubliclyReadable } from "./is-publicly-readable";
+import { canManageTemplate } from "./template-parts/template-part-access";
 import {
 	attachRequestAuth,
 	getRequestAuthSiteId,
@@ -91,11 +93,8 @@ export async function assertPreviewContentAccess({
 		if (!template) {
 			throw new ContentAccessError("Content not found", 404);
 		}
-		if (String(template.authorId) === userId) {
-			return;
-		}
-		const accessible = await resolveAccessibleSites({ models, userId });
-		if (accessible.length === 0) {
+		// Same rule as opening it: a linked part only for its own site's team (and that site's key).
+		if (!(await canManageTemplate({ models, userId, keySiteId: apiKeySiteId ?? null, template }))) {
 			throw new ContentAccessError("You do not have access to this template");
 		}
 		return;
@@ -119,14 +118,17 @@ export async function ensureNonPublicContentAccess({
 	models,
 	siteId,
 	status,
+	password,
 }: {
 	req: Request;
 	res: Response;
 	models: Deps["models"];
 	siteId: string;
 	status: string | undefined | null;
+	/** A password-protected item is never public, whatever its status. */
+	password?: string | null;
 }): Promise<boolean> {
-	if (isPublicContentStatus(status)) {
+	if (isPubliclyReadable({ status, password })) {
 		return true;
 	}
 

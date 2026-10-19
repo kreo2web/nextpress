@@ -1,5 +1,5 @@
 import { normalizeSiteUrl } from "../normalize-site-url";
-import { fetchWpJson, getWpTotal, getWpTotalPages } from "../fetch-wp-api";
+import { fetchWpJson, getWpTotal, getWpTotalPages, type WpFetch } from "../fetch-wp-api";
 import { discoverWpPages } from "./pages-adapter";
 import { mapWpPost } from "../map-wp-post";
 import { stripHtml } from "../strip-html";
@@ -27,12 +27,13 @@ const mapPreview = (raw: WpPostRaw): WpPostPreview => ({
 	link: raw.link,
 });
 
-export const createPostsAdapter = (): WordPressPostsAdapter => ({
+export const createPostsAdapter = ({ fetchImpl }: { fetchImpl: WpFetch }): WordPressPostsAdapter => ({
 	entity: "posts",
 
 	discover: async ({ baseUrl }) => {
 		const indexResult = await fetchWpJson<WpSiteIndex>({
 			url: `${baseUrl}/wp-json`,
+			fetchImpl,
 		});
 
 		if (!indexResult.ok) {
@@ -41,6 +42,7 @@ export const createPostsAdapter = (): WordPressPostsAdapter => ({
 
 		const postsResult = await fetchWpJson<WpPostRaw[]>({
 			url: `${baseUrl}/wp-json/wp/v2/posts?per_page=1&status=publish`,
+			fetchImpl,
 		});
 
 		if (!postsResult.ok) {
@@ -61,6 +63,7 @@ export const createPostsAdapter = (): WordPressPostsAdapter => ({
 	list: async ({ baseUrl, page, perPage }) => {
 		const result = await fetchWpJson<WpPostRaw[]>({
 			url: `${baseUrl}/wp-json/wp/v2/posts?per_page=${perPage}&page=${page}&status=publish`,
+			fetchImpl,
 		});
 
 		if (!result.ok) {
@@ -79,6 +82,7 @@ export const createPostsAdapter = (): WordPressPostsAdapter => ({
 	fetchOne: async ({ baseUrl, wpId }) => {
 		const result = await fetchWpJson<WpPostRaw>({
 			url: `${baseUrl}/wp-json/wp/v2/posts/${wpId}`,
+			fetchImpl,
 		});
 
 		if (!result.ok) {
@@ -94,6 +98,7 @@ export const createPostsAdapter = (): WordPressPostsAdapter => ({
 /** Discover a WordPress site and which entities are importable. */
 export const discoverWordPressSite = async (params: {
 	siteUrl: string;
+	fetchImpl: WpFetch;
 }): Promise<WpDiscoverResult> => {
 	const baseUrl = normalizeSiteUrl(params.siteUrl);
 	if (!baseUrl) {
@@ -109,7 +114,7 @@ export const discoverWordPressSite = async (params: {
 		};
 	}
 
-	const adapter = createPostsAdapter();
+	const adapter = createPostsAdapter({ fetchImpl: params.fetchImpl });
 	const postsInfo = await adapter.discover({ baseUrl });
 
 	if (!postsInfo.reachable) {
@@ -128,7 +133,7 @@ export const discoverWordPressSite = async (params: {
 	}
 
 	if (postsInfo.total === 0) {
-		const pagesInfo = await discoverWpPages({ baseUrl });
+		const pagesInfo = await discoverWpPages({ baseUrl, fetchImpl: params.fetchImpl });
 		if (pagesInfo.total === 0) {
 			return {
 				ok: false,
@@ -168,7 +173,7 @@ export const discoverWordPressSite = async (params: {
 		};
 	}
 
-	const pagesInfo = await discoverWpPages({ baseUrl });
+	const pagesInfo = await discoverWpPages({ baseUrl, fetchImpl: params.fetchImpl });
 
 	return {
 		ok: true,
@@ -195,6 +200,7 @@ export const discoverWordPressSite = async (params: {
 /** Fetch WP taxonomy term names for category/tag ID resolution. */
 export const fetchWpTermMaps = async (params: {
 	baseUrl: string;
+	fetchImpl: WpFetch;
 }): Promise<{
 	categoryNames: Map<number, string>;
 	tagNames: Map<number, string>;
@@ -202,9 +208,11 @@ export const fetchWpTermMaps = async (params: {
 	const [categoriesResult, tagsResult] = await Promise.all([
 		fetchWpJson<WpTermRaw[]>({
 			url: `${params.baseUrl}/wp-json/wp/v2/categories?per_page=100`,
+			fetchImpl: params.fetchImpl,
 		}),
 		fetchWpJson<WpTermRaw[]>({
 			url: `${params.baseUrl}/wp-json/wp/v2/tags?per_page=100`,
+			fetchImpl: params.fetchImpl,
 		}),
 	]);
 
@@ -226,11 +234,13 @@ export const fetchWpTermMaps = async (params: {
 export const fetchWpFeaturedImageUrl = async (params: {
 	baseUrl: string;
 	featuredMediaId: number;
+	fetchImpl: WpFetch;
 }): Promise<string | null> => {
 	if (params.featuredMediaId <= 0) return null;
 
 	const result = await fetchWpJson<WpMediaRaw>({
 		url: `${params.baseUrl}/wp-json/wp/v2/media/${params.featuredMediaId}`,
+		fetchImpl: params.fetchImpl,
 	});
 
 	if (!result.ok) return null;

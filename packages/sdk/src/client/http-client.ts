@@ -2,6 +2,7 @@ import type { HttpClientConfig, RequestOptions } from "../types/client.js";
 import { buildUrl, withSiteId } from "./build-url.js";
 import type { HttpClient } from "./http-client.types.js";
 import { NextpressError } from "./nextpress-error.js";
+import { readDownloadedFile } from "./read-downloaded-file.js";
 
 const API_KEY_HEADER = "Authorization";
 
@@ -84,6 +85,10 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
 
 			if (response.status === 204) {
 				return undefined as TResponse;
+			}
+
+			if (options.responseType === "file") {
+				return (await readDownloadedFile(response)) as TResponse;
 			}
 
 			const contentType = response.headers.get("content-type") ?? "";

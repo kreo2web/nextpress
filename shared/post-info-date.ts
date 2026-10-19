@@ -14,8 +14,17 @@ function formatRelativeTime(date: Date): string {
 	return "just now";
 }
 
-/** Same date words on the canvas and the published page. */
-export function formatPostInfoDate(isoDate: string, format: PostInfoDateFormat): string {
+/** A timezone the runtime knows, else undefined (the reader's own zone), so a bad stored value never throws. */
+export const readTimeZone = (value: unknown): string | undefined => {
+	if (typeof value !== "string" || value === "") return undefined;
+	return value === "UTC" || Intl.supportedValuesOf("timeZone").includes(value) ? value : undefined;
+};
+
+/**
+ * Same date words on the canvas and the published page. `timeZone` is the site's (Settings →
+ * General), so a post dated late at night shows the same day to every visitor.
+ */
+export function formatPostInfoDate(isoDate: string, format: PostInfoDateFormat, timeZone?: string): string {
 	const date = new Date(isoDate);
 	if (Number.isNaN(date.getTime())) return "Invalid date";
 	if (format === "relative") return formatRelativeTime(date);
@@ -24,7 +33,15 @@ export function formatPostInfoDate(isoDate: string, format: PostInfoDateFormat):
 		month,
 		day: "numeric",
 		year: "numeric",
+		timeZone: readTimeZone(timeZone),
 	});
+}
+
+/** The short date a post list shows ("Oct 19, 2026"), in the site's timezone. */
+export function formatPostListDate(isoDate: string, timeZone?: string): string {
+	const date = new Date(isoDate);
+	if (Number.isNaN(date.getTime())) return "";
+	return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: readTimeZone(timeZone) });
 }
 
 export function readPostInfoDateFormat(value: unknown): PostInfoDateFormat {

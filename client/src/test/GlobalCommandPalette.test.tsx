@@ -21,6 +21,16 @@ vi.mock('@/hooks/useActiveSite', () => ({
   }),
 }));
 
+// An editor: content links show, Settings and Plugins don't (the server enforces it anyway).
+vi.mock('@/hooks/use-site-access', () => ({
+  useSiteAccess: () => ({
+    access: null,
+    isLoading: false,
+    isMainSiteAdmin: false,
+    can: (action: string) => ['edit_content', 'moderate_comments', 'use_assistant'].includes(action),
+  }),
+}));
+
 describe('GlobalCommandPalette', () => {
   beforeEach(() => {
     mockSetLocation.mockClear();

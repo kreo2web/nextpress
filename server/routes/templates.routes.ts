@@ -5,6 +5,7 @@ import { safeTryAsync } from '../utils';
 import { getRequestAuthSiteId } from '../auth';
 import { readErrorStatus, resolveRequestSite, statusError } from './shared/resolve-request-site';
 import {
+  canChangeTemplate,
   canManageTemplate,
   findTemplatePartUsage,
   listLinkedTemplateParts,
@@ -61,6 +62,14 @@ export function createTemplatesRoutes(deps: Deps): Router {
       template,
     });
     return allowed ? template : null;
+  };
+
+  /** Throws a 403 unless this request may change or delete the template (see `canChangeTemplate`). */
+  const assertCanChange = async (req: Request, template: Parameters<typeof canChangeTemplate>[0]['template']): Promise<void> => {
+    const allowed = await canChangeTemplate({ models, userId: currentUserId(req), keySiteId: getRequestAuthSiteId(req) ?? null, template });
+    if (!allowed) {
+      throw statusError({ message: "Only the person who made this block, or the main site's admins, can change it. Copy it into your page to edit it there.", statusCode: 403 });
+    }
   };
 
   /** Answers a failed template request. Client mistakes keep their message; server faults are logged with their ids. */
@@ -200,6 +209,7 @@ export function createTemplatesRoutes(deps: Deps): Router {
       const { err, result } = await safeTryAsync(async () => {
         const existing = await readManagedTemplate(req, req.params.id);
         if (!existing) return null;
+        await assertCanChange(req, existing);
         const parsed = schemas.templates.update.safeParse(req.body);
         if (!parsed.success) throw statusError({ message: 'Check the template details and try again.', statusCode: 400 });
         const update = parsed.data;
@@ -226,6 +236,7 @@ export function createTemplatesRoutes(deps: Deps): Router {
       const { err, result } = await safeTryAsync(async () => {
         const template = await readManagedTemplate(req, req.params.id);
         if (!template) return false;
+        await assertCanChange(req, template);
         await models.templates.delete(req.params.id);
         return true;
       });

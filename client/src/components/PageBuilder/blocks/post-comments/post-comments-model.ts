@@ -1,6 +1,6 @@
 /**
- * Post Comments block data model: content shape, comment item type, defaults,
- * and pure preview/date helpers. No React here — see `post-comments-settings.tsx`
+ * Post Comments block data model: content shape, comment item type,
+ * and pure preview/date helpers. Defaults live in shared/block-catalog. No React here — see `post-comments-settings.tsx`
  * for the UI and `PostCommentsBlock.tsx` for the renderer.
  */
 
@@ -20,15 +20,6 @@ export type CommentItem = {
   date: string;
   content: string;
   replies?: CommentItem[];
-};
-
-export const DEFAULT_CONTENT: PostCommentsContent = {
-  postId: '',
-  showForm: true,
-  showCount: true,
-  commentsPerPage: 10,
-  allowReplies: true,
-  className: '',
 };
 
 // --- Helpers ---

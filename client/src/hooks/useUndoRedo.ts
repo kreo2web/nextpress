@@ -45,10 +45,11 @@ export function useUndoRedo<T>(initialState: T) {
         // Limit to 50 states
         if (newHistory.length > 50) {
           newHistory.shift();
-          setCurrentIndex(newHistory.length - 1);
-        } else {
-          setCurrentIndex(newHistory.length - 1);
         }
+        // Set now, not on the next render: a replaceCurrentState queued in the same batch
+        // (two streamed assistant changes) must replace this new entry, not the one before it.
+        currentIndexRef.current = newHistory.length - 1;
+        setCurrentIndex(newHistory.length - 1);
 
         return newHistory;
       });

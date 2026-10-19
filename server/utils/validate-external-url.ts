@@ -1,60 +1,22 @@
-import dns from "node:dns/promises";
 import { normalizeSiteUrl } from "@shared/import/wordpress/normalize-site-url";
-
-const PRIVATE_IPV4_RANGES = [
-	/^127\./,
-	/^10\./,
-	/^172\.(1[6-9]|2\d|3[0-1])\./,
-	/^192\.168\./,
-	/^169\.254\./,
-	/^0\./,
-];
-
-const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata.google.internal"]);
-
-const isPrivateIpv4 = (address: string): boolean =>
-	PRIVATE_IPV4_RANGES.some((pattern) => pattern.test(address));
+import { checkPublicAddress } from "./safe-public-fetch";
 
 /**
- * Validates an external URL is safe to fetch server-side (SSRF guard).
- * Only http/https; blocks private/reserved IPs after DNS resolution.
+ * Checks an address someone typed (a WordPress site, a remote image) before the server fetches it:
+ * http(s) only, and every IPv4 and IPv6 address it leads to on the open internet. A failed lookup
+ * refuses. Gives people an early, plain answer; the fetch itself (`createSafePublicFetch`) checks
+ * again on every hop, so this is never the only guard.
  */
 export const validateExternalUrl = async (
 	input: string,
 ): Promise<{ ok: true; url: URL } | { ok: false; message: string }> => {
 	const baseUrl = normalizeSiteUrl(input);
-	if (!baseUrl) {
-		return { ok: false, message: "Invalid URL" };
-	}
+	if (!baseUrl) return { ok: false, message: "That address isn't valid." };
 
-	let parsed: URL;
-	try {
-		parsed = new URL(baseUrl);
-	} catch {
-		return { ok: false, message: "Invalid URL" };
+	const check = await checkPublicAddress({ input: baseUrl });
+	if (!check.ok) {
+		console.warn({ atFunction: "validateExternalUrl", data: { input, error: check.cause }, message: `Address refused: ${check.message}` });
+		return { ok: false, message: check.message };
 	}
-
-	if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-		return { ok: false, message: "Only HTTP and HTTPS URLs are allowed" };
-	}
-
-	const hostname = parsed.hostname.toLowerCase();
-	if (BLOCKED_HOSTNAMES.has(hostname)) {
-		return { ok: false, message: "Hostname is not allowed" };
-	}
-
-	if (isPrivateIpv4(hostname)) {
-		return { ok: false, message: "Private network addresses are not allowed" };
-	}
-
-	try {
-		const addresses = await dns.resolve4(hostname);
-		if (addresses.some(isPrivateIpv4)) {
-			return { ok: false, message: "URL resolves to a private network address" };
-		}
-	} catch {
-		// IPv6-only or DNS failure — allow fetch to fail naturally at request time
-	}
-
-	return { ok: true, url: parsed };
+	return { ok: true, url: check.url };
 };

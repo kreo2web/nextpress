@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { testDb } from "./setup";
-import { createPageModel, createSiteModel, createTemplateModel, createUserRoleModel } from "../storage";
+import { createPageModel, createRoleModel, createSiteModel, createTemplateModel, createUserRoleModel } from "../storage";
 import { pages, sites, templates, users } from "@shared/schema";
 import { buildTemplatePartBlock } from "@shared/template-parts";
 import {
@@ -49,6 +49,7 @@ const models = {
 	templates: createTemplateModel(testDb),
 	pages: createPageModel(testDb),
 	sites: createSiteModel(testDb),
+	roles: createRoleModel(testDb),
 	userRoles: createUserRoleModel(testDb),
 };
 
@@ -154,6 +155,8 @@ describe("linked template lists and usage", () => {
 		expect(await canManageTemplate({ models, userId: stranger, keySiteId: null, template: part })).toBe(false);
 		expect(await canManageTemplate({ models, userId: null, keySiteId: null, template: part })).toBe(false);
 		expect(await canManageTemplate({ models, userId: ids.owner, keySiteId: ids.siteA, template: part })).toBe(false);
-		expect(await canManageTemplate({ models, userId: stranger, keySiteId: null, template: starter })).toBe(true);
+		// Shared pre-designed blocks: anyone who works on a site, never someone with no site at all.
+		expect(await canManageTemplate({ models, userId: ids.owner, keySiteId: null, template: starter })).toBe(true);
+		expect(await canManageTemplate({ models, userId: stranger, keySiteId: null, template: starter })).toBe(false);
 	});
 });

@@ -5,7 +5,6 @@ import { safeTryAsync } from '../utils';
 import { partialSettingsSchema } from '@shared/settings-schema';
 import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
 import { changeSiteAddress } from '../lib/site-address';
-import { setResponseCompressionEnabled } from '../lib/response-compression';
 
 /**
  * Creates settings routes for site-wide configuration management
@@ -90,7 +89,7 @@ export function createSettingsRoutes(deps: Deps): Router {
       }
 
       const { err, result } = await safeTryAsync(async () => {
-        const site = await resolveRequestSite({ models, req, userId });
+        const site = await resolveRequestSite({ models, req, userId, need: 'manage_site' });
 
         // The address goes through the one path that also checks it and updates the web server.
         const addressInput = validationResult.data.general?.siteUrl;
@@ -123,11 +122,6 @@ export function createSettingsRoutes(deps: Deps): Router {
       if (result && !result.status) {
         const { statusCode, ...body } = result;
         return res.status(statusCode ?? 400).json(body);
-      }
-
-      const compressionEnabled = result?.data?.system?.compressionEnabled;
-      if (typeof compressionEnabled === "boolean") {
-        setResponseCompressionEnabled(compressionEnabled);
       }
 
       res.json(result);

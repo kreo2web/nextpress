@@ -15,37 +15,49 @@ import {
   Cog,
   Download,
 } from 'lucide-react';
+import type { SiteAction } from '@shared/access';
 import { NEXTPRESS_CONFIG } from '../../../config';
 import { WhatsNewSidebarBanner } from '@/components/admin/WhatsNewSidebarBanner';
+import { useSiteAccess, type SiteAccessState } from '@/hooks/use-site-access';
 
 type MenuItem = {
   label: string;
   path: string;
   icon: typeof Gauge;
   section?: string;
+  /** What the person needs on the active site to use the page; none = everyone with dashboard access. */
+  needs?: SiteAction | 'main-site-admin';
 };
 
 const menuItems: MenuItem[] = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: Gauge },
-  { label: 'Posts', path: '/admin/posts', icon: FileText, section: 'Content' },
-  { label: 'Pages', path: '/admin/pages', icon: File, section: 'Content' },
-  { label: 'Media', path: '/admin/media', icon: Image, section: 'Content' },
-  { label: 'Comments', path: '/admin/comments', icon: MessageCircle, section: 'Content' },
-  { label: 'Forms', path: '/admin/forms', icon: Inbox, section: 'Content' },
-  { label: 'Themes', path: '/admin/themes', icon: Paintbrush, section: 'Appearance' },
-  { label: 'Templates', path: '/admin/templates', icon: LayoutPanelTop, section: 'Appearance' },
-  { label: 'Pre-designed Blocks', path: '/admin/pre-designed-blocks', icon: Layout, section: 'Appearance' },
-  { label: 'Import WordPress', path: '/admin/import/wordpress', icon: Download, section: 'Tools' },
-  { label: 'Plugins', path: '/admin/plugins', icon: Plug, section: 'System' },
-  { label: 'Sites', path: '/admin/sites', icon: Globe, section: 'System' },
-  { label: 'Users', path: '/admin/users', icon: Users, section: 'System' },
-  { label: 'Settings', path: '/admin/settings', icon: Cog, section: 'System' },
+  { label: 'Posts', path: '/admin/posts', icon: FileText, section: 'Content', needs: 'edit_content' },
+  { label: 'Pages', path: '/admin/pages', icon: File, section: 'Content', needs: 'edit_content' },
+  { label: 'Media', path: '/admin/media', icon: Image, section: 'Content', needs: 'edit_content' },
+  { label: 'Comments', path: '/admin/comments', icon: MessageCircle, section: 'Content', needs: 'moderate_comments' },
+  { label: 'Forms', path: '/admin/forms', icon: Inbox, section: 'Content', needs: 'edit_content' },
+  { label: 'Themes', path: '/admin/themes', icon: Paintbrush, section: 'Appearance', needs: 'manage_site' },
+  { label: 'Templates', path: '/admin/templates', icon: LayoutPanelTop, section: 'Appearance', needs: 'edit_content' },
+  { label: 'Pre-designed Blocks', path: '/admin/pre-designed-blocks', icon: Layout, section: 'Appearance', needs: 'edit_content' },
+  { label: 'Import WordPress', path: '/admin/import/wordpress', icon: Download, section: 'Tools', needs: 'edit_content' },
+  { label: 'Plugins', path: '/admin/plugins', icon: Plug, section: 'System', needs: 'main-site-admin' },
+  { label: 'Sites', path: '/admin/sites', icon: Globe, section: 'System', needs: 'manage_site' },
+  { label: 'People', path: '/admin/users', icon: Users, section: 'System', needs: 'manage_people' },
+  { label: 'Settings', path: '/admin/settings', icon: Cog, section: 'System', needs: 'manage_site' },
 ];
+
+/** The server refuses anything a person can't do; this only keeps the menu to what will work. */
+const canOpen = ({ item, access }: { item: MenuItem; access: SiteAccessState }): boolean => {
+  if (!item.needs) return true;
+  if (item.needs === 'main-site-admin') return access.isMainSiteAdmin;
+  return access.can(item.needs);
+};
 
 export default function AdminSidebar() {
   const [location] = useLocation();
+  const access = useSiteAccess();
 
-  const groupedItems = menuItems.reduce(
+  const groupedItems = menuItems.filter((item) => canOpen({ item, access })).reduce(
     (acc, item) => {
       if (!item.section) {
         acc.main = acc.main ?? [];

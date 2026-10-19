@@ -2,6 +2,7 @@ import React from "react";
 import type { BlockConfig } from "@shared/schema-types";
 import { TextCursorInput } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import { FormFieldLabel, formFieldControlId, formFieldHelpId, readFormFieldHelp } from "@shared/form-field-label";
 import { BlockShell } from "../shared/block-shell";
 import {
@@ -70,13 +71,9 @@ function InputSettings({
 }
 
 const InputBlock = createBlockDefinition<InputFieldContent>({
-	id: "core/input",
-	label: "Text field",
+	...catalogMeta("core/input"),
 	icon: TextCursorInput,
-	description: "Single-line text, search, email, or number input",
-	category: "form",
 	defaultContent: DEFAULT_INPUT_CONTENT,
-	defaultStyles: DEFAULT_FORM_FIELD_STYLES,
 	settings: InputSettings,
 	hasSettings: true,
 	render: ({ content, styles, value }) => <InputRenderer content={content} styles={styles} blockId={value.id} />,

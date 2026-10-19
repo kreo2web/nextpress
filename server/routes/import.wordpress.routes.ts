@@ -3,6 +3,7 @@ import type { Deps } from "./shared/deps";
 import { asyncHandler } from "./shared/async-handler";
 import { safeTryAsync } from "../utils";
 import { validateExternalUrl } from "../utils/validate-external-url";
+import { createSafePublicFetch } from "../utils/safe-public-fetch";
 import { sideloadRemoteImage } from "../utils/sideload-remote-image";
 import { createRateLimiter } from "../utils/rate-limit";
 import { enrichPostForApi } from "@shared/posts/post-other";
@@ -18,7 +19,9 @@ import { assertSiteContentAccess, ContentAccessError } from "../lib/content-acce
 import { getRequestAuthSiteId } from "../auth";
 import { contentVersionAfterRewrite } from "../lib/content-version-after-rewrite";
 
-const importer = createWordPressImporter();
+// Every request to the WordPress site goes through this: public addresses only, each redirect re-checked.
+const publicFetch = createSafePublicFetch();
+const importer = createWordPressImporter({ fetchImpl: publicFetch });
 
 const checkRateLimit = createRateLimiter();
 
@@ -221,6 +224,7 @@ export function createWordPressImportRoutes(deps: Deps): Router {
 				featuredMediaId: number;
 			}): Promise<string | null> => {
 				const remoteUrl = await fetchWpFeaturedImageUrl({
+					fetchImpl: publicFetch,
 					baseUrl: normalizedBaseUrl,
 					featuredMediaId: params.featuredMediaId,
 				});
@@ -485,6 +489,7 @@ export function createWordPressImportRoutes(deps: Deps): Router {
 
 			const resolveFeaturedImage = async (params: { featuredMediaId: number }) => {
 				const remoteUrl = await fetchWpFeaturedImageUrl({
+					fetchImpl: publicFetch,
 					baseUrl: normalizedBaseUrl,
 					featuredMediaId: params.featuredMediaId,
 				});

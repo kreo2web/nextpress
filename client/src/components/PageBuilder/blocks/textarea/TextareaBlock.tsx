@@ -3,6 +3,7 @@ import type { BlockConfig } from "@shared/schema-types";
 import { Input } from "@/components/ui/input";
 import { AlignLeft } from "lucide-react";
 import { createBlockDefinition } from "../createBlockDefinition";
+import { catalogMeta } from "../catalog-meta";
 import { FormFieldLabel, formFieldControlId, formFieldHelpId, readFormFieldHelp } from "@shared/form-field-label";
 import { BlockShell } from "../shared/block-shell";
 import { SettingsLabel } from "../../shared";
@@ -84,13 +85,9 @@ function TextareaSettings({
 }
 
 const TextareaBlock = createBlockDefinition<TextareaFieldContent>({
-	id: "core/textarea",
-	label: "Text area",
+	...catalogMeta("core/textarea"),
 	icon: AlignLeft,
-	description: "Multi-line text input",
-	category: "form",
 	defaultContent: DEFAULT_TEXTAREA_CONTENT,
-	defaultStyles: DEFAULT_FORM_FIELD_STYLES,
 	settings: TextareaSettings,
 	hasSettings: true,
 	render: ({ content, styles, value }) => <TextareaRenderer content={content} styles={styles} blockId={value.id} />,

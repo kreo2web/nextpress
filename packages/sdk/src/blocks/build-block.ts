@@ -1,4 +1,8 @@
+import { applySdkBlockDefaults, withStartingChildren } from "../defaults/block-defaults.js";
+import { buildColumnsBlock } from "../layout/build-columns-block.js";
+import { applySanitizedBlockOverrides } from "../sanitize/apply-block-overrides.js";
 import type { BlockConfig, BlockContent, IconReference } from "../types/domain.js";
+import { applyEditorSettings } from "./apply-editor-settings.js";
 import {
 	BLOCK_DEFINITIONS,
 	BLOCK_NAMES,
@@ -6,10 +10,12 @@ import {
 	type BlockName,
 	isBlockName,
 } from "./block-definitions.js";
-import type { BlocksBuilder } from "./blocks-builder.types.js";
 import type {
 	AudioBlockParams,
+	BlockEditorSettings,
+	BlockShellParams,
 	ButtonBlockParams,
+	ButtonsBlockParams,
 	CodeBlockParams,
 	ColumnsBlockParams,
 	CustomBlockParams,
@@ -20,27 +26,24 @@ import type {
 	MarkdownBlockParams,
 	PostCommentsBlockParams,
 	PostExcerptBlockParams,
+	PreformattedBlockParams,
 	PullquoteBlockParams,
 	QuoteBlockParams,
-	PreformattedBlockParams,
+	SubmitButtonBlockParams,
 	TextBlockParams,
 	VideoBlockParams,
-	BlockShellParams,
-	BlockEditorSettings,
 } from "./block-params.js";
-import { applyEditorSettings } from "./apply-editor-settings.js";
-import { normalizeBlockSubtree } from "./normalize-block-tree.js";
-import { applySanitizedBlockOverrides } from "../sanitize/apply-block-overrides.js";
-import { applySdkBlockDefaults } from "../defaults/block-defaults.js";
-import { buildColumnsBlock } from "../layout/build-columns-block.js";
+import type { BlocksBuilder } from "./blocks-builder.types.js";
 import { createBlockId } from "./create-block-id.js";
+import { normalizeBlockSubtree } from "./normalize-block-tree.js";
+import { numberButtons } from "./number-buttons.js";
 
-export { createBlockId } from "./create-block-id.js";
-export type { BlocksBuilder } from "./blocks-builder.types.js";
+export { applyEditorSettings } from "./apply-editor-settings.js";
+export type * from "./block-content-types.js";
 export type {
-	BlockShellParams,
 	BlockEditorSettings,
 	BlockSettings,
+	BlockShellParams,
 	BlockStyles,
 	ButtonBlockParams,
 	ContainerBlockParams,
@@ -54,9 +57,9 @@ export type {
 	MarkdownBlockParams,
 	TextBlockParams,
 } from "./block-params.js";
-export type * from "./block-content-types.js";
-export { applyEditorSettings } from "./apply-editor-settings.js";
-export { normalizeBlockTree, normalizeBlockSubtree } from "./normalize-block-tree.js";
+export type { BlocksBuilder } from "./blocks-builder.types.js";
+export { createBlockId } from "./create-block-id.js";
+export { normalizeBlockSubtree, normalizeBlockTree } from "./normalize-block-tree.js";
 
 type BuilderFromNameParams = BlockShellParams & {
 	settings?: BlockEditorSettings;
@@ -180,7 +183,10 @@ export function createBlocksBuilder(): BlocksBuilder {
 		});
 		const withOverrides = applySanitizedBlockOverrides(built, { html, js, css });
 		const withDefaults = applySdkBlockDefaults(withOverrides);
-		return params.children?.length ? normalizeBlockSubtree(withDefaults) : withDefaults;
+		// Starting children go on after the defaults: the editor's own carry no base spacing.
+		return params.children?.length
+			? normalizeBlockSubtree(withDefaults)
+			: withStartingChildren(withDefaults);
 	};
 
 	return {
@@ -265,7 +271,11 @@ export function createBlocksBuilder(): BlocksBuilder {
 				}),
 			}),
 
-		buttons: structured<import("./block-content-types.js").ButtonsContent>("core/buttons"),
+		/** Buttons row — a plain block; its buttons live in `settings.content.buttons`, as in the editor. */
+		buttons: (params: ButtonsBlockParams = {}): BlockConfig =>
+			structured<import("./block-content-types.js").ButtonsContent>("core/buttons")(
+				numberButtons(params),
+			),
 		gallery: structured<import("./block-content-types.js").GalleryContent>("core/gallery"),
 
 		video: (params: VideoBlockParams = {}): BlockConfig =>
@@ -341,23 +351,49 @@ export function createBlocksBuilder(): BlocksBuilder {
 			}),
 
 		divider: structured<import("./block-content-types.js").DividerContent>("core/divider"),
+		form: structured<import("./block-content-types.js").FormContent>("core/form"),
+
+		/**
+		 * The button that sends a form. A form's answers are sent by a button whose content says
+		 * `action: "submit"`, which the plain `button` builder does not set.
+		 */
+		submitButton: (params: SubmitButtonBlockParams = {}): BlockConfig => {
+			const button = buildFromSettings("core/button", {
+				...params,
+				settings: mergeSettings(params.settings, {
+					content: { text: params.text ?? "Send", url: "", ...params.settings?.content },
+				}),
+			});
+			// `action` is read by the form but is not part of the SDK's public text content type.
+			const content: Extract<BlockContent, { kind: "text" }> & { action: "submit" } = {
+				...(button.content as Extract<BlockContent, { kind: "text" }>),
+				action: "submit",
+				url: "",
+			};
+			return { ...button, content };
+		},
+
 		input: structured<import("./block-content-types.js").InputFieldContent>("core/input"),
 		textarea: structured<import("./block-content-types.js").TextareaFieldContent>("core/textarea"),
 		select: structured<import("./block-content-types.js").SelectFieldContent>("core/select"),
 		postTitle: structured<import("./block-content-types.js").PostTitleContent>("post/title"),
 		postExcerpt: (params: PostExcerptBlockParams = {}): BlockConfig =>
 			structured<Record<string, never>>("post/excerpt")(params),
-		postFeaturedImage: structured<import("./block-content-types.js").PostFeaturedImageContent>(
-			"post/featured-image",
-		),
+		postFeaturedImage:
+			structured<import("./block-content-types.js").PostFeaturedImageContent>(
+				"post/featured-image",
+			),
 		postList: structured<import("./block-content-types.js").PostListContent>("post/list"),
 		postToc: structured<import("./block-content-types.js").PostTocContent>("post/toc"),
-		postAuthorBox: structured<import("./block-content-types.js").PostAuthorBoxContent>("post/author-box"),
+		postAuthorBox:
+			structured<import("./block-content-types.js").PostAuthorBoxContent>("post/author-box"),
 		postComments: (params: PostCommentsBlockParams = {}): BlockConfig =>
 			structured<Record<string, never>>("post/comments")(params),
-		postNavigation: structured<import("./block-content-types.js").PostNavigationContent>("post/navigation"),
+		postNavigation:
+			structured<import("./block-content-types.js").PostNavigationContent>("post/navigation"),
 		postInfo: structured<import("./block-content-types.js").PostInfoContent>("post/info"),
-		postProgress: structured<import("./block-content-types.js").PostProgressContent>("post/progress"),
+		postProgress:
+			structured<import("./block-content-types.js").PostProgressContent>("post/progress"),
 
 		custom: ({
 			name,

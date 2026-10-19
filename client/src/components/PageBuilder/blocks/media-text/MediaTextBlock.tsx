@@ -4,9 +4,13 @@ import { readStructuredBlockData } from "@shared/read-block-content";
 import { sanitizeHtml } from "../../utils";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
-import { type MediaTextContent, type MediaTextData, DEFAULT_CONTENT, DEFAULT_DATA } from './media-text-model';
+import { type MediaTextContent, type MediaTextData } from './media-text-model';
+import { MEDIA_TEXT_DEFAULT_CONTENT, MEDIA_TEXT_DEFAULT_DATA } from '@shared/block-catalog/media-blocks';
+import { catalogMeta } from '../catalog-meta';
 import { MediaTextSettings } from './media-text-settings';
 import { mediaTextAlignItems, mediaTextPaneBasis } from '@shared/media-text-layout';
+
+const DEFAULT_DATA: MediaTextData = MEDIA_TEXT_DEFAULT_DATA;
 
 // ============================================================================
 // RENDERER
@@ -94,13 +98,9 @@ function MediaTextRenderer({ content, styles }: MediaTextRendererProps) {
 // ============================================================================
 
 const MediaTextBlock = createBlockDefinition<MediaTextContent>({
-  id: 'core/media-text',
-  label: 'Media & Text',
+  ...catalogMeta('core/media-text'),
   icon: ImageIcon,
-  description: 'Display media and text side by side',
-  category: 'media',
-  defaultContent: DEFAULT_CONTENT,
-  defaultStyles: { margin: '1em 0' },
+  defaultContent: MEDIA_TEXT_DEFAULT_CONTENT,
   settings: MediaTextSettings,
   hasSettings: true,
   render: ({ content, styles }) => <MediaTextRenderer content={content} styles={styles} />,

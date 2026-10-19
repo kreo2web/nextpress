@@ -22,6 +22,8 @@ import {
 import { splitButtonBlockStyles, mapButtonTextAlignToJustifyContent } from "@shared/button-block-styles";
 import { BUTTON_ICON_SIZE_PRESETS, DEFAULT_BUTTON_ICON_SIZE } from "@shared/dimension-presets";
 import { DimensionPresetField } from "../../dimension-preset-field";
+import { BUTTON_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { catalogMeta } from "../catalog-meta";
 import { SettingsChipGroup } from "../../settings-chip-group";
 import {
   Tooltip,
@@ -50,15 +52,7 @@ type ButtonContent = BlockContent & {
   action?: 'link' | 'submit';
 };
 
-const DEFAULT_CONTENT: ButtonContent = {
-  kind: 'text',
-  value: 'Click Me',
-  url: '#',
-  linkTarget: '_self',
-  rel: '',
-  title: '',
-  className: '',
-};
+const DEFAULT_CONTENT: ButtonContent = BUTTON_DEFAULT_CONTENT;
 
 // ============================================================================
 // RENDERER
@@ -424,23 +418,9 @@ function ButtonSettings({ block, onUpdate }: ButtonSettingsProps) {
 // ============================================================================
 
 const ButtonBlock = createBlockDefinition<ButtonContent>({
-  id: 'core/button',
-  label: 'Button',
+  ...catalogMeta('core/button'),
   icon: MousePointer,
-  description: 'Add a clickable button',
-  category: 'basic',
   defaultContent: DEFAULT_CONTENT,
-  defaultStyles: {
-    backgroundColor: '#007cba',
-    color: '#ffffff',
-    padding: '12px 24px',
-    borderRadius: '4px',
-    border: 'none',
-    fontSize: '16px',
-    textAlign: 'center',
-    display: 'inline-block',
-    cursor: 'pointer',
-  },
   settings: ButtonSettings,
   hasSettings: true,
   render: ({ content, styles, isPreview, isEditing, setContent, value }) => (
