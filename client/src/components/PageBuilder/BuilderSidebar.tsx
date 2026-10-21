@@ -16,7 +16,7 @@ import {
   Plus,
   Settings,
   Sidebar,
-  Sparkles,
+  MessageSquare,
 } from 'lucide-react';
 import type { BlockConfig } from '@shared/schema-types';
 import { ResponsiveHealthBanner } from './ResponsiveHealthBanner';
@@ -151,7 +151,7 @@ export function BuilderSidebar({
             </TabsTrigger>
             {hasAssistant ? (
               <TabsTrigger value="assistant" className={tabTriggerClass}>
-                <Sparkles className="h-4 w-4" /> Assistant
+                <MessageSquare className="h-4 w-4" /> Assistant
               </TabsTrigger>
             ) : null}
           </TabsList>

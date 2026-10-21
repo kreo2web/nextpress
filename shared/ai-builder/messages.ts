@@ -50,7 +50,7 @@ export const AI_ASSISTANT_MESSAGES = {
 	invalidRequest: "Some of the details aren't right. Check the page and try again.",
 	runFailed: "The assistant couldn't start. Try again.",
 	keyRefused: "The saved key was refused. A site admin can replace it in Settings → AI.",
-	unknownModel: "That model name isn't available on this service.",
+	unknownModel: "The service at that address doesn't recognise that model. Check the address and the model name.",
 	busyOrQuota: "The AI service is busy or out of credit. Try again in a minute.",
 	noAnswer: "The AI service didn't answer. Try again in a moment.",
 	noToolUse: "This model can chat but can't use tools, so it can't build pages.",

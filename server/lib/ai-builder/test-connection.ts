@@ -1,4 +1,4 @@
-import { generateText, isStepCount, tool } from "ai";
+import { isStepCount, streamText, tool } from "ai";
 import { z } from "zod";
 import { AI_ASSISTANT_MESSAGES, type AiConnectionTestFailure } from "@shared/ai-builder";
 import type { Deps } from "../../routes/shared/deps";
@@ -10,8 +10,12 @@ import { createLanguageModel, type CreateLanguageModel } from "./create-model";
 import { mapAiError, type MappedAiError } from "./map-ai-error";
 import { recheckServiceAddress } from "./recheck-address";
 
-/** Long enough for a cold local model to load, short enough that the Settings button doesn't hang. */
-const TEST_TIMEOUT_MS = 30_000;
+/**
+ * Long enough for a cold local model to load or a busy gateway to get to the request — some
+ * services take 30s+ for the first answer — yet well under the 3 minutes a real run may take,
+ * so a broken setup still fails while the person is watching.
+ */
+const TEST_TIMEOUT_MS = 60_000;
 
 const FAILURE_CODE: Record<MappedAiError["code"], AiConnectionTestFailure> = {
 	key_refused: "key_rejected",
@@ -32,6 +36,10 @@ const sayOk = tool({
  * "Test connection": one tiny call that must use a tool. A model that can chat but not use tools
  * can't build pages, so it is found out here rather than in the editor. Uses the same address
  * re-check and pinned connection as a real run.
+ *
+ * WHY streaming, like a real run: some OpenAI-compatible gateways never answer a non-streaming
+ * request (they hold the connection open), so a plain generate call times out even though the
+ * assistant works. The test must speak the same way the assistant does.
  */
 export const createConnectionTester = ({
 	models,
@@ -47,20 +55,34 @@ export const createConnectionTester = ({
 		const address = await recheckServiceAddress({ settings, allowPrivate, resolveDns });
 		if (!address.ok) return { ok: false, code: "unreachable", message: address.message };
 
-		const { err, result } = await safeTryAsync(() =>
-			generateText({
-				model: createModel({ settings, fetch: address.fetch }),
-				prompt: "Call the say_ok tool once.",
-				tools: { say_ok: sayOk },
-				toolChoice: "required",
-				stopWhen: isStepCount(1),
-				maxRetries: 0,
-				abortSignal: AbortSignal.timeout(TEST_TIMEOUT_MS),
-			}).finally(() => address.close()),
-		);
+		/** A stream swallows the provider's own error and throws a generic one, so keep the real cause. */
+		const streamFailure: { error?: Error } = {};
+
+		const { err, result } = await safeTryAsync(async () => {
+			try {
+				const stream = streamText({
+					model: createModel({ settings, fetch: address.fetch }),
+					prompt: "Call the say_ok tool once. Do not reply with text.",
+					tools: { say_ok: sayOk },
+					// Not `toolChoice: "required"`: some gateways hold that request until the abort. The
+					// instruction plus the tool list is enough, and a model that ignores it fails the check.
+					toolChoice: "auto",
+					stopWhen: isStepCount(1),
+					maxRetries: 0,
+					abortSignal: AbortSignal.timeout(TEST_TIMEOUT_MS),
+					onError: ({ error }) => {
+						streamFailure.error = error instanceof Error ? error : new Error(String(error));
+					},
+				});
+				await stream.consumeStream();
+				return { toolCalls: await stream.toolCalls, finishReason: await stream.finishReason };
+			} finally {
+				await address.close();
+			}
+		});
 
 		if (err || !result) {
-			const error = err instanceof Error ? err : new Error(String(err));
+			const error = streamFailure.error ?? (err instanceof Error ? err : new Error(String(err)));
 			const mapped = mapAiError(error);
 			console.warn({
 				atFunction: "aiBuilder.testConnection",

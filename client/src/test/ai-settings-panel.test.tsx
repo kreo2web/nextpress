@@ -444,6 +444,25 @@ describe('AI settings: a key is already saved', () => {
     expect(screen.getByText('You changed the provider or address, so enter a key for it.')).toBeInTheDocument();
   });
 
+  it('keeps the saved key when a pasted endpoint is tidied back to the service address', async () => {
+    installServer({
+      saved: makeView({
+        provider: 'openai-compatible',
+        model: 'gpt-x',
+        baseUrl: 'https://llm.example.com/v1/chat/completions',
+      }),
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    await screen.findByText('Key saved, ends in …abcd');
+    await user.clear(screen.getByLabelText('Address'));
+    await user.type(screen.getByLabelText('Address'), 'https://llm.example.com/v1');
+
+    expect(screen.queryByLabelText('Key')).not.toBeInTheDocument();
+    expect(screen.getByText('Key saved, ends in …abcd')).toBeInTheDocument();
+  });
+
   it('tells the person to enter the key again when the saved one cannot be read', async () => {
     installServer({ saved: makeView({ keyUnreadable: true, keyEnding: null }) });
     renderPanel();

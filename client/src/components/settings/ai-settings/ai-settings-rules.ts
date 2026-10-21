@@ -1,5 +1,6 @@
 import {
   getAiProvider,
+  normalizeAiAddress,
   type AiProviderId,
   type AiSaveField,
   type AiSettingsView,
@@ -42,8 +43,6 @@ export const KEY_PLACEHOLDERS: Record<AiProviderId, string> = {
   'openai-compatible': 'Paste the key',
 };
 
-const normalizeAddress = (address: string): string => address.trim().replace(/\/+$/, '');
-
 export const usesAddress = (provider: AiProviderId): boolean => getAiProvider(provider).needsAddress;
 
 export const draftFromView = (view: AiSettingsView | null): AiDraft => ({
@@ -74,7 +73,7 @@ export const looksLocalAddress = (address: string): boolean => {
 export const isServiceChanged = ({ saved, draft }: { saved: AiSettingsView; draft: AiDraft }): boolean => {
   if (draft.provider !== saved.provider) return true;
   if (!usesAddress(draft.provider)) return false;
-  return normalizeAddress(draft.baseUrl) !== normalizeAddress(saved.baseUrl ?? '');
+  return normalizeAiAddress(draft.baseUrl) !== normalizeAiAddress(saved.baseUrl ?? '');
 };
 
 /**
@@ -132,4 +131,4 @@ export const buildSaveValues = ({ draft, area }: { draft: AiDraft; area: KeyArea
 
 /** Matches a typed address to a preset, ignoring a trailing slash. */
 export const isSameAddress = ({ a, b }: { a: string; b: string }): boolean =>
-  normalizeAddress(a) !== '' && normalizeAddress(a) === normalizeAddress(b);
+  normalizeAiAddress(a) !== '' && normalizeAiAddress(a) === normalizeAiAddress(b);

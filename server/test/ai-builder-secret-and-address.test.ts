@@ -149,6 +149,17 @@ describe("checkServiceAddress", () => {
 		expect(await check("https://api.example.com")).toMatchObject({ ok: true, baseUrl: "https://api.example.com" });
 	});
 
+	it("drops a pasted /chat/completions, because the app adds that path itself", async () => {
+		expect(await check("https://api.example.com/v1/chat/completions")).toMatchObject({
+			ok: true,
+			baseUrl: "https://api.example.com/v1",
+		});
+		expect(await check("https://api.example.com/v1/chat/completions/")).toMatchObject({
+			ok: true,
+			baseUrl: "https://api.example.com/v1",
+		});
+	});
+
 	it("refuses plain http to a public host, for everyone", async () => {
 		for (const allowPrivate of [false, true]) {
 			const result = await check("http://api.example.com/v1", allowPrivate);

@@ -1,6 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { AI_SETTINGS_MESSAGES } from "@shared/ai-builder";
+import { AI_SETTINGS_MESSAGES, normalizeAiAddress } from "@shared/ai-builder";
 import { safeTryAsync } from "../../utils";
 import { classifyIp, strictestReach, type AddressReach } from "./classify-ip";
 
@@ -155,7 +155,7 @@ export async function checkServiceAddress({
 
 	return {
 		ok: true,
-		baseUrl: `${url.origin}${stripTrailingSlashes(url.pathname)}`,
+		baseUrl: normalizeAiAddress(`${url.origin}${stripTrailingSlashes(url.pathname)}`),
 		reach: found.reach,
 		host,
 		addresses: found.addresses,

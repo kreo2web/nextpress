@@ -3,6 +3,7 @@ import { KeyRound } from 'lucide-react';
 import { BrandedFormLayout } from '@/components/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChangePasswordDialog } from '@/components/account/change-password-dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { authClient } from '@/lib/auth-client';
 import { accentTint } from '@/components/people/role-badge';
@@ -14,6 +15,7 @@ import { accentTint } from '@/components/people/role-badge';
 export function NoDashboardAccess(): JSX.Element {
   const { user } = useAuth();
   const [isLeaving, setIsLeaving] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const signOut = async (): Promise<void> => {
     setIsLeaving(true);
@@ -43,12 +45,18 @@ export function NoDashboardAccess(): JSX.Element {
             <Button asChild variant="outline">
               <a href="/">Go to the site</a>
             </Button>
+            <Button variant="outline" onClick={() => setPasswordOpen(true)}>
+              Change password
+            </Button>
             <Button onClick={() => void signOut()} disabled={isLeaving}>
               {isLeaving ? 'Signing out…' : 'Sign out'}
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Outside the card, so the dialog can open over it. */}
+      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
     </BrandedFormLayout>
   );
 }

@@ -1,6 +1,7 @@
 import {
 	AI_SETTINGS_MESSAGES,
 	getAiProvider,
+	normalizeAiAddress,
 	type AiConnectionTestResult,
 	type AiProviderId,
 	type AiSaveErrorCode,
@@ -137,7 +138,10 @@ export function createAiSettingsService({
 		}
 
 		const needKey = (message: string): KeyDecision => ({ ok: false, code: "key_needed", message, field: "apiKey" });
-		const sameService = existing?.provider === values.provider && existing.baseUrl === address.address;
+		// Compared tidied so a saved address that still ends in /chat/completions counts as the same service.
+		const sameService =
+			existing?.provider === values.provider &&
+			normalizeAiAddress(existing.baseUrl ?? "") === normalizeAiAddress(address.address ?? "");
 
 		if (existing?.key && sameService) {
 			const opened = openSecret({ sealed: existing.key, passphrase });

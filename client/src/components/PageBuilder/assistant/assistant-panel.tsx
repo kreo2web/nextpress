@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { Link } from 'wouter';
-import { SparklesIcon, Trash2Icon } from 'lucide-react';
+import { MessageSquareIcon, Trash2Icon } from 'lucide-react';
 import { Conversation, ConversationContent, ConversationEmptyState, ConversationScrollButton } from '@/components/ai-elements/conversation';
 import { Suggestion } from '@/components/ai-elements/suggestion';
 import { Shimmer } from '@/components/ai-elements/shimmer';
@@ -36,7 +36,7 @@ function AssistantNotice({ availability }: { availability: Exclude<AssistantAvai
   const notice = NOTICE[availability];
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-      <SparklesIcon className="size-6 text-npb-text-muted" aria-hidden />
+      <MessageSquareIcon className="size-6 text-npb-text-muted" aria-hidden />
       <h3 className="text-sm font-semibold text-npb-text-primary">{notice.title}</h3>
       <p className="text-sm text-npb-text-muted">{notice.body}</p>
       {availability === 'needs-setup' ? (
@@ -107,7 +107,7 @@ export function AssistantPanel(): ReactElement | null {
             ))
           ) : (
             <ConversationEmptyState className="gap-4 px-2 py-6">
-              <SparklesIcon className="size-6 text-npb-text-muted" aria-hidden />
+              <MessageSquareIcon className="size-6 text-npb-text-muted" aria-hidden />
               <div className="space-y-1">
                 <h3 className="text-sm font-semibold text-npb-text-primary">Describe what you want</h3>
                 <p className="text-sm text-npb-text-muted">

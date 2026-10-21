@@ -124,6 +124,14 @@ export default defineConfig({
       "tailwindcss-animate",
       "tailwindcss/resolveConfig",
       "@tailwindcss/typography",
+      // The AI SDK reaches @vercel/oidc, whose browser build is CommonJS. Served raw,
+      // the browser gets no named exports (getContext). pnpm keeps @vercel/oidc under
+      // the gateway package, so pre-bundle the entry points and let esbuild inline it.
+      "ai",
+      "@ai-sdk/react",
+      // Renders assistant answers. It pulls CommonJS helpers (style-to-js) that the
+      // browser cannot import named/default exports from unless they are bundled.
+      "streamdown",
     ],
   },
 });

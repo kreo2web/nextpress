@@ -28,6 +28,18 @@ export const AI_ADDRESS_PRESETS: readonly AiAddressPreset[] = [
 	{ id: "lm-studio", label: "LM Studio on this server", baseUrl: "http://localhost:1234/v1", isLocal: true },
 ];
 
+/** Providers hand out the full endpoint in their examples, but the app adds this path itself. */
+const CHAT_ENDPOINT_SUFFIX = "/chat/completions";
+
+/**
+ * The address as it is stored and compared: no trailing slashes, and no `/chat/completions` on the end.
+ * Why: people copy the endpoint from a provider's example, and calling it with the path twice answers 404.
+ */
+export const normalizeAiAddress = (address: string): string => {
+	const trimmed = address.trim().replace(/\/+$/, "");
+	return trimmed.replace(/\/chat\/completions$/i, "").replace(/\/+$/, "");
+};
+
 export const isAiProviderId = (value: string): value is AiProviderId =>
 	AI_PROVIDERS.some((provider) => provider.id === value);
 

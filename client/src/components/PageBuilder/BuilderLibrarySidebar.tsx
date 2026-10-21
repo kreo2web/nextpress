@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronsDownUp, ChevronsUpDown, Plus, Sidebar, Sparkles } from 'lucide-react';
+import { ChevronsDownUp, ChevronsUpDown, MessageSquare, Plus, Sidebar } from 'lucide-react';
 import { ResponsiveHealthBanner } from './ResponsiveHealthBanner';
 import { BuilderLibraryPanel } from './BuilderLibraryPanel';
 import type { BlockConfig } from '@shared/schema-types';
@@ -131,7 +131,7 @@ export function BuilderLibrarySidebar({
                 <Plus className="h-4 w-4" aria-hidden /> Blocks
               </TabsTrigger>
               <TabsTrigger value="assistant" className={tabTriggerClass}>
-                <Sparkles className="h-4 w-4" aria-hidden /> Assistant
+                <MessageSquare className="h-4 w-4" aria-hidden /> Assistant
               </TabsTrigger>
             </TabsList>
             <TabsContent value="blocks" className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden">

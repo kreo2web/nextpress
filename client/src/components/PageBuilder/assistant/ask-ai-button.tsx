@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react';
 import type { UIMessage } from 'ai';
-import { RotateCcwIcon, SparklesIcon, SquareIcon } from 'lucide-react';
+import { MessageSquareIcon, RotateCcwIcon, SquareIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -50,7 +50,7 @@ export function AskAiButton({ blockId }: { blockId: string }): ReactElement | nu
                 selectBlock(blockId);
               }}
               className="h-6 w-6 p-0 text-npb-text-secondary hover:text-npb-text-primary">
-              <SparklesIcon className="h-3 w-3" aria-hidden />
+              <MessageSquareIcon className="h-3 w-3" aria-hidden />
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
@@ -63,7 +63,7 @@ export function AskAiButton({ blockId }: { blockId: string }): ReactElement | nu
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}>
         <div className="flex items-center gap-2">
-          <SparklesIcon className="size-4 text-npb-text-muted" aria-hidden />
+          <MessageSquareIcon className="size-4 text-npb-text-muted" aria-hidden />
           <h3 className="text-sm font-semibold text-npb-text-primary">Ask AI about this block</h3>
         </div>
 

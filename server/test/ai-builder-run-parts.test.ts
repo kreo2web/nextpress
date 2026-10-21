@@ -2,7 +2,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { APICallError } from "ai";
-import { MockLanguageModelV4 } from "ai/test";
+import { MockLanguageModelV4, convertArrayToReadableStream } from "ai/test";
 import { AI_ASSISTANT_MESSAGES } from "@shared/ai-builder";
 import { makeBlock } from "@shared/page-tools/test-support/memory-context";
 import type { Deps } from "../routes/shared/deps";
@@ -78,24 +78,34 @@ describe("counting what a change removes", () => {
 	});
 });
 
+type StreamResult = Awaited<ReturnType<MockLanguageModelV4["doStream"]>>;
+type StreamPart = StreamResult["stream"] extends ReadableStream<infer Part> ? Part : never;
+
+const streamOf = (parts: StreamPart[], finish: "tool-calls" | "stop"): StreamResult => ({
+	stream: convertArrayToReadableStream<StreamPart>([
+		{ type: "stream-start", warnings: [] },
+		...parts,
+		{ type: "finish", usage, finishReason: { unified: finish, raw: finish } },
+	]),
+});
+
+const textPart = (value: string): StreamPart[] => [
+	{ type: "text-start", id: "t1" },
+	{ type: "text-delta", id: "t1", delta: value },
+	{ type: "text-end", id: "t1" },
+];
+
 describe("Test connection", () => {
 	it("passes when the model calls the tool", async () => {
 		const model = new MockLanguageModelV4({
-			doGenerate: {
-				content: [{ type: "tool-call", toolCallId: "c1", toolName: "say_ok", input: "{}" }],
-				finishReason: { unified: "tool-calls", raw: "tool_use" },
-				usage,
-				warnings: [],
-			},
+			doStream: streamOf([{ type: "tool-call", toolCallId: "c1", toolName: "say_ok", input: "{}" }], "tool-calls"),
 		});
 		expect(await testerWith(model)(SETTINGS)).toEqual({ ok: true });
 	});
 
 	it("finds a model that answers without using tools", async () => {
 		vi.spyOn(console, "warn").mockImplementation(() => undefined);
-		const model = new MockLanguageModelV4({
-			doGenerate: { content: [{ type: "text", text: "ok" }], finishReason: { unified: "stop", raw: "stop" }, usage, warnings: [] },
-		});
+		const model = new MockLanguageModelV4({ doStream: streamOf(textPart("ok"), "stop") });
 		expect(await testerWith(model)(SETTINGS)).toEqual({ ok: false, code: "no_tool_use", message: AI_ASSISTANT_MESSAGES.noToolUse });
 		vi.restoreAllMocks();
 	});
@@ -103,7 +113,7 @@ describe("Test connection", () => {
 	it("says the key was refused in plain words", async () => {
 		vi.spyOn(console, "warn").mockImplementation(() => undefined);
 		const model = new MockLanguageModelV4({
-			doGenerate: async () => {
+			doStream: async () => {
 				throw new APICallError({ message: "invalid x-api-key", url: "https://api.example.com", requestBodyValues: {}, statusCode: 401 });
 			},
 		});

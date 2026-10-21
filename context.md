@@ -1,7 +1,7 @@
 # Nextpress — Project Context
 
 > Curated project-wide knowledge for agents. Read this first before exploring.
-> Owner: Solutions Architect. Last updated: 2026-10-10.
+> Owner: Solutions Architect. Last updated: 2026-10-21.
 
 ## What this is
 
@@ -42,6 +42,37 @@ UUID PKs everywhere except sessions.sid.
 - Boundaries: never start servers, no DB commands, no git, no `.env` — ask owner. Backups to `/backup` before >10-line changes; deletes go to `/trash`.
 
 ## Decision records
+
+### 2026-10-21 — Pasting the full endpoint is a trap: tidy addresses, and stop forcing tool choice
+- **The trap:** providers show `curl https://host/v1/chat/completions` in their docs, so people paste that whole URL into Settings → AI → Address. The app adds `/chat/completions` itself, calls the path twice, gets a **404**, and the failure was worded as "That model name isn't available on this service" — sending people after the wrong thing.
+- **Fix:** `normalizeAiAddress` in `shared/ai-builder/providers.ts` — trims and drops a trailing `/chat/completions` (any case) plus trailing slashes. Used by `checkServiceAddress` (what gets stored), by the settings service when deciding whether the saved key still belongs to the same service (so fixing a pasted address no longer asks for the key again), and by the client form's `isServiceChanged` / `isSameAddress`. The 404 wording now says the service doesn't recognise that model **and** points at the address.
+- **Careful:** `address.address` is `undefined` for built-in providers (Anthropic / OpenAI / Google); it must be fed to the normaliser as `""`, or saving throws a 500.
+- **`toolChoice: "required"` can hang a gateway.** The model answered normally through the assistant (14.7 s, real tool call) while the connection test timed out at 60 s every time with it set. The test now uses `toolChoice: "auto"` with the prompt "Call the say_ok tool once. Do not reply with text." — passing in ~3 s twice in a row. A model that ignores the instruction still fails as `no_tool_use`, so the check keeps its meaning.
+- **Assistant UI icons:** the page-builder assistant (tab, empty state, notices, per-block "Ask AI") uses `MessageSquare` / `MessageSquareIcon`, not `Sparkles` — the owner doesn't want the AI-sparkle cliché. The AI settings page still has its own sparkle until told otherwise.
+
+### 2026-10-21 — "Test connection" must speak the same way the assistant does
+- **Symptom:** Settings → AI, provider "OpenAI-compatible", address `https://api.modelbest.ai/v1`, model `MiniCPM-V-4.7-35B-A3B`, saved fine, but Test connection said "The AI service didn't answer" while the assistant itself answered normally in the editor.
+- **Cause:** the test used `generateText` — a **non-streaming** request. Some OpenAI-compatible gateways hold non-streaming connections open, so it sat until the 30 s cap. Real runs use `streamText` (streaming) and had no problem. The address, key and model were all fine: `curl` and undici got a fast `401` without a key, and the assistant replied through the saved key.
+- **Fix:** `server/lib/ai-builder/test-connection.ts` now uses `streamText` + `consumeStream`, exactly like `run-assistant.ts`, so the test measures what real runs do. Tests that mocked `doGenerate` now mock `doStream` (`server/test/ai-builder-run-parts.test.ts`).
+- **Two traps worth remembering:** a streamed failure is swallowed and `consumeStream()` throws a generic `NoOutputGeneratedError` — the provider's real error comes through `onError`, which is why the test keeps it and maps *that* (otherwise a 401 shows as "unreachable"). And `streamText` **does not** throw the provider error itself.
+- **Timeouts:** the test cap is 60 s (a cold or busy gateway took 30 s+ once and 2 s the next time); a real run is allowed 3 minutes (`AI_ASSISTANT_LIMITS.runTimeoutMs`). A timeout in the test is therefore a hint, not proof the setup is broken.
+
+### 2026-10-21 — Dev-server dependency pre-bundling (the "no export named getContext" trap)
+- **Symptom:** the page builder and assistant showed `[plugin:runtime-error-plugin] The requested module …/@vercel/oidc/dist/index-browser.js does not provide an export named 'getContext'`. Later the same shape for `style-to-js/cjs/index.js` (no default export).
+- **Why:** `vite.config.ts` runs with `optimizeDeps.noDiscovery: true` (turned on to stop mid-session re-optimisation from loading a second React copy). Only the hand-written `include` list is pre-bundled; anything else in `node_modules` is served raw. CommonJS packages cannot be imported by the browser that way — named exports are invisible.
+- **The pnpm trap:** you cannot fix it by adding `"@vercel/oidc"` to `include` — pnpm keeps transitive packages under the parent, so Vite cannot resolve that name from the repo root and silently logs `Failed to resolve dependency: …` and drops the entry. Include the **root-resolvable entry point** instead (`ai`, `@ai-sdk/react`, `streamdown`); esbuild then inlines the CommonJS packages inside them.
+- **`vite.config.ts` is read once at boot:** `server/setup-vite.ts` passes `configFile: false`, so Vite never watches it. Any config change needs a full dev-server restart (Ctrl-C then `pnpm dev`); the browser hash otherwise stays the same and the change looks like it "did nothing".
+- **Checking a config change without touching the running server:** create a throwaway Vite server in a script with the same config plus `cacheDir: '/tmp/…'`, call `transformRequest('/src/main.tsx')` to force pre-bundling, then inspect the transformed import URLs — a raw `/@fs/…/node_modules/…` import means it is still unbundled.
+- **Verifying in a browser:** `agent-browser --session <name>` — open `/admin/login`, fill `input[name=username]` / `input[name=password]`, submit, then `errors`, `console`, and `network requests` show whether a module error is gone and whether raw CJS (`/cjs/`, `@vercel/oidc`) is still requested.
+
+### 2026-10-21 — Passwords: reset by hand, and a screen to change it
+- **Why:** the owner's local account (made by a web sign-up on 2026-09-11) only ever had the `subscriber` role, so the 2026-10-19 access-control work left it with no dashboard. It was made an admin by hand. Its password had never been set by the owner (no session since 2026-09-19), so it was reset by hand to a temporary one.
+- **Admin is a database fact, not a credential:** `sites.owner_id` (owner) or a `user_roles` row pointing at the `admin` role for that site. There is no hardcoded admin account anywhere in the repo — the setup wizard (`/setup`) creates the first one and the owner picks the email and password. The `adminEmail` in Settings → General is only the certificate contact, not a login. `admin@example.com` is the local setup admin; `hssnkizz@gmail.com` is the owner's own account (username `husseinkizz`).
+- **What the dashboard now has:** `client/src/components/account/change-password-dialog.tsx` — current password, new password, confirm; plain-language failures inline; `revokeOtherSessions: true` (other devices are signed out, this browser stays in). Opened from the user menu in the admin top bar (name + "Change password" + "Log out") and from the "no dashboard access" screen, so a subscriber can reach it too. No server work: Better Auth's `POST /api/auth/change-password` already answered correctly (200 / 400 `INVALID_PASSWORD` / 400 `PASSWORD_TOO_SHORT` / 401 `UNAUTHORIZED`).
+- **Reading a live database without touching it:** copy `data/pglite` to a scratch folder, delete the copy's `postmaster.pid`, open the copy with PGlite and query it. The live folder is held by the dev server, and two writers break it. A stale `data/pglite.lock` (dead pid) is harmless — `server/db.ts` only refuses when the pid is alive.
+- **Changing a password in the live dev database:** stop the dev server (SIGTERM to the node child, so PGlite closes and the lock file goes), run a one-off tsx script that writes a bcrypt hash (cost 10, same as the app) into `accounts.password`, then start the server again. `users.password` is legacy and stays NULL; Better Auth reads `accounts.password`.
+- **Watch:** a background `pnpm dev` started by an agent gets killed when the turn ends (exit 137), and the owner has to start it again in their own terminal. Always say so.
+- **Tests:** `client/src/test/change-password-dialog.test.tsx` (5 tests: the call it makes, the wrong-current-password message, too short, mismatch, and the no-dashboard entry point) and `client/src/test/auth-client-capabilities.test.ts` (the real browser client really has `changePassword` — the other test mocks it, so it would not catch a wrong method name). The client type check is back at its 10 old errors; the whole client suite (130 files, 1055 tests) passes.
 
 ### 2026-10-19 — Who can do what: roles, invite links, Settings that work
 - **Why:** proved on a throwaway copy: anyone could sign up, every sign-up got a role on the main site, and "any role" counted as full access. A stranger could list everyone's email, change other people's email, rename the site, make all-powerful API keys, toggle plugins for every site, edit or delete other sites' blogs, posts and media, and post "approved" comments as anyone. 15 of 17 Settings switches did nothing.
