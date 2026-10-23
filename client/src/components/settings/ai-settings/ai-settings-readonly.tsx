@@ -1,4 +1,4 @@
-import { CircleCheck, CircleSlash, Sparkles } from 'lucide-react';
+import { CircleCheck, CircleSlash, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type AiSettingsReadonlyProps = {
@@ -11,7 +11,7 @@ export function AiSettingsReadonly({ isEnabled }: AiSettingsReadonlyProps) {
     <Card className="admin-surface">
       <CardHeader>
         <CardTitle className="flex items-center">
-          <Sparkles className="mr-2 h-5 w-5 text-npb-accent" aria-hidden />
+          <MessageSquare className="mr-2 h-5 w-5 text-npb-accent" aria-hidden />
           Page assistant
         </CardTitle>
       </CardHeader>

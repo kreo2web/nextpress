@@ -11,6 +11,9 @@ import * as FormBlocks from "./form";
 import { FormBlock } from "./form/form-block";
 import { AccordionBlock, AccordionItemBlock } from "./layout/accordion";
 import { PopupBlock } from "./layout/popup";
+import * as DesignBlocks from "./design";
+import { SearchBlock } from "./search";
+import { DocsLayoutBlock } from "./docs";
 
 /**
  * Counter Block Component (legacy/test component)
@@ -57,6 +60,16 @@ export const BLOCK_COMPONENTS: Record<string, React.FC<BlockConfig>> = {
 	"core/spacer": LayoutBlocks.SpacerBlock,
 	"core/separator": LayoutBlocks.SeparatorBlock,
 	"core/divider": LayoutBlocks.DividerBlock,
+	"core/grid": DesignBlocks.GridBlock,
+	"core/card": DesignBlocks.CardBlock,
+	"core/badge": DesignBlocks.BadgeBlock,
+	"core/steps": DesignBlocks.StepsBlock,
+	"core/step": DesignBlocks.StepBlock,
+	"core/tabs": DesignBlocks.TabsBlock,
+	"core/tab": DesignBlocks.TabBlock,
+	"core/logo-cloud": DesignBlocks.LogoCloudBlock,
+	"core/search": SearchBlock,
+	"core/docs-layout": DocsLayoutBlock,
 
 	// Advanced blocks
 	"core/quote": AdvancedBlocks.QuoteBlock,

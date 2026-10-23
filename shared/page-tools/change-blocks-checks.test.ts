@@ -263,8 +263,7 @@ describe("change_blocks: limits and bad input", () => {
 		expect(badName.text).toContain('ops[0].block.name: Unknown block name "core/nope". Call list_block_types for the valid names.');
 
 		const stray = await tool.run({ ops: [{ op: "insert", parentId: null, block: { name: "core/heading", text: "Hi" } }] });
-		expect(stray.text).toContain("Unrecognized key");
-		expect(stray.text).toContain("text");
+		expect(stray.text).toContain("Fields such as value, url or level go inside content. (not allowed here: text)");
 
 		const deep = await tool.run({
 			ops: [
@@ -276,7 +275,8 @@ describe("change_blocks: limits and bad input", () => {
 			],
 		});
 		expect(deep.ok).toBe(false);
-		expect(deep.text).toContain("Unrecognized key");
+		expect(deep.text).toContain("No children this deep (four levels at most): give the block a ref and insert into it in a later op.");
+		expect(deep.text).toContain("(not allowed here: children)");
 
 		expect(memory.writes).toHaveLength(0);
 	});

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { generateBlockId } from "../../utils";
 import { useSettingsState } from "../useSettingsState";
 import { UnitValueField } from "../../unit-value-field";
@@ -255,6 +256,20 @@ export function ColumnsSettings({ block, onUpdate }: ColumnsSettingsProps) {
               Grid mode uses equal-width columns automatically.
             </p>
           )}
+
+          <div className="grid grid-cols-12 gap-2 items-center">
+            <div className="col-span-8">
+              <SettingsLabel htmlFor="columns-reverse-phones">Reverse order on phones</SettingsLabel>
+            </div>
+            <div className="col-span-4 flex justify-end">
+              <Switch
+                id="columns-reverse-phones"
+                aria-label="Reverse order on phones"
+                checked={data.reverseOnPhones === true}
+                onCheckedChange={(checked) => updateContent({ reverseOnPhones: checked })}
+              />
+            </div>
+          </div>
 
           {layoutMode === "flex" && data.direction !== "column" && (
             <p className="text-xs text-npb-text-muted">

@@ -1,5 +1,6 @@
 import { isTemplatePart, readTemplatePartSiteId } from "@shared/template-usage";
 import { readTemplateRoot } from "@shared/template-parts/template-part-root";
+import { buildPagePaths } from "@shared/page-paths";
 import { parseThemeSettings } from "@shared/theme-settings";
 import type { BlockConfig } from "@shared/schema-types";
 import type { MediaSummary, PageSummary, SiteLookups, TemplatePartSummary, ThemeSummary } from "@shared/page-tools";
@@ -48,9 +49,11 @@ export const createSiteLookups = ({ models, siteId }: { models: SiteLookupModels
 
 	listPages: async () => {
 		const rows = await models.pages.findManyWhere([{ where: "siteId", equals: siteId }]);
+		// Addresses come from every page, so a trashed or draft parent still shows in its child's address.
+		const paths = buildPagePaths(rows.map((row) => ({ id: row.id, slug: row.slug, parentId: row.parentId })));
 		return rows
 			.filter((row) => row.status !== "trash")
-			.map((row): PageSummary => ({ id: row.id, title: row.title, slug: row.slug, status: row.status ?? "draft" }));
+			.map((row): PageSummary => ({ id: row.id, title: row.title, slug: row.slug, path: paths.get(row.id) ?? row.slug, status: row.status ?? "draft" }));
 	},
 
 	listTemplateParts: async () => {

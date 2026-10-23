@@ -1,13 +1,15 @@
 import type { ReactElement } from 'react';
 import { Link } from 'wouter';
-import { MessageSquareIcon, Trash2Icon } from 'lucide-react';
+import { MessageSquareIcon } from 'lucide-react';
 import { Conversation, ConversationContent, ConversationEmptyState, ConversationScrollButton } from '@/components/ai-elements/conversation';
 import { Suggestion } from '@/components/ai-elements/suggestion';
-import { Shimmer } from '@/components/ai-elements/shimmer';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AiWorkingStatus } from './ai-working-indicator';
+import { AssistantChatHistory } from './assistant-chat-history';
 import { AssistantComposer } from './assistant-composer';
 import { AssistantMessageView } from './assistant-message-view';
+import { NEW_CHAT_TITLE } from './assistant-storage';
 import { usePageAssistantContext, type AssistantAvailability } from './page-assistant-context';
 
 const STARTERS = [
@@ -73,24 +75,25 @@ export function AssistantPanel(): ReactElement | null {
 
   const hasMessages = assistant.messages.length > 0;
   const blockedReason = assistant.isWaitingForAnswer ? 'Answer the question above first.' : null;
+  const lockedReason = assistant.isWorking ? 'Wait for the assistant to finish first.' : blockedReason;
+  const activeTitle = assistant.chats.find((chat) => chat.id === assistant.activeChatId)?.title ?? NEW_CHAT_TITLE;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3" data-testid="assistant-panel">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-npb-text-muted">Changes go on the canvas. Save when you're happy.</p>
-        {hasMessages ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 shrink-0 gap-1.5 text-npb-text-muted"
-            disabled={assistant.isLocked}
-            onClick={assistant.clearChat}>
-            <Trash2Icon className="size-3.5" aria-hidden />
-            Clear chat
-          </Button>
-        ) : null}
+        <h3 className="min-w-0 truncate text-sm font-semibold text-npb-text-primary" title={activeTitle}>
+          {activeTitle}
+        </h3>
+        <AssistantChatHistory
+          chats={assistant.chats}
+          activeChatId={assistant.activeChatId}
+          lockedReason={lockedReason}
+          onNewChat={assistant.newChat}
+          onOpenChat={assistant.openChat}
+          onDeleteChat={assistant.deleteChat}
+        />
       </div>
+      <p className="text-xs text-npb-text-muted">Changes go on the canvas. Save when you're happy.</p>
 
       <Conversation className="min-h-0 flex-1">
         <ConversationContent className="gap-5 px-0">
@@ -126,11 +129,7 @@ export function AssistantPanel(): ReactElement | null {
               </div>
             </ConversationEmptyState>
           )}
-          {assistant.liveStep ? (
-            <p className="text-xs" role="status" aria-live="polite">
-              <Shimmer as="span">{assistant.liveStep}</Shimmer>
-            </p>
-          ) : null}
+          {assistant.isWorking ? <AiWorkingStatus step={assistant.liveStep} /> : null}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>

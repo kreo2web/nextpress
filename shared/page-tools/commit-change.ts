@@ -7,6 +7,9 @@ import type { BlockPatchOp, PageToolContext, TreeChange } from "./types.js";
 /** Most old problems named in a success reply. */
 const MAX_EXISTING_SHOWN = 3;
 
+/** Said after a change when the whole page passed every check, so the agent can skip check_page. */
+export const PAGE_CLEAN_LINE = "Checked the whole page: no problems.";
+
 /** A change that passed every check and was written. */
 export type CommittedChange = {
 	blocks: BlockConfig[];
@@ -15,6 +18,8 @@ export type CommittedChange = {
 	phoneWarnings: PageProblem[];
 	/** Problems that were already on the page before this change and still are. They never block it. */
 	existingProblems: PageProblem[];
+	/** True when the whole page has no problem of any kind, phone warnings included. */
+	clean: boolean;
 };
 
 export const emptySummary = (): TreeChange["summary"] => ({ inserted: [], updated: [], deleted: [], moved: [], replaced: [] });
@@ -115,8 +120,9 @@ export const commitTree = async ({
 	}
 	if (!written.value.ok) return { ok: false, text: `The page was not updated: ${written.value.message}` };
 
-	const phoneWarnings = checkPage({ blocks: after }).problems.filter(
+	const { problems } = checkPage({ blocks: after });
+	const phoneWarnings = problems.filter(
 		(problem) => problem.kind === "phone" && problem.blockId !== undefined && touched.has(problem.blockId),
 	);
-	return { ok: true, value: { blocks: after, change, phoneWarnings, existingProblems } };
+	return { ok: true, value: { blocks: after, change, phoneWarnings, existingProblems, clean: problems.length === 0 } };
 };

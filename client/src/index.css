@@ -1731,3 +1731,46 @@ html.npb-motion-paused .npb-canvas-page *::before {
 .npb-canvas-page .wp-block-header__progress {
   animation: none !important;
 }
+
+/* AI working indicator (assistant lock overlay, focus outline on the run's block, changed-block flash).
+   Motion stays on transform and opacity. Under reduced motion the dots sit still at full opacity and the
+   pulses hold at full opacity, so the state stays visible without movement. */
+.npb-ai-dot {
+  opacity: 1;
+  animation: npb-ai-dot 1.2s var(--npb-ease-in-out) infinite;
+}
+
+.npb-ai-pulse {
+  opacity: 1;
+  animation: npb-ai-pulse 1.4s var(--npb-ease-in-out) infinite;
+}
+
+@keyframes npb-ai-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes npb-ai-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .npb-ai-dot,
+  .npb-ai-pulse {
+    animation: none;
+  }
+}

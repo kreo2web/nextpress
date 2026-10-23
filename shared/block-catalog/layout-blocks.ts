@@ -35,6 +35,8 @@ export const COLUMNS_DEFAULT_CONTENT = {
 		direction: "row" as const,
 		columnVerticalAlignment: "top" as const,
 		columnHorizontalAlignment: "stretch" as const,
+		/** On phones the columns stack in reverse order (a picture on the right goes on top). */
+		reverseOnPhones: false,
 	},
 };
 

@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -46,8 +47,58 @@ const RUN = [
   { type: 'finish' },
 ];
 
+const stubAiFetch = ({
+  enabled,
+  canManage,
+  onChat = () => sse(RUN),
+}: {
+  enabled: boolean;
+  canManage: boolean;
+  onChat?: (body: AiChatRequest) => Response;
+}): void => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input), 'http://localhost').pathname;
+      if (path === '/api/ai-builder/status') return json({ enabled, canManage });
+      return onChat(JSON.parse(String(init?.body)) as AiChatRequest);
+    }),
+  );
+};
+
+const renderAskAi = ({
+  selectedBlockId = null,
+  selectBlock = vi.fn(),
+  children,
+}: {
+  selectedBlockId?: string | null;
+  selectBlock?: (id: string) => void;
+  children?: ReactNode;
+} = {}) =>
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <TooltipProvider>
+        <PageAssistantProvider
+          page={{ siteId: SITE_ID, pageId: PAGE_ID, contentType: 'page' }}
+          getBlocks={() => [HERO]}
+          applyBlocks={() => undefined}
+          selectedBlockId={selectedBlockId}
+          selectBlock={selectBlock}
+          lockedRef={{ current: false }}>
+          <AskAiButton blockId="hero" blockLabel="Heading" />
+          {children}
+        </PageAssistantProvider>
+      </TooltipProvider>
+    </QueryClientProvider>,
+  );
+
+const composerBox = (): HTMLElement | null => screen.queryByRole('textbox', { name: 'Message to the assistant' });
+
 beforeEach(() => localStorage.clear());
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  Reflect.deleteProperty(navigator, 'platform');
+});
 
 describe('Ask AI on a block', () => {
   it('limits the run to that block, shows the answer, and Undo puts the block back', async () => {
@@ -78,7 +129,7 @@ describe('Ask AI on a block', () => {
             selectedBlockId={null}
             selectBlock={selectBlock}
             lockedRef={{ current: false }}>
-            <AskAiButton blockId="hero" />
+            <AskAiButton blockId="hero" blockLabel="Heading" />
           </PageAssistantProvider>
         </TooltipProvider>
       </QueryClientProvider>,
@@ -95,6 +146,88 @@ describe('Ask AI on a block', () => {
 
     await user.click(screen.getByRole('button', { name: /undo this change/i }));
     expect(applied.at(-1)).toEqual({ ids: '["Hello"]', newStep: true });
+  });
+
+  it('shows a visible AI label on the toolbar button, even before the assistant is checked', () => {
+    stubAiFetch({ enabled: true, canManage: false });
+    renderAskAi();
+    const button = screen.getByRole('button', { name: 'Ask AI about this block' });
+    expect(button.textContent).toBe('AI');
+  });
+
+  it('explains how to turn the assistant on, with a link to AI settings, when an admin can set it up', async () => {
+    stubAiFetch({ enabled: false, canManage: true });
+    renderAskAi();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Ask AI about this block' }));
+    const link = await screen.findByRole('link', { name: 'Settings → AI' });
+    expect(link.getAttribute('href')).toBe('/admin/settings?tab=ai');
+    expect(composerBox()).toBeNull();
+  });
+
+  it('tells a member to ask a site admin when the assistant is off', async () => {
+    stubAiFetch({ enabled: false, canManage: false });
+    renderAskAi();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Ask AI about this block' }));
+    expect(await screen.findByText('Ask a site admin to turn on the assistant.')).toBeTruthy();
+  });
+
+  it('a quick chip sends its text for this block', async () => {
+    const chatBodies: AiChatRequest[] = [];
+    stubAiFetch({
+      enabled: true,
+      canManage: false,
+      onChat: (body) => {
+        chatBodies.push(body);
+        return sse(RUN);
+      },
+    });
+    renderAskAi();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Ask AI about this block' }));
+    await user.click(await screen.findByRole('button', { name: 'Make it shorter' }));
+    await waitFor(() => expect(chatBodies).toHaveLength(1));
+    expect(chatBodies[0]?.focusBlockId).toBe('hero');
+    expect(JSON.stringify(chatBodies[0]?.messages.at(-1))).toContain('Make it shorter');
+  });
+
+  it('Ctrl+J opens the box for the selected block', async () => {
+    stubAiFetch({ enabled: true, canManage: false });
+    renderAskAi({ selectedBlockId: 'hero' });
+    fireEvent.keyDown(document.body, { key: 'j', ctrlKey: true });
+    expect(await screen.findByRole('textbox', { name: 'Message to the assistant' })).toBeTruthy();
+  });
+
+  it('uses ⌘J on Mac', async () => {
+    Object.defineProperty(navigator, 'platform', { value: 'MacIntel', configurable: true });
+    stubAiFetch({ enabled: true, canManage: false });
+    renderAskAi({ selectedBlockId: 'hero' });
+    fireEvent.keyDown(document.body, { key: 'j', metaKey: true });
+    expect(await screen.findByRole('textbox', { name: 'Message to the assistant' })).toBeTruthy();
+  });
+
+  it('does nothing when another block is selected', () => {
+    stubAiFetch({ enabled: true, canManage: false });
+    renderAskAi({ selectedBlockId: 'other' });
+    fireEvent.keyDown(document.body, { key: 'j', ctrlKey: true });
+    expect(composerBox()).toBeNull();
+  });
+
+  it('ignores Ctrl+J while typing in a field', () => {
+    stubAiFetch({ enabled: true, canManage: false });
+    renderAskAi({ selectedBlockId: 'hero', children: <input aria-label="Page title" /> });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Page title' }), { key: 'j', ctrlKey: true });
+    expect(composerBox()).toBeNull();
+  });
+
+  it('removes its shortcut listener when it unmounts', () => {
+    stubAiFetch({ enabled: true, canManage: false });
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+    const { unmount } = renderAskAi({ selectedBlockId: 'hero' });
+    unmount();
+    expect(removeSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
+    removeSpy.mockRestore();
   });
 });
 

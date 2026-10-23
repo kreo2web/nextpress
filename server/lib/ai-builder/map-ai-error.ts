@@ -1,5 +1,6 @@
 import {
 	APICallError,
+	InvalidToolInputError,
 	LoadAPIKeyError,
 	NoSuchModelError,
 	ToolChoiceViolationError,
@@ -51,6 +52,9 @@ const looksLikeBusy = (error: Error): boolean => {
 export const mapAiError = (error: Error): MappedAiError => {
 	if (error instanceof ToolChoiceViolationError || looksLikeNoToolSupport(error)) {
 		return { message: AI_ASSISTANT_MESSAGES.noToolUse, code: "no_tool_use" };
+	}
+	if (error instanceof InvalidToolInputError) {
+		return { message: AI_ASSISTANT_MESSAGES.malformedToolInput, code: "run_failed" };
 	}
 	if (looksLikeKeyRefusal(error)) {
 		return { message: AI_ASSISTANT_MESSAGES.keyRefused, code: "key_refused" };

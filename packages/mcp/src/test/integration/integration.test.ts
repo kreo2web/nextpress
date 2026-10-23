@@ -55,8 +55,8 @@ integration("integration @nextpress-org/mcp + real API key", () => {
 			name: "build_blocks",
 			arguments: {
 				blocks: [
-					{ name: "core/heading", text: `MCP Integration ${runId}`, level: 1 },
-					{ name: "core/paragraph", text: "Live MCP page body" },
+					{ name: "core/heading", content: { value: `MCP Integration ${runId}`, level: 1 } },
+					{ name: "core/paragraph", content: { value: "Live MCP page body" } },
 				],
 			},
 		});
@@ -157,7 +157,7 @@ integration("integration @nextpress-org/mcp + real API key", () => {
 		const built = await ctx.mcpClient.callTool({
 			name: "build_blocks",
 			arguments: {
-				blocks: [{ name: "core/paragraph", text: `Patched via MCP ${runId}` }],
+				blocks: [{ name: "core/paragraph", content: { value: `Patched via MCP ${runId}` } }],
 			},
 		});
 		const builtBody = parseToolJson(

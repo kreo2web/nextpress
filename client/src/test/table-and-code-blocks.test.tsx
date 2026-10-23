@@ -218,12 +218,12 @@ describe("renderer/react/advanced CodeBlock", () => {
     };
 
     const { container } = render(<CodeBlock {...block} />);
-    const pre = container.querySelector("pre");
-    expect(pre).not.toBeNull();
-    expect(pre?.className).toContain("language-typescript");
-    expect(pre?.className).toContain("has-line-numbers");
-    expect(pre?.style.boxSizing).toBe("border-box");
-    expect(container.textContent).toContain("typescript");
+    const figure = container.querySelector(".wp-block-code > figure.np-code");
+    expect(figure).not.toBeNull();
+    expect(figure?.getAttribute("data-language")).toBe("typescript");
+    expect(figure?.hasAttribute("data-line-numbers")).toBe(true);
+    expect(container.querySelector(".np-code-language")?.textContent).toBe("TypeScript");
+    expect(container.querySelector("pre code .kirari-keyword")?.textContent).toBe("const");
     expect(container.textContent).toContain("const a = 1;");
   });
 
@@ -247,9 +247,11 @@ describe("renderer/react/advanced CodeBlock", () => {
     const copyBtn = container.querySelector("button");
     expect(copyBtn).not.toBeNull();
     expect(copyBtn?.textContent).toContain("Copy");
+    // Published pages run no React: /vendor/code.js finds the button by this attribute.
+    expect(copyBtn?.hasAttribute("data-np-copy")).toBe(true);
   });
 
-  it("scrolls long unwrapped lines inside the pre and keeps max-width 100%", () => {
+  it("lets long unwrapped lines scroll (no wrap flag) and keeps max-width 100%", () => {
     const block: BlockConfig = {
       id: "code-nowrap",
       name: "core/code",
@@ -267,13 +269,11 @@ describe("renderer/react/advanced CodeBlock", () => {
     };
 
     const { container } = render(<CodeBlock {...block} />);
-    const pre = container.querySelector("pre");
-    expect(pre).not.toBeNull();
-    expect(pre?.style.overflowX).toBe("auto");
-    expect(pre?.style.maxWidth).toBe("100%");
+    expect(container.querySelector("figure.np-code")?.hasAttribute("data-wrap")).toBe(false);
+    expect(container.querySelector<HTMLElement>(".wp-block-code")?.style.maxWidth).toBe("100%");
   });
 
-  it("keeps a saved non-empty maxWidth on the published pre", () => {
+  it("keeps a saved non-empty maxWidth on the published block", () => {
     const block: BlockConfig = {
       id: "code-maxwidth",
       name: "core/code",
@@ -291,9 +291,7 @@ describe("renderer/react/advanced CodeBlock", () => {
     };
 
     const { container } = render(<CodeBlock {...block} />);
-    const pre = container.querySelector("pre");
-    expect(pre).not.toBeNull();
-    expect(pre?.style.overflowX).toBe("auto");
-    expect(pre?.style.maxWidth).toBe("40rem");
+    expect(container.querySelector("figure.np-code")?.hasAttribute("data-wrap")).toBe(true);
+    expect(container.querySelector<HTMLElement>(".wp-block-code")?.style.maxWidth).toBe("40rem");
   });
 });

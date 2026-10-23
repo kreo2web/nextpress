@@ -213,7 +213,7 @@ describe("MCP tools via InMemoryTransport", () => {
 		expect(body.hint).toMatch(/expectedVersion/);
 	});
 
-	it("build_blocks returns BlockConfig[] via SDK helpers", async () => {
+	it("build_blocks turns block descriptions into blocks, with names short or long", async () => {
 		const sdk = createNextpress({
 			baseUrl: "https://cms.example.com",
 			apiKey: "npk_live_test",
@@ -226,8 +226,8 @@ describe("MCP tools via InMemoryTransport", () => {
 			name: "build_blocks",
 			arguments: {
 				blocks: [
-					{ name: "core/heading", text: "Title", level: 1 },
-					{ name: "core/paragraph", text: "Body" },
+					{ name: "heading", content: { value: "Title", level: 1 } },
+					{ name: "core/paragraph", content: { value: "Body" } },
 				],
 			},
 		});

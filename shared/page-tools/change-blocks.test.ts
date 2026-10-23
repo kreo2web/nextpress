@@ -115,6 +115,18 @@ describe("change_blocks: replace, update, delete, move", () => {
 		expect(findBlockById({ blocks: getTree(), id: "hero" })?.label).toBe("Top");
 	});
 
+	it("takes the label on the insert op when the model puts it there", async () => {
+		const { result, getTree } = await change({
+			blocks: makeSamplePage(),
+			ops: [{ op: "insert", parentId: "hero", label: "Hero Section", block: { name: "core/paragraph", content: { value: "x" } } }],
+		});
+		expect(result.ok).toBe(true);
+		const hero = findBlockById({ blocks: getTree(), id: "hero" });
+		expect(childrenOf(getTree(), "hero").length).toBeGreaterThan(0);
+		const added = hero?.children?.at(-1);
+		expect(added?.label).toBe("Hero Section");
+	});
+
 	it("deletes and moves blocks", async () => {
 		const { getTree } = await change({
 			blocks: makeSamplePage(),
@@ -128,7 +140,10 @@ describe("change_blocks: replace, update, delete, move", () => {
 
 	it("names the id when a block is missing", async () => {
 		const { result, writes } = await change({ blocks: makeSamplePage(), ops: [{ op: "update", id: "nope", label: "x" }] });
-		expect(result).toEqual({ ok: false, text: "Nothing was changed. Op 1 (update): No block with id nope. Read the outline again." });
+		expect(result).toEqual({
+			ok: false,
+			text: "Nothing was changed. Op 1 (update): No block with id nope. Read the outline again for ids; a ref only works in ops after the one that made it, in the same call.",
+		});
 		expect(writes).toHaveLength(0);
 	});
 

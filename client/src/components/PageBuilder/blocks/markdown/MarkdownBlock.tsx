@@ -1,10 +1,16 @@
-import React from "react";
+import React, { useMemo } from "react";
 import type { JSX } from "react";
 import { FileText as MarkdownIcon } from "lucide-react";
 import MDEditor from "@uiw/react-md-editor";
+import type { BlockConfig } from "@shared/schema-types";
+import { DOC_COMPONENT_PROPS, MarkdownView, parseMarkdown } from "@shared/markdown";
 import { useTheme } from "@/components/ThemeProvider";
+import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { Switch } from "@/components/ui/switch";
+import { SettingsLabel } from "../../shared";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { BlockShell } from "../shared/block-shell";
+import { useSettingsState } from "../useSettingsState";
 import { MARKDOWN_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
 import { catalogMeta } from "../catalog-meta";
 
@@ -14,6 +20,8 @@ import { catalogMeta } from "../catalog-meta";
 
 export type MarkdownContent = {
   content?: string;
+  /** Read the text as MDX, so docs components like `<Callout>` work. */
+  mdx?: boolean;
   className?: string;
 };
 
@@ -40,6 +48,17 @@ function getMarkdownEditorHeight(markdownText: string): number {
   return Math.max(MIN_EDITOR_HEIGHT_PX, Math.min(maxHeight, contentHeight));
 }
 
+/** Why MDX text can't be read, in plain words with its line, or null when it reads fine (or MDX is off). */
+function useMdxProblem({ text, mdx }: { text: string; mdx: boolean }): string | null {
+  return useMemo(() => {
+    if (!mdx) return null;
+    const parsed = parseMarkdown({ text, mdx: true, components: DOC_COMPONENT_PROPS });
+    if (parsed.ok) return null;
+    const where = parsed.line ? `Line ${parsed.line}: ` : "";
+    return `${where}${parsed.message}. Until it's fixed, the page shows this text as plain markdown.`;
+  }, [text, mdx]);
+}
+
 // ============================================================================
 // RENDERER
 // ============================================================================
@@ -58,13 +77,15 @@ function MarkdownRenderer({
   onChange,
 }: MarkdownRendererProps): JSX.Element {
   const markdownText = content?.content || "";
+  const mdx = content?.mdx === true;
   const theme = useTheme();
   const colorMode = readEditorColorMode(theme?.isDark);
+  const mdxProblem = useMdxProblem({ text: markdownText, mdx });
 
   if (isPreview) {
     return (
-      <BlockShell blockClass="wp-block-markdown" className={content?.className} style={styles} data-color-mode={colorMode}>
-        <MDEditor.Markdown source={markdownText} style={{ whiteSpace: "pre-wrap" }} />
+      <BlockShell blockClass="wp-block-markdown" className={content?.className} style={styles}>
+        <MarkdownView text={markdownText} mdx={mdx} />
       </BlockShell>
     );
   }
@@ -78,10 +99,53 @@ function MarkdownRenderer({
           preview="live"
           height={getMarkdownEditorHeight(markdownText)}
           hideToolbar={false}
-          visiableDragbar={true}
+          visibleDragbar={true}
+          components={{ preview: (source) => <MarkdownView text={source} mdx={mdx} className="px-4 py-3" /> }}
         />
       </div>
+      {mdxProblem ? (
+        <p role="status" className="mt-2 text-xs text-npb-status-error">
+          {mdxProblem}
+        </p>
+      ) : null}
     </BlockShell>
+  );
+}
+
+// ============================================================================
+// SETTINGS COMPONENT
+// ============================================================================
+
+interface MarkdownSettingsProps {
+  block: BlockConfig;
+  onUpdate?: (updates: Partial<BlockConfig>) => void;
+}
+
+function MarkdownSettings({ block, onUpdate }: MarkdownSettingsProps): JSX.Element {
+  const { content, updateContent } = useSettingsState<MarkdownContent>({
+    block,
+    onUpdate,
+    defaultContent: DEFAULT_CONTENT,
+  });
+
+  return (
+    <div className="space-y-4">
+      <CollapsibleCard title="Markdown" icon={MarkdownIcon} defaultOpen={true}>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <SettingsLabel htmlFor="markdown-mdx">Docs components (MDX)</SettingsLabel>
+            <Switch
+              id="markdown-mdx"
+              checked={content?.mdx === true}
+              onCheckedChange={(checked) => updateContent({ mdx: checked })}
+            />
+          </div>
+          <p className="text-xs text-npb-text-muted">
+            Lets this text use components like {"<Callout type=\"tip\">"}. Nothing written here is ever run.
+          </p>
+        </div>
+      </CollapsibleCard>
+    </div>
   );
 }
 
@@ -93,7 +157,8 @@ const MarkdownBlock = createBlockDefinition<MarkdownContent>({
   ...catalogMeta("core/markdown"),
   icon: MarkdownIcon,
   defaultContent: DEFAULT_CONTENT,
-  hasSettings: false,
+  settings: MarkdownSettings,
+  hasSettings: true,
   render: ({ content, styles, setContent, isPreview }) => (
     <MarkdownRenderer
       content={content}

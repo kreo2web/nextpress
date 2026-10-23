@@ -1,41 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { createNextpress } from "@nextpress-org/sdk";
-import { buildBlocksFromNodes } from "./build-blocks.js";
+import { buildBlocksFromSpecs } from "./build-blocks.js";
 
-describe("buildBlocksFromNodes", () => {
-	const builder = createNextpress({
-		baseUrl: "http://localhost:3000",
-		apiKey: "npk_live_test",
-		siteId: "11111111-1111-1111-1111-111111111111",
-	}).blocks;
-
-	it("builds nested trees via SDK fromName", () => {
-		const blocks = buildBlocksFromNodes({
-			builder,
-			blocks: [
-				{
-					name: "core/container",
-					children: [
-						{ name: "core/heading", text: "Hi", level: 1 },
-						{ name: "core/paragraph", text: "Body" },
-					],
-				},
-			],
-		});
+describe("buildBlocksFromSpecs", () => {
+	it("builds nested blocks from the same shape change_page_blocks takes, short names included", () => {
+		const blocks = buildBlocksFromSpecs([
+			{
+				name: "core/container",
+				children: [
+					{ name: "core/heading", content: { value: "Hi", level: 1 } },
+					{ name: "core/paragraph", content: { value: "Body" } },
+				],
+			},
+		]);
 
 		expect(blocks).toHaveLength(1);
 		expect(blocks[0].name).toBe("core/container");
-		expect(blocks[0].children).toHaveLength(2);
-		expect(blocks[0].children?.[0]?.name).toBe("core/heading");
-		expect(blocks[0].children?.[1]?.name).toBe("core/paragraph");
+		expect(blocks[0].children?.map((child) => [child.name, child.parentId])).toEqual([
+			["core/heading", blocks[0].id],
+			["core/paragraph", blocks[0].id],
+		]);
+		expect(blocks[0].children?.[0]?.content).toMatchObject({ kind: "text", value: "Hi", level: 1 });
 	});
 
-	it("rejects unknown block names", () => {
-		expect(() =>
-			buildBlocksFromNodes({
-				builder,
-				blocks: [{ name: "core/nope" }],
-			}),
-		).toThrow(/Unknown block name/);
+	it("gives Columns one equal column per child, as on a page", () => {
+		const [columns] = buildBlocksFromSpecs([{ name: "core/columns", children: [{ name: "core/group" }, { name: "core/group" }] }]);
+		expect(columns.settings?.columnLayout).toHaveLength(2);
+	});
+
+	it("names the block that is wrong", () => {
+		expect(() => buildBlocksFromSpecs([{ name: "core/heading" }, { name: "core/icon", content: { iconName: "zap" } }])).toThrow(
+			/^blocks\[1\]: core\/icon: "iconName" isn't a field of core\/icon\. Did you mean icon\.iconName\?/,
+		);
 	});
 });

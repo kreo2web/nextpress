@@ -140,9 +140,16 @@ describe("read tools", () => {
 	it("get_block_type suggests names for a near miss", async () => {
 		const { result } = await run({ tool: "get_block_type", input: { name: "core/head" }, blocks: [] });
 		expect(result.ok).toBe(false);
-		expect(result.text).toContain('Unknown block type "core/head". Did you mean core/heading, core/header?');
+		expect(result.text).toContain('Unknown block name "core/head". Did you mean core/heading, core/header?');
 		const nothing = await run({ tool: "get_block_type", input: { name: "zzz" }, blocks: [] });
-		expect(nothing.result.text).toBe('Unknown block type "zzz". Call list_block_types for the valid names.');
+		expect(nothing.result.text).toBe('Unknown block name "zzz". Call list_block_types for the valid names.');
+	});
+
+	it("get_block_type takes a name without core/, and lists the block's content fields", async () => {
+		const { result } = await run({ tool: "get_block_type", input: { name: "icon" }, blocks: [] });
+		expect(result.ok).toBe(true);
+		expect(result.text).toMatch(/^core\/icon: /);
+		expect(result.text).toContain("Content fields: icon (iconSet, iconName, size, color, strokeWidth, svg, url, label, tint, sizeUnit, strokeWidthUnit), link (text), linkTarget (text), label (text)");
 	});
 
 	it("get_design_guide returns the guide", async () => {
@@ -253,6 +260,11 @@ describe("site tools", () => {
 		expect((await run({ tool: "get_theme", blocks: [], site })).result.text).toBe(
 			"Theme: Plain\nColours:\n- accent: #2563eb\nHeading font: Inter\nCorner radius: 8px",
 		);
+	});
+
+	it("list_pages gives a nested page its full address", async () => {
+		const nested = { listPages: async () => [{ id: "p2", title: "Install", slug: "install", path: "guides/install", status: "published" }] };
+		expect((await run({ tool: "list_pages", blocks: [], site: nested })).result.text).toBe('- "Install" link=/guides/install status=published id=p2');
 	});
 
 	it("turns a throwing lookup into a failed result", async () => {

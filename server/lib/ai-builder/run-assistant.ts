@@ -9,10 +9,10 @@ import {
 	type UIMessage,
 	type UIMessageChunk,
 } from "ai";
-import { AI_ASSISTANT_LIMITS, type AiPageChangeData } from "@shared/ai-builder";
-import type { SiteLookups, TreeChange } from "@shared/page-tools";
+import { AI_ASSISTANT_LIMITS, AI_ASSISTANT_MESSAGES, type AiPageChangeData } from "@shared/ai-builder";
+import { repairChangeBlocksInput, type SiteLookups, type TreeChange } from "@shared/page-tools";
 import type { BlockConfig } from "@shared/schema-types";
-import { createAssistantTools } from "./assistant-tools";
+import { createAssistantTools, wasRemovalDeclined } from "./assistant-tools";
 import { buildAssistantInstructions } from "./build-instructions";
 import { mapAiError } from "./map-ai-error";
 
@@ -98,26 +98,34 @@ export function createAssistantStream({
 		onSettled();
 	};
 
-	const explainFailure = (value: unknown): string => {
-		const error = asError(value);
-		const mapped = mapAiError(error);
-		settle({ outcome: "failed", steps: 0, error });
-		return mapped.message;
+	/**
+	 * Words for a failed step or run, with no side effects: the library asks for them on every tool
+	 * step that fails, and the model simply tries that step again. A step the model sent in an
+	 * unreadable shape arrives as the library's own message string.
+	 */
+	const describeFailure = (value: unknown): string =>
+		typeof value === "string" ? AI_ASSISTANT_MESSAGES.malformedToolInput : mapAiError(asError(value)).message;
+
+	/** Only a failure of the whole run ends it; that frees the person's slot and the connection. */
+	const endWithFailure = (value: unknown): string => {
+		settle({ outcome: "failed", steps: 0, error: asError(value) });
+		return describeFailure(value);
 	};
 
 	return createUIMessageStream({
-		onError: explainFailure,
+		onError: endWithFailure,
 		execute: async ({ writer }) => {
+			const chat = keepChatTurns(messages);
 			const { tools, toolApproval } = createAssistantTools({
 				blocks,
 				focusBlockId,
 				site,
+				removalDeclined: wasRemovalDeclined(chat),
 				onChange: (change) => writer.write({ type: PAGE_CHANGE_PART, data: toChangeData(change), transient: true }),
 				onError: ({ tool, error }) =>
 					console.error({ atFunction: "aiBuilder.runAssistant.tool", data: { ...ids, tool, error }, message: "A page tool step failed" }),
 			});
 
-			const chat = keepChatTurns(messages);
 			const result = streamText({
 				model,
 				system: buildAssistantInstructions({ blocks, focusBlockId }),
@@ -126,11 +134,26 @@ export function createAssistantStream({
 				toolApproval,
 				stopWhen: isStepCount(AI_ASSISTANT_LIMITS.stepsPerRun),
 				abortSignal: signal,
+				// Smaller models sometimes send the page changes in a slightly wrong shape. Fix what can
+				// be fixed; anything else keeps the SDK's normal "invalid input" failure.
+				repairToolCall: async ({ toolCall, error }) => {
+					const input = toolCall.toolName === "change_blocks" ? await repairChangeBlocksInput(toolCall.input) : null;
+					if (input !== null) return { ...toolCall, input };
+					console.warn({
+						atFunction: "aiBuilder.runAssistant.repairToolCall",
+						data: { ...ids, tool: toolCall.toolName, error },
+						message: "The model sent tool input that could not be repaired; it will be asked to try again",
+					});
+					return null;
+				},
+				onError: ({ error }) => {
+					endWithFailure(error);
+				},
 				onEnd: (event) => settle({ outcome: "finished", steps: event.steps.length, usage: event.usage }),
 				onAbort: (event) => settle({ outcome: "stopped", steps: event.steps.length }),
 			});
 
-			writer.merge(toUIMessageStream({ stream: result.stream, tools, originalMessages: chat, onError: explainFailure }));
+			writer.merge(toUIMessageStream({ stream: result.stream, tools, originalMessages: chat, onError: describeFailure }));
 		},
 	});
 }

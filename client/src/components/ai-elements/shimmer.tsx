@@ -39,7 +39,7 @@ const ShimmerComponent = ({
       animate={{ backgroundPosition: "0% center" }}
       className={cn(
         "relative inline-block bg-[length:250%_100%,auto] bg-clip-text text-transparent",
-        "[--bg:linear-gradient(90deg,#0000_calc(50%-var(--spread)),var(--color-background),#0000_calc(50%+var(--spread)))] [background-repeat:no-repeat,padding-box]",
+        "[--bg:linear-gradient(90deg,#0000_calc(50%-var(--spread)),var(--npb-surface-raised),#0000_calc(50%+var(--spread)))] [background-repeat:no-repeat,padding-box]",
         className
       )}
       initial={{ backgroundPosition: "100% center" }}
@@ -47,7 +47,9 @@ const ShimmerComponent = ({
         {
           "--spread": `${dynamicSpread}px`,
           backgroundImage:
-            "var(--bg), linear-gradient(var(--color-muted-foreground), var(--color-muted-foreground))",
+            // NextPress tokens (Tailwind v3): the upstream component reads v4's --color-* names, which don't exist
+            // here, and an undefined var empties the whole background, leaving the text invisible.
+            "var(--bg), linear-gradient(var(--npb-text-secondary), var(--npb-text-secondary))",
         } as CSSProperties
       }
       transition={{

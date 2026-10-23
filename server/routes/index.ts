@@ -27,6 +27,8 @@ import { createPreviewRoutes } from './preview.routes';
 import { createApiKeysRoutes } from './api-keys.routes';
 import { createPublicRoutes } from './public.routes';
 import { createRenderRoutes } from './render.routes';
+import { createAgentPageRoutes } from './agent-pages.routes';
+import { createSitemapRoutes } from './sitemap.routes';
 import { createSetupRoutes } from './setup.routes';
 import { createWordPressImportRoutes } from './import.wordpress.routes';
 import { createSystemRoutes } from './system.routes';
@@ -161,6 +163,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.use('/api/preview', createPreviewRoutes(deps));
   app.use('/api/public', createPublicRoutes(deps));
+
+  // /llms.txt and /<page>.md for AI tools. First, so a dotted address never reaches the page route.
+  app.use('/', createAgentPageRoutes(deps));
+  app.use('/', createSitemapRoutes(deps));
 
   // Mount HTML rendering routes (must come before static routes)
   app.use('/', createRenderRoutes(deps));

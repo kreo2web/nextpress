@@ -273,6 +273,83 @@ describe("a composed run", () => {
 		expect(chunks.some((chunk) => chunk.type === "data-page-change")).toBe(false);
 	});
 
+	it("after the person says no to a removal, refuses any other removal in that request without asking again", async () => {
+		// The editor sends the answer back as the last assistant turn; the model then tries a smaller removal.
+		const declined = {
+			id: "a1",
+			role: "assistant",
+			parts: [
+				{ type: "step-start" },
+				{
+					type: "tool-change_blocks",
+					toolCallId: "call-0",
+					state: "approval-responded",
+					input: { ops: [{ op: "delete", id: "big-1" }] },
+					approval: { id: "approval-0", approved: false },
+				},
+			],
+		};
+		const smallerRemoval = () =>
+			new MockLanguageModelV4({
+				doStream: [
+					step([toolCall("change_blocks", { ops: [{ op: "delete", id: "big-text-0" }] }, "call-1")], "tool-calls"),
+					step(text("Done."), "stop"),
+				],
+			});
+		const body = chatBody({ blocks: [BIG_SECTION] });
+
+		currentModel = smallerRemoval();
+		const chunks = await readChunks(await postChat(ID.editor, { ...body, messages: [...body.messages, declined] }));
+		expect(chunks.some((chunk) => chunk.type === "data-page-change")).toBe(false);
+		expect(chunks.some((chunk) => chunk.type === "tool-approval-request")).toBe(false);
+		expect(chunks.find((chunk) => chunk.type === "tool-output-available")?.output).toContain("said no to removing blocks");
+
+		currentModel = smallerRemoval();
+		const fresh = await readChunks(await postChat(ID.editor, body));
+		expect(fresh.find((chunk) => chunk.type === "data-page-change")?.data?.blocks[0]?.children).toHaveLength(10);
+	});
+
+	it("applies a change sent as text with one closing brace too many, in one step", async () => {
+		// Seen on a real gateway, every time a smaller model wrote `ops` as a string.
+		const sent = '[{"op": "update", "id": "section-1", "styles": {"backgroundColor": "red"}}}]';
+		const model = new MockLanguageModelV4({
+			doStream: [
+				step([{ type: "tool-call", toolCallId: "call-1", toolName: "change_blocks", input: JSON.stringify({ ops: sent }) }], "tool-calls"),
+				step(text("Done."), "stop"),
+			],
+		});
+		currentModel = model;
+
+		const chunks = await readChunks(await postChat(ID.editor));
+		expect(chunks.some((chunk) => chunk.type === "tool-input-error")).toBe(false);
+		expect(chunks.find((chunk) => chunk.type === "data-page-change")?.data?.blocks[0]).toMatchObject({ styles: { backgroundColor: "red" } });
+		expect(model.doStreamCalls).toHaveLength(2);
+	});
+
+	it("lets the model retry a change it sent unreadable, and ends the run once, as finished", async () => {
+		// `ops` as a string with a missing comma: no repair can guess that.
+		const unreadable = '[{"op": "update" "id": "section-1", "styles": {"backgroundColor": "red"}}]';
+		const model = new MockLanguageModelV4({
+			doStream: [
+				step([{ type: "tool-call", toolCallId: "call-1", toolName: "change_blocks", input: JSON.stringify({ ops: unreadable }) }], "tool-calls"),
+				step([toolCall("change_blocks", { ops: [{ op: "update", id: "section-1", styles: { backgroundColor: "red" } }] }, "call-2")], "tool-calls"),
+				step(text("Done."), "stop"),
+			],
+		});
+		currentModel = model;
+
+		const chunks = await readChunks(await postChat(ID.editor));
+		expect(chunks.find((chunk) => chunk.type === "tool-input-error")?.errorText).toBe(AI_ASSISTANT_MESSAGES.malformedToolInput);
+		expect(chunks.find((chunk) => chunk.type === "tool-output-error")?.errorText).toBe(AI_ASSISTANT_MESSAGES.malformedToolInput);
+		expect(chunks.some((chunk) => chunk.type === "error")).toBe(false);
+		expect(chunks.some((chunk) => chunk.type === "data-page-change")).toBe(true);
+		expect(model.doStreamCalls).toHaveLength(3);
+
+		await vi.waitFor(() => expect(logged.join("\n")).toContain("Assistant run finished"));
+		expect(logged.join("\n")).not.toContain("Assistant run failed");
+		expect(logged.join("\n")).toContain("could not be repaired");
+	});
+
 	it("stops after the step cap", async () => {
 		const model = new MockLanguageModelV4({
 			doStream: async () => step([toolCall("get_page_outline", {}, crypto.randomUUID())], "tool-calls"),

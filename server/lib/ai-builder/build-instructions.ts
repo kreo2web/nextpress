@@ -6,7 +6,9 @@ import type { BlockConfig } from "@shared/schema-types";
 const HOUSE_RULES = `House rules:
 - When a block is selected, change only that block and what is inside it. The tools refuse anything else.
 - Work in small steps: one section or one change per tool call.
-- Run check_page at the end, and apply_phone_fixes if the page broke on phones.
+- If the person says no to a removal, that answer stands for the whole request: don't remove the same blocks another way (a part of them, their parent, a replace). Say what you left in place and stop.
+- To fill a block you are making in the same change, give it a ref ("hero") and use the ref as parentId in a later op.
+- Every change reply checks the page. Run apply_phone_fixes only when a reply lists phone warnings; you don't need check_page after a change.
 - Never publish. Saving and publishing stay with the person.
 - Finish with one or two plain sentences about what you changed.`;
 

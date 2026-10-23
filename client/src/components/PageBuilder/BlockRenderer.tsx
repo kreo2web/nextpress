@@ -49,6 +49,7 @@ import { headerFloatWrapperStyles, headerOverlayPaintStyles } from '@shared/head
 import { usePageColumnInset } from '@shared/page-column-context';
 import { useCanvasBlockToolbar } from './use-canvas-block-toolbar';
 import { AskAiButton } from './assistant/ask-ai-button';
+import { findBlockEntry } from '@shared/block-catalog';
 import {
   type CanvasChromeMode,
   defaultCanvasChromeMode,
@@ -297,6 +298,7 @@ function BlockEditorToolbarPanel({
   chromeMode,
   onToggleChromeMode,
   blockId,
+  askAiLabel,
 }: {
   label: string;
   /** Full toolbar string when `label` is JS-truncated (block name, icon ref, etc.). */
@@ -316,6 +318,7 @@ function BlockEditorToolbarPanel({
   chromeMode: CanvasChromeMode;
   onToggleChromeMode: () => void;
   blockId: string;
+  askAiLabel: string;
 }) {
   const labelClass =
     'block min-w-0 flex-1 px-2 text-left text-xs text-npb-text-secondary';
@@ -424,7 +427,7 @@ function BlockEditorToolbarPanel({
             {chromeMode === "hug" ? "Span full width" : "Hug content"}
           </TooltipContent>
         </Tooltip>
-        {!isEditing ? <AskAiButton blockId={blockId} /> : null}
+        {!isEditing ? <AskAiButton blockId={blockId} blockLabel={askAiLabel} /> : null}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -713,6 +716,7 @@ export default function BlockRenderer({
     onToggleChromeMode: () =>
       setEditorChromeMode((mode) => (mode === "hug" ? "span" : "hug")),
     blockId: block.id,
+    askAiLabel: block.label || findBlockEntry(block.name)?.label || block.name,
   };
 
   return (

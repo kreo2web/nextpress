@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Sparkles, Trash2 } from 'lucide-react';
+import { MessageSquare, Trash2 } from 'lucide-react';
 import { getAiProvider, type AiSettingsView } from '@shared/ai-builder';
 import type { AiSaveResult, AiSaveValues } from '@/hooks/use-ai-settings';
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,7 @@ export function AiSettingsForm({ saved, onSave, isSaving, onRemove, isRemoving }
       >
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Sparkles className="mr-2 h-5 w-5 text-npb-accent" aria-hidden />
+            <MessageSquare className="mr-2 h-5 w-5 text-npb-accent" aria-hidden />
             Page assistant
           </CardTitle>
           <CardDescription>

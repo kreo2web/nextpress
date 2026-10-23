@@ -12,7 +12,8 @@ import { renderStatusHtml } from "../../renderer/templates/status-page";
 import { isPubliclyReadable } from "../lib/is-publicly-readable";
 import { buildRssFeed } from "../lib/feed/build-rss-feed";
 import { sendPublishedHtml } from "../lib/send-published-html";
-import { isReservedPublicSlug } from "./shared/public-slug";
+import { isReservedPublicPath, isReservedPublicSlug } from "./shared/public-slug";
+import { findPageByPath, pathOfPage } from "../lib/page-paths/page-paths";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -397,6 +398,8 @@ export function createRenderRoutes(deps: Deps): Router {
 	 * GET /:slug — published page on the site this host belongs to.
 	 * Localhost has no saved site address, so this uses the default site.
 	 * Reserved names and missing pages fall through to the app.
+	 * A nested page also answers here by its own slug, so older links keep working; the page then
+	 * names its real address (`/guides/install`) as canonical instead of redirecting.
 	 */
 	router.get(
 		"/:slug",
@@ -416,11 +419,42 @@ export function createRenderRoutes(deps: Deps): Router {
 				return;
 			}
 
+			const pagePath = await pathOfPage({ models, page });
 			await sendPublishedHtml({
 				res,
 				models,
 				document: page,
-				canonicalUrl: `${req.protocol}://${req.get("host")}/${slug}`,
+				canonicalUrl: `${req.protocol}://${req.get("host")}/${pagePath}`,
+			});
+		}),
+	);
+
+	/**
+	 * GET /guides/install — a page at its full address: its parents' slugs, then its own.
+	 * Last of all, and fixed addresses (`/admin/...`, `/api/...`, files) are skipped first, so
+	 * nothing that works today can be taken over by a page.
+	 */
+	router.get(
+		"/*",
+		asyncHandler(async (req, res, next) => {
+			const path = req.path;
+			if (isReservedPublicPath(path) || path.replace(/^\/+|\/+$/g, "").split("/").length < 2) {
+				next();
+				return;
+			}
+
+			const context = await resolveSiteRenderContext({ models, req });
+			const found = context ? await findPageByPath({ models, siteId: context.site.id, path }) : null;
+			if (!context || !found || !isPubliclyReadable(found.page)) {
+				next();
+				return;
+			}
+
+			await sendPublishedHtml({
+				res,
+				models,
+				document: found.page,
+				canonicalUrl: `${req.protocol}://${req.get("host")}/${found.path}`,
 			});
 		}),
 	);

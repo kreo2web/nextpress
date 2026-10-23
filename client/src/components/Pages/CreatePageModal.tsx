@@ -30,9 +30,10 @@ import { apiRequest } from "@/lib/queryClient";
 import { useActiveSite } from "@/hooks/useActiveSite";
 import { appendSiteIdToUrl } from "@/lib/site-api";
 import { mergePageOtherWithDefaults } from "@shared/page-other";
+import { buildPagePaths } from "@shared/page-paths";
 import { reIdTemplateBlocks } from "@/lib/re-id-template-blocks";
 import { useContentLists } from "@/hooks/useContentLists";
-import { FilePlus, Sparkles } from "lucide-react";
+import { FilePlus, PenLine } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useAiStatus } from "@/hooks/use-ai-settings";
 import { setPendingDescription } from "@/components/PageBuilder/assistant/assistant-storage";
@@ -91,6 +92,9 @@ export function CreatePageModal({
   const queryClient = useQueryClient();
   const { activeSiteId } = useActiveSite();
   const { pages, templates } = useContentLists();
+  // The page's address starts with its parents' slugs, so show where the new page will live.
+  const parentPath = formData.parentId ? buildPagePaths(pages).get(formData.parentId) : undefined;
+  const addressPrefix = parentPath ? `/${parentPath}/` : "/";
   const assistantEnabled = useAiStatus({ siteId: activeSiteId }).data?.enabled === true;
 
   // Update title when initialTitle changes
@@ -356,7 +360,7 @@ export function CreatePageModal({
           {assistantEnabled ? (
             <div className="grid gap-2">
               <Label htmlFor="description" className="flex items-center gap-1.5">
-                <Sparkles className="h-4 w-4 text-npb-text-muted" aria-hidden />
+                <PenLine className="h-4 w-4 text-npb-text-muted" aria-hidden />
                 Describe your page (optional)
               </Label>
               <Textarea
@@ -375,7 +379,7 @@ export function CreatePageModal({
           <div className="grid gap-2">
             <Label htmlFor="slug">URL Slug</Label>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-npb-text-muted">/page/</span>
+              <span className="text-sm text-npb-text-muted">{addressPrefix}</span>
               <Input
                 id="slug"
                 placeholder={generateSlug(formData.title) || "auto-generated"}

@@ -88,8 +88,26 @@ export const checkBlocksOnTheirOwn = ({
 		return saveProblems({ blocks: [{ ...block, children: undefined }], contentType, structure: [] });
 	});
 
+/** Blocks that only work directly inside certain others (a Step inside Steps, a Tab inside Tabs). */
+const wrongParentProblems = (blocks: BlockConfig[], parent: BlockConfig | null = null): PageProblem[] =>
+	blocks.flatMap((block) => {
+		const allowed = findBlockEntry(block.name)?.placement?.parents;
+		const misplaced = allowed && !allowed.some((name) => name === parent?.name);
+		const own: PageProblem[] = misplaced
+			? [
+					{
+						kind: "placement",
+						blockId: block.id,
+						message: `${block.name} only works directly inside ${allowed.join(" or ")}.`,
+						fix: `Move it into a ${allowed[0]} block, or replace it with a Group.`,
+					},
+				]
+			: [];
+		return [...own, ...wrongParentProblems(block.children ?? [], block)];
+	});
+
 const placementProblems = (blocks: BlockConfig[]): PageProblem[] => {
-	const problems: PageProblem[] = [];
+	const problems: PageProblem[] = [...wrongParentProblems(blocks)];
 	const shells: BlockConfig[] = [];
 	walkBlocks({
 		blocks,

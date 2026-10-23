@@ -6,7 +6,7 @@ import { parseMcpConfig } from "./parse-config.js";
 export { createMcpClient } from "./client.js";
 export { createMcpServer, MCP_SERVER_NAME, MCP_SERVER_VERSION } from "./create-mcp-server.js";
 export { parseMcpConfig, type McpRuntimeConfig } from "./parse-config.js";
-export { buildBlocksFromNodes, type BlockBuildNode } from "./build-blocks.js";
+export { buildBlocksFromSpecs } from "./build-blocks.js";
 export {
 	formatError,
 	formatJson,

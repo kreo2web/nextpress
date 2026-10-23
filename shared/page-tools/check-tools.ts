@@ -1,7 +1,7 @@
 import type { BlockConfig } from "../schema-types.js";
 import { applyResponsiveHealthFixes, validateBlockResponsiveHealth } from "../validate-block-responsive-health.js";
 import { checkPage } from "./check-page.js";
-import { commitTree, describeExistingProblems, emptySummary } from "./commit-change.js";
+import { commitTree, describeExistingProblems, emptySummary, PAGE_CLEAN_LINE } from "./commit-change.js";
 import { formatProblems } from "./format-problems.js";
 import { patchBlockTree } from "./patch-block-tree.js";
 import { defineTool, readPageTree, type SerialQueue } from "./tool-helpers.js";
@@ -17,7 +17,7 @@ const createCheckPageTool = (ctx: PageToolContext): PageTool =>
 			name: "check_page",
 			title: "Check page",
 			description:
-				"Checks the whole page and lists every problem. Four kinds: structure (unknown block names, repeated ids, children inside a block that cannot hold any), save (what the server would refuse when saving, such as a bad icon or tag name), placement (one page shell, only at the root), and phone (layouts that overflow or break on a phone). Structure, save and placement problems must be fixed; phone problems are warnings that apply_phone_fixes can usually repair. Run it after you finish building, before you tell the person you are done.",
+				"Checks the whole page and lists every problem. Four kinds: structure (unknown block names, repeated ids, children inside a block that cannot hold any), save (what the server would refuse when saving, such as a bad icon or tag name), placement (one page shell, only at the root), and phone (layouts that overflow or break on a phone). Structure, save and placement problems must be fixed; phone problems are warnings that apply_phone_fixes can usually repair. change_blocks already checks the page after every change, so use this to review a page you did not just change, or when the person asks for a check.",
 			inputShape: {},
 			changesPage: false,
 			run: async () => {
@@ -88,6 +88,7 @@ const runPhoneFixes = async (ctx: PageToolContext): Promise<PageToolResult> => {
 		text: [
 			`Fixed ${ids.length} block${ids.length === 1 ? "" : "s"} for phones:`,
 			...fixable.map((issue) => `- block ${issue.blockId}: ${issue.fix?.label} (${Object.entries(issue.fix?.styles ?? {}).map(([key, value]) => `${key}: ${value}`).join(", ")})`),
+			...(committed.value.clean ? [PAGE_CLEAN_LINE] : []),
 			...describeExistingProblems(committed.value.existingProblems),
 		].join("\n"),
 	};
@@ -100,7 +101,7 @@ const createPhoneFixesTool = ({ ctx, queue }: { ctx: PageToolContext; queue: Ser
 			name: "apply_phone_fixes",
 			title: "Fix phone layout",
 			description:
-				'Repairs the phone-layout problems check_page reports as warnings, wherever there is an obvious fix: a fixed width wider than a phone becomes "width: 100%" with the old width as a maximum, and a box with a max width is told to fill its space. When a block is selected, only that block and what is inside it are fixed. Returns what was changed. Problems with no automatic fix stay; check_page lists them. Run it once after building.',
+				'Repairs the phone-layout problems check_page reports as warnings, wherever there is an obvious fix: a fixed width wider than a phone becomes "width: 100%" with the old width as a maximum, and a box with a max width is told to fill its space. When a block is selected, only that block and what is inside it are fixed. Returns what was changed. Problems with no automatic fix stay; check_page lists them. Run it when a change reply lists phone warnings.',
 			inputShape: {},
 			changesPage: true,
 			run: () => queue(() => runPhoneFixes(ctx)),

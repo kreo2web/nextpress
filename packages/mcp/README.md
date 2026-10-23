@@ -94,8 +94,8 @@ These tools take `id` (a page's UUID or slug) and an optional `content_type` (`"
 |------|----------------|
 | `get_page_outline` | Short indented outline of the page: one line per block with its id, name and key content. Read this first, and again after anything changed the page. |
 | `get_page_block` | One block in full (content, styles, settings, children). Takes the page in `id` and the block in `block_id`. |
-| `change_page_blocks` | Insert, update, delete, move or replace blocks, up to 50 ops per call, all or nothing. Blocks are described simply (`name`, `content`, `styles`, `children`) and start from the editor's defaults. A change that would add a problem the server would refuse is not saved, and the reply says why. |
-| `check_page` | Lists every problem on the page: structure, save rules, placement and phone layout. Run it before telling the owner you are done. |
+| `change_page_blocks` | Insert, update, delete, move or replace blocks, up to 50 ops per call, all or nothing. Blocks are described simply (`name`, `content`, `styles`, `children`) and start from the editor's defaults; `core/` can be left out of a name. Give a new block a `ref` (such as `"hero"`) and later ops in the same call can put blocks inside it. A content field the block doesn't have is refused with a guess at what was meant. A change that would add a problem the server would refuse is not saved, and the reply says why; otherwise the reply checks the whole page. |
+| `check_page` | Lists every problem on the page: structure, save rules, placement and phone layout. `change_page_blocks` already checks after each change; use this to review a page you didn't just change. |
 | `apply_page_phone_fixes` | Repairs the phone-layout warnings that have an obvious fix and saves the page. |
 
 ### Block types and the guide (no page needed)
@@ -103,7 +103,7 @@ These tools take `id` (a page's UUID or slug) and an optional `content_type` (`"
 | Tool | What it does |
 |------|----------------|
 | `list_block_types` | Every block with its kind, category and a note on when to use it. |
-| `get_block_type` | One block in detail: where it may sit, when to use it, and an example exactly as the editor inserts it. |
+| `get_block_type` | One block in detail: where it may sit, when to use it, its content fields, and an example exactly as the editor inserts it. |
 | `get_design_guide` | The page design guide (page shape, words, colours, spacing, phones, pictures and links). |
 
 ### Site, pages, posts and blogs
@@ -133,13 +133,18 @@ These tools take `id` (a page's UUID or slug) and an optional `content_type` (`"
 | `copy_brand_logo` | Save a brand logo from svgl.app into the library and get its `url` |
 | `list_form_submissions` | Read what visitors sent through the site's forms (read only) |
 
-### Kept for compatibility
+### Ready-made blocks
 
 | Tool | What it does |
 |------|----------------|
-| `build_blocks` | Turn simple block nodes into ready-made blocks for `create_page` or `create_template_part` |
-| `validate_blocks` | Validate a block tree without saving |
-| `patch_page_blocks` / `patch_post_blocks` | Insert, update, move, replace or delete ready-made blocks with `expectedVersion`. Prefer `change_page_blocks`. |
+| `build_blocks` | Turn block descriptions into ready-made blocks for `create_page` or `create_template_part`. Same block shape as `change_page_blocks`, built the same way. |
+
+### To be removed in 0.4
+
+| Tool | What it does |
+|------|----------------|
+| `validate_blocks` | Validate a block tree without saving. Use `check_page`. |
+| `patch_page_blocks` / `patch_post_blocks` | Insert, update, move, replace or delete ready-made blocks with `expectedVersion`. Use `change_page_blocks`. |
 
 ## Prompts
 
@@ -165,8 +170,8 @@ Start from the `build_page` prompt (in Claude Code it appears as `/mcp__nextpres
 1. Learn the site: `get_site_context`, `list_pages`, `list_media`, `list_template_parts`.
 2. Make a draft with `create_page` (a title is enough), then read it with `get_page_outline`.
 3. Look up blocks with `list_block_types` and `get_block_type`.
-4. Build one section per `change_page_blocks` call. Each reply lists the new blocks with their ids.
-5. Run `check_page`, then `apply_page_phone_fixes` for phone warnings.
+4. Build one section per `change_page_blocks` call. Each reply lists the new blocks with their ids and checks the page. An empty page gets its page shell with the first block.
+5. If a reply lists phone warnings, run `apply_page_phone_fixes`.
 6. Send the owner a link with `preview_page`.
 7. Leave the page as a draft. Publish only when the owner asks.
 

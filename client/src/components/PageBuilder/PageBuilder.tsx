@@ -871,7 +871,7 @@ export default function PageBuilder({
   return (
     <div className="npb-editor-shell flex h-full min-h-0 flex-col bg-npb-canvas-bg">
       <SkipLink href="#builder-canvas">Skip to canvas</SkipLink>
-      <PageProvider pageOther={data?.other as any} postDocument={postDocument}>
+      <PageProvider pageOther={data?.other as any} pageId={!isTemplate && resolvedContentType === 'page' && data?.id ? String(data.id) : undefined} postDocument={postDocument}>
         <EditorColorMemoryProvider blocks={blocks}>
         <EditorPopupsProvider blocks={blocks}>
         <DeviceViewProvider device={deviceView}>

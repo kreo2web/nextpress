@@ -89,7 +89,11 @@ function ColumnsRenderer({
   const containerStyle = buildColumnsContainerStyle(data, layout, styles);
 
   return (
-    <BlockShell blockClass="wp-block-columns" style={containerStyle}>
+    <BlockShell
+      blockClass="wp-block-columns"
+      className={data.reverseOnPhones === true ? "is-reversed-on-phones" : undefined}
+      style={containerStyle}
+    >
       {layout.map((column, columnIndex) => {
         const columnChildren = childBlocks.filter((child) =>
           column.blockIds.includes(child.id)

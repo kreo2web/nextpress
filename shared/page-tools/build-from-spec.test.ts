@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultBlock } from "../block-catalog/create-default-block.js";
+import { readColumnLayoutFromBlock } from "../columns-layout.js";
 import type { BlockConfig } from "../schema-types.js";
 import { buildBlockFromSpec } from "./build-from-spec.js";
 import { mergeBlockUpdate } from "./merge-block-update.js";
@@ -108,6 +109,17 @@ describe("buildBlockFromSpec: children", () => {
 		expect(form.children).toHaveLength(1);
 		expect(form.children?.[0].content).toMatchObject({ kind: "structured", data: { name: "email", type: "text" } });
 		expect(build({ name: "core/accordion", children: [] }).children).toEqual([]);
+	});
+
+	it("gives Columns one equal column per child, so the page draws them side by side", () => {
+		const group = (title: string) => ({ name: "core/group" as const, children: [{ name: "core/heading" as const, content: { value: title } }] });
+		const columns = build({ name: "core/columns", children: [group("One"), group("Two"), group("Three")] });
+		const childIds = columns.children?.map((child) => child.id) ?? [];
+
+		expect(readColumnLayoutFromBlock(columns).map((column) => column.blockIds)).toEqual(childIds.map((id) => [id]));
+		expect(columns.settings?.columnLayout.map((column: { width: string }) => column.width)).toEqual(["33.33%", "33.33%", "33.33%"]);
+		expect(build({ name: "core/columns" }).settings?.columnLayout).toBeUndefined();
+		expect(build({ name: "core/stack", children: [group("One")] }).settings?.columnLayout).toBeUndefined();
 	});
 
 	it("refuses children on a block that cannot hold any, naming the block and the way out", () => {

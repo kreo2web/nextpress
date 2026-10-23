@@ -20,8 +20,8 @@ import {
 	patchBlockTree as patchSharedBlockTree,
 } from "../../../../shared/page-tools/index.js";
 import type {
+	BlockSpec,
 	BlockValidationIssue,
-	BuildFromSpecParams,
 	CheckPageResult,
 	PageTool,
 	SiteLookups,
@@ -32,16 +32,18 @@ import type {
 import type { BlockConfig } from "../types/domain.js";
 
 export {
+	createBlockSpecSchema,
 	DUPLICATE_BLOCK_ID,
 	INVALID_BLOCK_STRUCTURE,
 	INVALID_BLOCK_TYPE,
+	layoutEqualColumns,
 	PAGE_DESIGN_GUIDE,
 	UNKNOWN_BLOCK,
 } from "../../../../shared/page-tools/index.js";
 export type {
 	BlockSpec,
 	BlockValidationIssue,
-	BuildFromSpecParams,
+	EqualColumn,
 	CheckPageResult,
 	MediaSummary,
 	PageProblem,
@@ -150,6 +152,17 @@ export type OutlinePageParams = {
 	maxText?: number;
 	/** Hides blocks deeper than this (root blocks are depth 0). */
 	maxDepth?: number;
+};
+
+/** A block described by an agent, to build into a real block. */
+export type BuildFromSpecParams = {
+	spec: BlockSpec;
+	/** The block this one will sit in, or null for the page root. */
+	parentId: string | null;
+	/** That block itself, when the caller has it. Needed only to check `fillBehind`. */
+	parent?: BlockConfig | null;
+	/** Makes every id: the block's own, its starting children's and its specified children's. */
+	newId: () => string;
 };
 
 type BuildBlockFromSpecResult = { ok: true; value: BlockConfig } | { ok: false; message: string };

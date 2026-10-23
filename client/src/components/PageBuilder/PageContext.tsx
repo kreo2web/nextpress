@@ -33,6 +33,9 @@ export interface PageContextValue {
   /** Icon settings with defaults applied */
   iconSettings: PageIconSettings;
 
+  /** The saved page being edited, for blocks that depend on where it sits (the docs sidebar). Unset for posts and templates. */
+  pageId?: string;
+
   /** Live post document for post-* blocks. Null when editing a page or template. */
   postDocument: PostDocumentValue | null;
 }
@@ -65,10 +68,12 @@ export function usePostDocument(): PostDocumentValue | null {
 
 export function PageProvider({
   pageOther,
+  pageId,
   postDocument = null,
   children,
 }: {
   pageOther?: PageOther;
+  pageId?: string;
   postDocument?: PostDocumentValue | null;
   children: React.ReactNode;
 }) {
@@ -78,7 +83,7 @@ export function PageProvider({
   };
 
   return (
-    <PageContext.Provider value={{ pageOther, iconSettings, postDocument }}>
+    <PageContext.Provider value={{ pageOther, pageId, iconSettings, postDocument }}>
       {children}
     </PageContext.Provider>
   );

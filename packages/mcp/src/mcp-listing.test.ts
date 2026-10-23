@@ -133,9 +133,14 @@ describe("what the MCP server offers", () => {
 		});
 
 		it("sends every page tool's input schema with no $ref anywhere", () => {
-			for (const name of PAGE_TOOLS) {
+			for (const name of [...PAGE_TOOLS, "build_blocks"]) {
 				expect(collectRefs(toolNamed(name).inputSchema as JsonNode), `${name} has a $ref in its schema`).toEqual([]);
 			}
+		});
+
+		it("keeps the change_page_blocks input schema small, since agents read it on every step", () => {
+			// 9,977 characters before nested levels stopped repeating the outer level's descriptions.
+			expect(JSON.stringify(toolNamed("change_page_blocks").inputSchema).length).toBeLessThan(8_000);
 		});
 	});
 

@@ -8,17 +8,17 @@ import type { BlockName } from "./block-names.js";
  */
 export const BLOCK_AGENT_NOTES: Record<BlockName, string> = {
 	"core/page-shell":
-		"The page itself: exactly one, at the root, and every other block sits inside it. Page font, content width (`containerWidth`), side and top/bottom padding (`paddingInline`, `paddingBlock`) and page background live here, not on sections.",
+		"The page itself: exactly one, at the root, and every other block sits inside it. An empty page gets one automatically with its first block, so don't insert it yourself. Page font, content width (`containerWidth`), side and top/bottom padding (`paddingInline`, `paddingBlock`) and page background live here, not on sections.",
 	"core/header":
 		"The site header: brand (logo or name), links and buttons. Put it first inside the page shell. `variant` picks the layout; `brand-and-blocks` takes child blocks on the right instead of built-in links. `overFirstSection` floats it over a hero, `sticky` keeps it on screen while scrolling.",
 	"core/stack":
-		"The default section container. `stackType` is `vertical` (blocks under each other), `horizontal` (a row) or `overlay` (children layered in one spot, first child at the back — for a hero with text over an image). Spacing between children is `styles.gap`.",
+		"The default section container. `stackType` is `vertical` (blocks under each other), `horizontal` (a row) or `overlay` (children layered in one spot, first child at the back — for a hero with text over an image; give the back picture or video `fillBehind: true` so it covers the section instead of setting its height). Spacing between children is `styles.gap`.",
 	"core/group":
 		"A plain layout container (flex column with a gap by default). Use it to keep related blocks together, or as a row/grid with `styles.display`, `flexDirection`, `gridTemplateColumns`. `tagName` sets the HTML tag (`section`, `div`, …).",
 	"core/container":
 		"A box with background, padding, rounded corners and a max width. Use for cards and boxed sections. For plain grouping use Group or Stack instead.",
 	"core/columns":
-		"Side-by-side columns that fold under each other on phones. Children are the column contents; `settings.columnLayout` assigns them to columns. Use for 2–4 equal or weighted columns; for card grids a Group with `display: grid` is simpler.",
+		"Side-by-side columns that fold under each other on phones. Each child is one column, so wrap a column's blocks in a Group. Best: give all its columns as `children` in the same insert. A block inserted into it later becomes a new column (or fills an empty one), and the columns stay equal width. `reverseOnPhones: true` stacks them in reverse on phones (a picture on the right goes on top). Use for 2–3 columns; for cards or anything that should wrap, use Grid.",
 	"core/accordion":
 		"Questions or sections that open and close (FAQ). Children must be Accordion item blocks. `faqSchema` adds FAQ data for search engines — turn it on for at most one accordion per page.",
 	"core/accordion-item":
@@ -35,6 +35,26 @@ export const BLOCK_AGENT_NOTES: Record<BlockName, string> = {
 		"A dropdown form field. `options` (`label`, `value`) are the choices; the answer is saved as the chosen option's visible text. Only inside a Form.",
 	"core/template-part":
 		"Shows a linked template (a shared header, footer or section), so one edit reaches every page. Only use with a template id that exists on this site; never invent one.",
+	"core/grid":
+		"Equal items side by side that wrap to new rows: feature cards, team, plans. Put each item as a child (usually a Card). `columns` (1–6) on desktop, `tabletColumns`, `phoneColumns` (usually 1); or `minItemWidth` (\"240px\") to fit as many as there is room for. Spacing is `styles.gap`. Prefer it over Columns for more than two or three items.",
+	"core/card":
+		"A box for one feature, plan, person or link, holding any blocks (icon, heading, text, button). `look`: bordered, raised, subtle or plain. To make the whole card a link, set `link` and `linkLabel` (what a screen reader says); buttons inside still work. Usually inside a Grid.",
+	"core/badge":
+		"A small label: the eyebrow above a section heading (\"New\", \"Pricing\") or a status. `text`, `tone` (accent, neutral, success, warning, danger), `look` (soft, outline, solid). Keep it to one or two words.",
+	"core/steps":
+		"Numbered steps for a how-to, an install guide or \"how it works\". Each child is a Step. `layout`: vertical (a timeline) or horizontal (a row with arrows, a timeline on phones); `marker`: number or dot.",
+	"core/step":
+		"One step inside Steps: `title`, with the explanation as child blocks (paragraph, code, image). Only inside Steps.",
+	"core/tabs":
+		"Content that switches when a tab is chosen: install commands per package manager, plans per period, examples per language. Each child is a Tab; the first is open. `look`: underline, pills or segmented.",
+	"core/tab":
+		"One tab inside Tabs: `title` on the tab bar, with its content as child blocks. Only inside Tabs.",
+	"core/search":
+		"A search button (with a Ctrl/⌘ + K hint) that opens a search window over this site's published pages. Put one in the header or the top of a docs page. `label` is the button text, `placeholder` the hint in the empty search box. Nothing to configure beyond those; add at most one per page.",
+	"core/docs-layout":
+		"Wraps a documentation page: a sidebar of the site's pages on the left, the page's content in the middle, and an \"On this page\" list on the right, with breadcrumbs and previous/next links. Use it on every docs page, inside the page shell, and write the content as one markdown block with `mdx: true` inside it. The sidebar comes from the pages' parents: set a page's parent to put it under another page, and its menu order sets the sequence. `rootPageId` picks the page the sidebar starts from (empty: the top page of the section this page is in). `showToc`, `showPrevNext`, `showBreadcrumbs` and `copyPage` (Copy page and Open as markdown buttons) are on by default. Don't put a header or footer inside it, and use at most one per page.",
+	"core/logo-cloud":
+		"Logos of customers or partners. `logos` is a list of {url, alt, href}; take urls from list_media. `layout`: row (`marquee: true` scrolls it) or grid (`columns`); `grayscale` makes them quieter. Alt text is the company name.",
 	"core/heading":
 		"A title. `value` is the text, `level` 1–6. One level-1 heading per page (the main title); sections use level 2, points inside them level 3. Alignment goes in `styles.textAlign`, never in content.",
 	"core/paragraph":
@@ -44,7 +64,7 @@ export const BLOCK_AGENT_NOTES: Record<BlockName, string> = {
 	"core/buttons":
 		"A row of simple buttons kept inside its content (`buttons`: text, url, linkTarget), not as child blocks. For buttons with their own look, put Button blocks in a horizontal Stack instead.",
 	"core/list":
-		"A bulleted or numbered list. `values` is the items as `<li>…</li>` HTML; `ordered: true` for numbers.",
+		"A bulleted or numbered list. `values` is the items as `<li>…</li>` HTML; `ordered: true` for numbers. `marker` for bullets: default, check (feature or plan lists), arrow, dash, none.",
 	"core/quote":
 		"A quotation: `value` is the quote as HTML (`<p>…</p>`), `citation` who said it.",
 	"core/pullquote":
@@ -52,15 +72,15 @@ export const BLOCK_AGENT_NOTES: Record<BlockName, string> = {
 	"core/table":
 		"Rows and columns of data: `head`, `body` and `foot` rows, each with `cells` (`content`, `tag`). Use for real tabular data (prices, specs), not for page layout.",
 	"core/code":
-		"Code shown with its language (`content`, `language`). Only for code samples.",
+		"A code sample, colored by language (`content`, `language` such as ts, bash, python). `title` shows a file name above it, `highlightLines` marks lines (\"2, 4-6\"). Only for code samples.",
 	"core/preformatted":
 		"Text that keeps its spaces and line breaks exactly (`content`). Rarely needed outside technical pages.",
 	"core/html":
 		"Raw HTML (`content`), cleaned before it is shown. Last resort when no block fits; prefer real blocks so people can still edit the page.",
 	"core/markdown":
-		"Text written in Markdown (`content`). Handy for long articles; for page sections prefer Heading and Paragraph blocks.",
+		"Text written in Markdown (`content`): headings, lists, tables, links and fenced code (```ts {2} title=\"app.ts\"), ```mermaid diagrams. Best for docs and long articles; for page sections prefer Heading and Paragraph blocks. Set `mdx: true` to use docs components, e.g. <Callout type=\"warning\" title=\"…\">…</Callout> (types: note, tip, warning, danger, success); they take plain text props only and nothing in MDX is ever run.",
 	"core/icon":
-		"An icon. Use `iconSet: \"lucide\"` with a kebab-case `iconName` (`check`, `arrow-right`, `star`) — published pages draw Lucide by name. `link` makes it clickable.",
+		"An icon. Set it as `icon: {\"iconSet\": \"lucide\", \"iconName\": \"arrow-right\"}` — `iconName` is a kebab-case Lucide name (`check`, `zap`, `star`) and must sit inside `icon`; published pages draw Lucide by name. `link` makes it clickable.",
 	"core/spacer":
 		"Empty vertical space (`height`). Prefer `styles.gap` or padding on the parent; use a spacer only for one-off breathing room.",
 	"core/separator":

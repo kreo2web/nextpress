@@ -365,8 +365,9 @@ describe("page editing tools over MCP", () => {
 			expect(known.isError).toBe(false);
 			expect(known.text).toContain("core/stack: ");
 			expect(known.text).toContain("Example (what a new one looks like");
+			expect(known.text).toContain("Content fields: stackType (text)");
 			expect(typo.isError).toBe(true);
-			expect(typo.text).toContain("Unknown block type");
+			expect(typo.text).toContain("Unknown block name");
 			expect(typo.text).toContain("core/stack");
 		});
 

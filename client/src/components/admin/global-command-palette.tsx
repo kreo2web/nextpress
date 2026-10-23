@@ -11,6 +11,7 @@ import {
   Plug,
   Plus,
   Settings,
+  UserRound,
   Loader,
   AlertCircle,
   Archive,
@@ -53,6 +54,7 @@ const NAVIGATION_ACTIONS: NavigationAction[] = [
   { label: 'Media library', path: '/admin/media', icon: Image },
   { label: 'Themes', path: '/admin/themes', icon: Palette, needs: 'manage_site' },
   { label: 'Plugins', path: '/admin/plugins', icon: Plug, needs: 'main-site-admin' },
+  { label: 'Your account', path: '/admin/account', icon: UserRound },
   { label: 'Settings', path: '/admin/settings', icon: Settings, needs: 'manage_site' },
   { label: 'View site', path: '/', icon: Compass },
 ];

@@ -40,6 +40,16 @@ export const BLOCK_NAMES = [
 	"core/textarea",
 	"core/select",
 	"core/template-part",
+	"core/grid",
+	"core/card",
+	"core/badge",
+	"core/steps",
+	"core/step",
+	"core/tabs",
+	"core/tab",
+	"core/logo-cloud",
+	"core/search",
+	"core/docs-layout",
 	"post/title",
 	"post/excerpt",
 	"post/featured-image",
@@ -57,3 +67,33 @@ export type BlockName = (typeof BLOCK_NAMES)[number];
 const NAME_SET = new Set<string>(BLOCK_NAMES);
 
 export const isBlockName = (name: string): name is BlockName => NAME_SET.has(name);
+
+const CORE_PREFIX = "core/";
+
+/** Known names close to what was typed (it contains one, or one contains it), for a "did you mean" hint. */
+export const suggestBlockNames = (typed: string): BlockName[] => {
+	const needle = typed.trim().toLowerCase().replace(/^core\//, "");
+	if (!needle) return [];
+	return BLOCK_NAMES.filter((name) => name.includes(needle) || needle.includes(name.slice(name.indexOf("/") + 1)));
+};
+
+export type ResolvedBlockName = { ok: true; name: BlockName } | { ok: false; message: string };
+
+/**
+ * The block an agent means. A name without a prefix is a `core/` block, the way the page outline
+ * prints it (`heading` is `core/heading`); `post/` blocks keep their prefix, so `list` is never
+ * mistaken for `post/list`.
+ *
+ * WHY: agents copy names from the outline. Refusing the short spelling there cost them a step.
+ */
+export const resolveBlockName = (typed: string): ResolvedBlockName => {
+	const name = typed.trim().toLowerCase();
+	if (isBlockName(name)) return { ok: true, name };
+	const core = `${CORE_PREFIX}${name}`;
+	if (!name.includes("/") && isBlockName(core)) return { ok: true, name: core };
+	const close = suggestBlockNames(name).slice(0, 5);
+	return {
+		ok: false,
+		message: `Unknown block name "${typed}".${close.length > 0 ? ` Did you mean ${close.join(", ")}?` : ""} Call list_block_types for the valid names.`,
+	};
+};

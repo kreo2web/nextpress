@@ -1,4 +1,6 @@
 import { GALLERY_PUBLISH_CSS } from "./gallery-render.js";
+import { DESIGN_BLOCKS_CSS } from "./blocks/blocks-css.js";
+import { MARKDOWN_CSS } from "./markdown/markdown-css.js";
 import { FLUID_HEADING_CSS, GLOBAL_BODY_TYPE_CSS } from "./responsive-scales.js";
 
 /**
@@ -8,36 +10,13 @@ import { FLUID_HEADING_CSS, GLOBAL_BODY_TYPE_CSS } from "./responsive-scales.js"
 export const PUBLISH_BLOCK_CSS = `
 ${FLUID_HEADING_CSS}
 
+${MARKDOWN_CSS}
+
+${DESIGN_BLOCKS_CSS}
+
 ${GLOBAL_BODY_TYPE_CSS}
 
-.wp-block-markdown p {
-  margin: 0 0 1rem;
-  overflow-wrap: break-word;
-}
-.wp-block-markdown h1,
-.wp-block-markdown h2,
-.wp-block-markdown h3,
-.wp-block-markdown h4,
-.wp-block-markdown h5,
-.wp-block-markdown h6 {
-  font-weight: 700;
-  margin: 0 0 0.75rem;
-  line-height: 1.25;
-  text-wrap: balance;
-}
-.wp-block-markdown ul,
-.wp-block-markdown ol {
-  margin: 0 0 1rem;
-  padding-left: 1.5rem;
-}
-.wp-block-markdown li { margin-bottom: 0.25rem; }
-.wp-block-markdown blockquote {
-  margin: 0 0 1rem;
-  padding: 0.25rem 0 0.25rem 1rem;
-  border-left: 4px solid #d1d5db;
-  font-style: italic;
-}
-.wp-block-markdown a { color: var(--npb-accent, #007cba); }
+/* Markdown blocks: element styles live in markdown/markdown-css.ts (.np-prose), shared with the chat. */
 /* Links inside text take the text's colour with a soft underline that firms up on hover, instead of
    the browser's bright blue. Kept to the lowest priority so any block or custom style wins. */
 :where(.wp-block-paragraph, .wp-block-heading, .wp-block-list, .wp-block-quote, .wp-block-pullquote, .wp-block-table) a {
@@ -57,35 +36,8 @@ ${GLOBAL_BODY_TYPE_CSS}
 @media (prefers-reduced-motion: reduce) {
   :where(.wp-block-paragraph, .wp-block-heading, .wp-block-list, .wp-block-quote, .wp-block-pullquote, .wp-block-table) a { transition: none; }
 }
-.wp-block-markdown code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.875em;
-}
-.wp-block-markdown pre {
-  margin: 0 0 1rem;
-  padding: 1rem;
-  overflow-x: auto;
-  background: #f3f4f6;
-  border-radius: 0.375rem;
-}
 .wp-block-markdown {
   max-width: 100%;
-  overflow-x: auto;
-}
-.wp-block-markdown table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 0 0 1rem;
-  display: block;
-  overflow-x: auto;
-  max-width: 100%;
-}
-.wp-block-markdown th,
-.wp-block-markdown td {
-  border: 1px solid #e5e7eb;
-  padding: 0.5rem 1rem;
-  text-align: left;
-  overflow-wrap: break-word;
 }
 
 /* Prose readability. Inside the page column the words follow that column, or a 65-character cap leaves a wide empty side. */
@@ -1018,8 +970,10 @@ ${GALLERY_PUBLISH_CSS}
     gap: 1rem;
   }
 
+  /* Stacked columns fill the row; a column's inline width (e.g. 33.33%) is for side by side only. */
   .wp-block-column {
     flex: 1 1 auto !important;
+    width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
   }
@@ -1157,6 +1111,12 @@ export const EDITOR_CANVAS_CONTAINER_CSS = `
 @container npb-canvas (max-width: 768px) {
   .npb-canvas-page .wp-block-columns {
     flex-direction: column !important;
+  }
+  .npb-canvas-page .wp-block-column {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
   .npb-canvas-page .wp-block-media-text.is-stacked-on-mobile {
     flex-direction: column !important;

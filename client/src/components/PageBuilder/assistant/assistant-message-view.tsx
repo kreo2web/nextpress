@@ -42,6 +42,8 @@ function ToolStep({ part }: { part: ToolPart }): ReactElement {
   );
 }
 
+const CONFIRM_BUTTON_CLASS = 'h-8 min-w-fit flex-1 px-3 text-sm';
+
 function RemovalConfirmation({
   part,
   onAnswer,
@@ -58,11 +60,14 @@ function RemovalConfirmation({
         <ConfirmationAccepted>You said yes. The blocks were removed.</ConfirmationAccepted>
         <ConfirmationRejected>You said no. Nothing was removed.</ConfirmationRejected>
       </ConfirmationTitle>
-      <ConfirmationActions>
-        <ConfirmationAction variant="outline" onClick={() => onAnswer({ approvalId, approved: false })}>
+      {/* The sidebar is narrow: the two buttons share the row and wrap instead of running off the edge. */}
+      <ConfirmationActions className="w-full flex-wrap">
+        <ConfirmationAction variant="outline" className={CONFIRM_BUTTON_CLASS} onClick={() => onAnswer({ approvalId, approved: false })}>
           Keep them
         </ConfirmationAction>
-        <ConfirmationAction onClick={() => onAnswer({ approvalId, approved: true })}>Remove them</ConfirmationAction>
+        <ConfirmationAction className={CONFIRM_BUTTON_CLASS} onClick={() => onAnswer({ approvalId, approved: true })}>
+          Remove them
+        </ConfirmationAction>
       </ConfirmationActions>
     </Confirmation>
   );

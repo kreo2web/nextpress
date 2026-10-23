@@ -3,6 +3,8 @@ import { models } from "./storage.js";
 import { ensureRootPageShell } from "@shared/page-shell-model";
 import type { BlockConfig, BlockContent } from "@shared/schema-types";
 import { isTemplatePart } from "@shared/template-usage";
+import { createDefaultBlock } from "@shared/block-catalog";
+import { DOCS_LAYOUT_BLOCK_NAME } from "@shared/blocks/docs-layout-model";
 
 /** Builds a minimal starter layout editors can extend. */
 function buildStarterBlocks({ kind }: { kind: "page" | "post" }): BlockConfig[] {
@@ -83,6 +85,38 @@ function buildStarterBlocks({ kind }: { kind: "page" | "post" }): BlockConfig[] 
 	}).blocks;
 }
 
+const DOCS_STARTER_MARKDOWN = [
+	"# Page title",
+	"",
+	"A sentence or two on what this page helps the reader do.",
+	"",
+	"## Install",
+	"",
+	"```bash",
+	"npm install your-package",
+	"```",
+	"",
+	'<Callout type="tip" title="Good to know">Keep each page about one thing. Link to the next page when the reader is ready for it.</Callout>',
+	"",
+	"## Next steps",
+	"",
+	"Say where to go from here.",
+].join("\n");
+
+/** A docs page: the docs layout (sidebar, contents, previous/next) around one markdown block. */
+function buildDocsBlocks(): BlockConfig[] {
+	const layoutId = randomUUID();
+	const layout = createDefaultBlock({ name: DOCS_LAYOUT_BLOCK_NAME, id: layoutId, newId: randomUUID });
+	const markdown = createDefaultBlock({ name: "core/markdown", id: randomUUID(), newId: randomUUID });
+	if (!layout || !markdown) throw new Error("Block catalog is missing the docs layout or markdown block.");
+	const starter: BlockConfig = {
+		...markdown,
+		parentId: layoutId,
+		content: { kind: "structured", data: { content: DOCS_STARTER_MARKDOWN, mdx: true, className: "" } },
+	};
+	return ensureRootPageShell({ blocks: [{ ...layout, children: [starter] }], shellId: randomUUID() }).blocks;
+}
+
 /**
  * Seeds starter page/post templates when none exist (setup wizard or CLI upgrade).
  */
@@ -115,5 +149,14 @@ export async function initializeDefaultTemplates({
 		settings: {},
 	});
 
-	console.log("Default templates initialized:", pageTemplate.name, postTemplate.name);
+	const docsTemplate = await models.templates.create({
+		name: "Docs Page",
+		type: "page",
+		description: "Sidebar of pages, contents list, and previous/next links around a markdown page — for documentation.",
+		authorId,
+		blocks: buildDocsBlocks(),
+		settings: {},
+	});
+
+	console.log("Default templates initialized:", pageTemplate.name, postTemplate.name, docsTemplate.name);
 }

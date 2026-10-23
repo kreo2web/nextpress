@@ -31,17 +31,22 @@ type PublicSite = { id: string; siteUrl: string | null; isDefault: boolean };
  * Where visitors see a page or post of `site`. A site with its own address gets an absolute link to
  * it: a relative link opened whatever site the admin's current address belongs to. A site without
  * an address can only show pages at `/sites/<id>/<slug>`; `null` means there is no public link yet.
+ * `pagePath` is a nested page's full address (`guides/install`, from `buildPagePaths`); without it the
+ * page's own slug is used, which still opens the page.
  */
 export const buildPublicContentUrl = ({
 	site,
 	slug,
 	kind,
+	pagePath,
 }: {
 	site: PublicSite | undefined;
 	slug: string;
 	kind: "page" | "post";
+	pagePath?: string;
 }): string | null => {
-	const path = kind === "post" ? `/post/${encodeURIComponent(slug)}` : `/${encodeURIComponent(slug)}`;
+	const pageAddress = (pagePath || slug).split("/").map(encodeURIComponent).join("/");
+	const path = kind === "post" ? `/post/${encodeURIComponent(slug)}` : `/${pageAddress}`;
 	const address = site?.siteUrl?.trim().replace(/\/+$/, "");
 	if (address) return `${address}${path}`;
 	if (!site || site.isDefault) return path;

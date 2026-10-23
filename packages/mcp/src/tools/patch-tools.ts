@@ -75,7 +75,7 @@ export function registerPatchTools({ server, client }: ToolDeps): void {
 		{
 			title: "Validate blocks",
 			description:
-				"Dry-run validate a BlockConfig[] against the NextPress registry (unknown names, structure). To check a page that is already saved, use check_page instead: it also covers the save rules and phone layout.",
+				"Will be removed in 0.4. Dry-run validate a BlockConfig[] against the NextPress registry (unknown names, structure). To check a page that is already saved, use check_page instead: it also covers the save rules and phone layout.",
 			inputSchema: {
 				blocks: z.array(blockConfigSchema).min(1),
 			},
@@ -94,7 +94,7 @@ export function registerPatchTools({ server, client }: ToolDeps): void {
 		{
 			title: "Patch page blocks",
 			description:
-				"Apply insert/update/move/delete/replace ops to a page block tree with ready-made BlockConfig blocks. Requires expectedVersion from get_page. Kept for compatibility: prefer change_page_blocks, which takes simple block descriptions, fills in defaults, checks the page and needs no version number. Prefer either over a full update_page for edits. replace swaps a block and everything inside it for another block in the same spot.",
+				"Will be removed in 0.4: use change_page_blocks. Apply insert/update/move/delete/replace ops to a page block tree with ready-made BlockConfig blocks. Requires expectedVersion from get_page. Kept for compatibility: prefer change_page_blocks, which takes simple block descriptions, fills in defaults, checks the page and needs no version number. Prefer either over a full update_page for edits. replace swaps a block and everything inside it for another block in the same spot.",
 			inputSchema: {
 				id: z.string().min(1),
 				expectedVersion: z.number().int().min(0),
@@ -124,7 +124,7 @@ export function registerPatchTools({ server, client }: ToolDeps): void {
 		{
 			title: "Patch post blocks",
 			description:
-				"Apply insert/update/move/delete/replace ops to a post block tree with ready-made BlockConfig blocks. Requires expectedVersion from get_post. Kept for compatibility: prefer change_page_blocks with content_type \"post\".",
+				"Will be removed in 0.4: use change_page_blocks with content_type \"post\". Apply insert/update/move/delete/replace ops to a post block tree with ready-made BlockConfig blocks. Requires expectedVersion from get_post.",
 			inputSchema: {
 				id: z.string().min(1),
 				expectedVersion: z.number().int().min(0),

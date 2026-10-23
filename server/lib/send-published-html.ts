@@ -6,6 +6,8 @@ import type { Deps } from "../routes/shared/deps";
 import { buildPublishedPageHtml } from "../routes/shared/build-published-page-html";
 import { resolveSiteThemeSettings } from "../routes/shared/resolve-site-theme-settings";
 import { bindPublishedPostLists } from "./bind-published-post-lists";
+import { bindPublishedDocsLayout } from "./bind-published-docs-layout";
+import { DOCS_LAYOUT_BLOCK_NAME } from "@shared/blocks/docs-layout-model";
 import { readListPage } from "@shared/bind-post-list";
 import { resolvePageTemplateParts, templatePartsStamp } from "./template-parts";
 import { canonicalUrlWithoutQuery, publishedPageCache, publishedPageCacheKey } from "./published-page-cache";
@@ -22,9 +24,10 @@ import {
 
 /**
  * These blocks are filled from other records when the HTML is built.
- * A new comment, a new post, or a renamed author does not raise this document's version.
+ * A new comment, a new post, a renamed author, or a renamed or moved page (the docs layout's
+ * sidebar) does not raise this document's version.
  */
-const LIVE_BLOCK_NAMES = ["post/list", "post/comments", "post/navigation", "post/author-box"] as const;
+const LIVE_BLOCK_NAMES = ["post/list", "post/comments", "post/navigation", "post/author-box", DOCS_LAYOUT_BLOCK_NAME] as const;
 
 const canCacheBlocks = (blocks: BlockConfig[]): boolean =>
 	!LIVE_BLOCK_NAMES.some((name) => documentHasBlockName({ blocks, name }));
@@ -166,7 +169,7 @@ export async function sendPublishedHtml({
 	});
 
 	const timeZone = storedSettings?.general?.timezone;
-	const blocks = siteId
+	const listedBlocks = siteId
 		? await bindPublishedPostLists({
 				models,
 				siteId,
@@ -175,6 +178,9 @@ export async function sendPublishedHtml({
 				timeZone,
 			})
 		: prepared.blocks;
+	const blocks = siteId
+		? await bindPublishedDocsLayout({ models, siteId, pageId: document.id, blocks: listedBlocks })
+		: listedBlocks;
 
 	const html = buildPublishedPageHtml({
 		page: {

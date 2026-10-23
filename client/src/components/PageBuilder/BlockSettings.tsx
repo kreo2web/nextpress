@@ -33,7 +33,7 @@ import {
   Square,
   Hash,
   Move,
-  Sparkles,
+  Play,
   Layers,
   MoveHorizontal,
   Smartphone,
@@ -925,7 +925,7 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
             ) : null}
 
             {/* Animation Section */}
-            <CollapsibleCard title="Animations" icon={Sparkles} defaultOpen={Boolean(block.other?.animation)}>
+            <CollapsibleCard title="Animations" icon={Play} defaultOpen={Boolean(block.other?.animation)}>
               <AnimationPicker
                 animation={block.other?.animation}
                 blockId={block.id}

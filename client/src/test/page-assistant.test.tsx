@@ -228,6 +228,47 @@ describe('the assistant in the editor', () => {
     expect(sent).toContain('A landing page for a yoga studio');
     await waitFor(() => expect(reportedIds()).toEqual(['intro', 'pricing', 'plans']));
   });
+
+  it('keeps a finished run as a chat: New chat starts empty, and the Chats list brings the run back', async () => {
+    installServer();
+    renderEditor();
+
+    const user = await openAssistantAndAsk('Add a pricing section');
+    await waitFor(() => expect(reportedIds()).toEqual(['intro', 'pricing', 'plans']));
+    expect(await screen.findByText('Added 2 blocks.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'New chat' }));
+    expect(screen.queryByText('Added 2 blocks.')).toBeNull();
+    expect(screen.getByText('Describe what you want')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Chats' }));
+    const savedChats = await screen.findByRole('list', { name: 'Saved chats' });
+    await user.click(within(savedChats).getByRole('button', { name: /^Add a pricing section/ }));
+    expect(await screen.findByText('I added a pricing heading and a short line about the plans.')).toBeTruthy();
+    expect(screen.queryByText('Describe what you want')).toBeNull();
+    expect(reportedIds()).toEqual(['intro', 'pricing', 'plans']);
+  });
+
+  it('deleting a chat asks first, and the page keeps its changes', async () => {
+    installServer();
+    renderEditor();
+
+    const user = await openAssistantAndAsk('Add a pricing section');
+    await waitFor(() => expect(reportedIds()).toEqual(['intro', 'pricing', 'plans']));
+    await screen.findByText('Added 2 blocks.');
+
+    await user.click(screen.getByRole('button', { name: 'Chats' }));
+    await user.click(await screen.findByRole('button', { name: 'Delete chat: Add a pricing section' }));
+    expect(await screen.findByText('Delete this chat?')).toBeTruthy();
+    expect(screen.getByText('The page keeps its changes.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Delete chat' }));
+    await waitFor(() => expect(screen.queryByText('Delete this chat?')).toBeNull());
+    expect(reportedIds()).toEqual(['intro', 'pricing', 'plans']);
+
+    await user.click(screen.getByRole('button', { name: 'Chats' }));
+    expect(await screen.findByText('No saved chats yet. Each chat you start is kept in this browser.')).toBeTruthy();
+  });
 });
 
 describe('when the assistant is not set up', () => {

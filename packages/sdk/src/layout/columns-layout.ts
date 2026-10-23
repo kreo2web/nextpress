@@ -1,5 +1,6 @@
 import type { BlockConfig } from "../types/domain.js";
 import { createBlockId } from "../blocks/create-block-id.js";
+import { layoutEqualColumns } from "../blocks/shared-page-tools.js";
 
 /** Column layout metadata persisted on `core/columns` (`settings.columnLayout`). */
 export type ColumnLayout = {
@@ -30,7 +31,8 @@ const getOrderedChildIds = (children: BlockConfig[], layout: ColumnLayout[]): st
 };
 
 /**
- * Builds a column layout and redistributes child blocks evenly across columns.
+ * Builds a column layout and redistributes child blocks evenly across columns. The equal split
+ * itself is the page tools' own, so the SDK builder and an agent's Columns come out the same.
  * @see client/src/components/PageBuilder/blocks/columns/columns-model.ts
  */
 export const buildColumnsLayout = (
@@ -39,28 +41,13 @@ export const buildColumnsLayout = (
 	previousLayout: ColumnLayout[] = [],
 ): ColumnLayout[] => {
 	const safeCount = Math.max(1, count);
-	const width = `${(100 / safeCount).toFixed(2)}%`;
-	const orderedChildIds = getOrderedChildIds(children, previousLayout);
-	const nextLayout: ColumnLayout[] = Array.from({ length: safeCount }, () => ({
-		columnId: `col-${createBlockId()}`,
-		width,
-		blockIds: [],
-	}));
-
-	orderedChildIds.forEach((childId, index) => {
-		nextLayout[index % safeCount].blockIds.push(childId);
+	const groups: string[][] = Array.from({ length: safeCount }, () => []);
+	getOrderedChildIds(children, previousLayout).forEach((childId, index) => {
+		groups[index % safeCount].push(childId);
 	});
-
-	return nextLayout;
+	return layoutEqualColumns({ groups, newId: createBlockId });
 };
 
 /** Builds columnLayout from explicit column groups (one group per column). */
-export const buildColumnsLayoutFromGroups = (groups: BlockConfig[][]): ColumnLayout[] => {
-	const safeGroups = groups.length > 0 ? groups : [[]];
-	const width = `${(100 / safeGroups.length).toFixed(2)}%`;
-	return safeGroups.map((group) => ({
-		columnId: `col-${createBlockId()}`,
-		width,
-		blockIds: group.map((block) => block.id),
-	}));
-};
+export const buildColumnsLayoutFromGroups = (groups: BlockConfig[][]): ColumnLayout[] =>
+	layoutEqualColumns({ groups: groups.map((group) => group.map((block) => block.id)), newId: createBlockId });

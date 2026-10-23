@@ -10,9 +10,11 @@ const markdownBlockPath = resolve(
 );
 
 describe("SPA MarkdownBlock", () => {
-	it("imports react-markdown directly for reliable preview rendering", () => {
+	it("imports the shared markdown view directly (not lazily) for reliable preview rendering", () => {
 		const source = readFileSync(markdownBlockPath, "utf8");
-		expect(source).toContain('import ReactMarkdown from "react-markdown"');
+		expect(source).toContain('import { MarkdownView } from "@shared/markdown"');
 		expect(source).not.toContain("React.lazy");
+		// Pele's full bundle is server-only (MarkdownSsrBlock); the SPA loads diagrams on demand.
+		expect(source).not.toContain('from "pele"');
 	});
 });

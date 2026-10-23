@@ -45,6 +45,7 @@ export function ColumnsBlock(block: BlockConfig) {
 		"wp-block-columns",
 		data.verticalAlignment ? `is-vertically-aligned-${data.verticalAlignment}` : "",
 		data.horizontalAlignment ? `is-horizontally-aligned-${data.horizontalAlignment}` : "",
+		data.reverseOnPhones === true ? "is-reversed-on-phones" : "",
 		className,
 	]
 		.filter(Boolean)

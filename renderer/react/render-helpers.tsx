@@ -21,8 +21,8 @@ export function registerClientBlockComponents(
 }
 
 /**
- * SSR-only overrides (sync markdown). Must not be imported from the SPA entry
- * or react-markdown lands in the visitor chunk.
+ * SSR-only overrides (markdown with server-drawn diagrams). Must not be imported from the SPA entry
+ * or Pele's full diagram bundle lands in the visitor chunk.
  */
 export function registerSsrBlockComponents(
 	components: Record<string, React.FC<BlockConfig>>,
@@ -93,10 +93,10 @@ export function parseHtmlContent(content: BlockContent | undefined): { content: 
 }
 
 /** Unwrap markdown content: `{ kind: "markdown" }` or structured `{ content }`. */
-export function parseMarkdownContent(content: BlockContent | undefined): { content: string; textAlign?: string } {
-	if (!content) return { content: "" };
+export function parseMarkdownContent(content: BlockContent | undefined): { content: string; textAlign?: string; mdx: boolean } {
+	if (!content) return { content: "", mdx: false };
 	if (content.kind === "markdown") {
-		return { content: content.value || "", textAlign: content.textAlign };
+		return { content: content.value || "", textAlign: content.textAlign, mdx: false };
 	}
 	const data = readBlockContentData(content);
 	const markdown =
@@ -106,6 +106,7 @@ export function parseMarkdownContent(content: BlockContent | undefined): { conte
 	return {
 		content: markdown,
 		textAlign: typeof data.textAlign === "string" ? data.textAlign : undefined,
+		mdx: data.mdx === true,
 	};
 }
 

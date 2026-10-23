@@ -22,6 +22,16 @@ import { sanitizeHtml } from '@shared/sanitize-html';
 import type { BlockConfig, Site } from '@shared/schema-types';
 import { publicSiteDescription, publicSiteName } from '@shared/published-document-meta';
 import { resolvePageTemplateParts } from '../lib/template-parts';
+import { createSiteSearch } from '../lib/site-search/site-search';
+import { findPageByPath } from '../lib/page-paths/page-paths';
+import { createRateLimiter } from '../utils/rate-limit';
+import { clientAddress } from '../utils/client-address';
+
+const SEARCH_MAX_QUERY_LENGTH = 100;
+const SEARCH_MAX_RESULTS = 20;
+const SEARCH_DEFAULT_RESULTS = 8;
+/** A person typing sends a search every few keystrokes; this is far above that and far below a script. */
+const SEARCH_REQUESTS_PER_MINUTE = 60;
 
 /**
  * Public API routes — resolve site from Host header or ?siteId= hint.
@@ -29,6 +39,8 @@ import { resolvePageTemplateParts } from '../lib/template-parts';
 export function createPublicRoutes(deps: Deps): Router {
   const router = Router();
   const { models } = deps;
+  const siteSearch = createSiteSearch({ models });
+  const checkSearchRate = createRateLimiter();
 
   const siteIdentity = async (site: Site) => {
     const stored = await models.sites.getSettings(site.id);
@@ -48,7 +60,7 @@ export function createPublicRoutes(deps: Deps): Router {
   };
 
   router.get(
-    '/page/:slug',
+    '/page/*',
     asyncHandler(async (req, res) => {
       const { err } = await safeTryAsync(async () => {
         const site = await resolvePublicSite({
@@ -61,8 +73,10 @@ export function createPublicRoutes(deps: Deps): Router {
           return;
         }
 
-        const page = await models.pages.findBySiteAndSlug(site.id, req.params.slug);
-        if (!page || !isPubliclyReadable(page)) {
+        // One word (`install`) or a full address (`guides/install`).
+        const found = await findPageByPath({ models, siteId: site.id, path: req.params[0] ?? '' });
+        const page = found?.page;
+        if (!found || !page || !isPubliclyReadable(page)) {
           res.status(404).json({ message: 'Page not found' });
           return;
         }
@@ -73,7 +87,7 @@ export function createPublicRoutes(deps: Deps): Router {
           pageId: page.id,
           blocks: (Array.isArray(page.blocks) ? page.blocks : []) as BlockConfig[],
         });
-        res.json({ ...page, blocks: parts.blocks, site: await siteIdentity(site) });
+        res.json({ ...page, path: found.path, blocks: parts.blocks, site: await siteIdentity(site) });
       });
 
       if (err) {
@@ -251,6 +265,37 @@ export function createPublicRoutes(deps: Deps): Router {
         console.error('Error fetching homepage:', err);
         res.status(500).json({ message: 'Failed to fetch homepage' });
       }
+    }),
+  );
+
+  /**
+   * GET /api/public/search?q=&limit= — search the published pages of the site this address belongs
+   * to. Answers `{ results: [{ title, path, snippet }] }`; a path ends in `#section` when the words
+   * were found under a heading. Open to visitors, so it is limited per address.
+   */
+  router.get(
+    '/search',
+    asyncHandler(async (req, res) => {
+      const address = clientAddress(req);
+      if (!checkSearchRate({ key: `search:${address}`, limit: SEARCH_REQUESTS_PER_MINUTE, windowMs: 60_000 })) {
+        res.setHeader('Retry-After', '60');
+        return res.status(429).json({ message: 'Too many searches in a row. Wait a moment and try again.' });
+      }
+      const query = (typeof req.query.q === 'string' ? req.query.q : '').trim().slice(0, SEARCH_MAX_QUERY_LENGTH);
+      if (!query) return res.json({ results: [] });
+      const requested = Number(req.query.limit);
+      const limit = Number.isFinite(requested) && requested >= 1 ? Math.min(SEARCH_MAX_RESULTS, Math.floor(requested)) : SEARCH_DEFAULT_RESULTS;
+
+      const { err, result } = await safeTryAsync(async () => {
+        const site = await resolvePublicSite({ models, req, siteIdHint: readPublicSiteIdHint(req) });
+        return site ? { siteId: site.id, results: await siteSearch.search({ siteId: site.id, query, limit }) } : null;
+      });
+      if (err) {
+        console.error({ atFunction: 'public.search', data: { query, host: req.get('host') ?? null, error: err }, message: 'Site search failed' });
+        return res.status(500).json({ message: "Search isn't working right now. Try again in a moment." });
+      }
+      if (!result) return res.json({ results: [] });
+      res.json({ results: result.results });
     }),
   );
 

@@ -44,6 +44,13 @@ describe("defaultCanvasChromeMode", () => {
     expect(defaultCanvasChromeMode("core/group")).toBe("span");
     expect(defaultCanvasChromeMode("core/paragraph")).toBe("hug");
   });
+
+  it("spans the section blocks that lay out their own items", () => {
+    for (const name of ["core/grid", "core/card", "core/steps", "core/step", "core/tabs", "core/tab", "core/logo-cloud", "core/docs-layout"]) {
+      expect(defaultCanvasChromeMode(name)).toBe("span");
+    }
+    expect(defaultCanvasChromeMode("core/badge")).toBe("hug");
+  });
 });
 
 describe("canvas chrome styles", () => {

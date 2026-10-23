@@ -26,6 +26,7 @@ const ThemeEdit = lazy(() => import('@/pages/ThemeEdit'));
 const Users = lazy(() => import('@/pages/Users'));
 const Join = lazy(() => import('@/pages/Join'));
 const Settings = lazy(() => import('@/pages/Settings'));
+const Account = lazy(() => import('@/pages/Account'));
 const Sites = lazy(() => import('@/pages/Sites'));
 const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
@@ -145,6 +146,7 @@ function Router() {
             <Route path="/admin/users" component={Users} />
             <Route path="/admin/sites" component={Sites} />
             <Route path="/admin/settings" component={Settings} />
+            <Route path="/admin/account" component={Account} />
             <Route
               path="/admin/page-builder/template/:id"
               component={({ params }: { params: { id: string } }) => (
@@ -176,6 +178,13 @@ function Router() {
           path="/:slug"
           component={({ params }: { params: { slug: string } }) => (
             <PublicPageView slug={params.slug} type="page" />
+          )}
+        />
+        {/* Nested pages at their full address (/guides/install): the parents' slugs, then the page's own. */}
+        <Route
+          path="/:slug/*"
+          component={({ params }: { params: { slug: string; '*': string } }) => (
+            <PublicPageView slug={`${params.slug}/${params['*']}`} type="page" />
           )}
         />
         <Route component={NotFound} />

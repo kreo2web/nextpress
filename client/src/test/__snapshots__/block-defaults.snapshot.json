@@ -351,6 +351,56 @@
     "isContainer": false,
     "label": "Audio"
   },
+  "core/badge": {
+    "category": "basic",
+    "defaultContent": {
+      "data": {
+        "look": "soft",
+        "text": "New",
+        "tone": "accent"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "0"
+    },
+    "description": "A small label above a heading, or a status",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/badge",
+    "inserted": {
+      "category": "basic",
+      "content": {
+        "data": {
+          "look": "soft",
+          "text": "New",
+          "tone": "accent"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Badge",
+      "name": "core/badge",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Badge"
+  },
   "core/button": {
     "category": "basic",
     "defaultContent": {
@@ -491,15 +541,135 @@
     "isContainer": false,
     "label": "Buttons"
   },
+  "core/card": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "link": "",
+        "linkLabel": "",
+        "linkTarget": "_self",
+        "look": "bordered"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "borderRadius": "12px",
+      "boxSizing": "border-box",
+      "gap": "0.5rem",
+      "margin": "0",
+      "padding": "1.5rem",
+      "width": "100%"
+    },
+    "description": "A box for a feature, plan or link, with anything inside",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/card",
+    "inserted": {
+      "category": "layout",
+      "children": [
+        {
+          "category": "basic",
+          "content": {
+            "kind": "text",
+            "level": 3,
+            "value": "Card title"
+          },
+          "id": "id-1",
+          "label": "Heading",
+          "name": "core/heading",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "fontSize": "1.25rem",
+            "fontWeight": "600",
+            "margin": "0"
+          },
+          "type": "block"
+        },
+        {
+          "category": "basic",
+          "content": {
+            "kind": "text",
+            "value": "One or two lines about it."
+          },
+          "id": "id-2",
+          "label": "Paragraph",
+          "name": "core/paragraph",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "fontSize": "16px",
+            "lineHeight": "1.6",
+            "margin": "0"
+          },
+          "type": "block"
+        }
+      ],
+      "content": {
+        "data": {
+          "link": "",
+          "linkLabel": "",
+          "linkTarget": "_self",
+          "look": "bordered"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Card",
+      "name": "core/card",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "borderRadius": "12px",
+        "boxSizing": "border-box",
+        "gap": "0.5rem",
+        "margin": "0",
+        "padding": "1.5rem",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Card"
+  },
   "core/code": {
     "category": "advanced",
     "defaultContent": {
       "data": {
         "className": "",
         "content": "// Write your code here\nfunction hello() {\n  console.log(\"Hello, World!\");\n}",
+        "highlightLines": "",
         "language": "javascript",
-        "showCopyButton": false,
+        "showCopyButton": true,
         "showLineNumbers": false,
+        "title": "",
         "wrapLines": true
       },
       "kind": "structured"
@@ -517,9 +687,11 @@
         "data": {
           "className": "",
           "content": "// Write your code here\nfunction hello() {\n  console.log(\"Hello, World!\");\n}",
+          "highlightLines": "",
           "language": "javascript",
-          "showCopyButton": false,
+          "showCopyButton": true,
           "showLineNumbers": false,
+          "title": "",
           "wrapLines": true
         },
         "kind": "structured"
@@ -558,6 +730,7 @@
         "horizontalAlignment": "left",
         "layoutMode": "flex",
         "minColumnWidth": "220px",
+        "reverseOnPhones": false,
         "verticalAlignment": "top"
       },
       "kind": "structured"
@@ -581,6 +754,7 @@
           "horizontalAlignment": "left",
           "layoutMode": "flex",
           "minColumnWidth": "220px",
+          "reverseOnPhones": false,
           "verticalAlignment": "top"
         },
         "kind": "structured"
@@ -796,6 +970,65 @@
     },
     "isContainer": false,
     "label": "Divider"
+  },
+  "core/docs-layout": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "copyPage": true,
+        "rootPageId": "",
+        "showBreadcrumbs": true,
+        "showPrevNext": true,
+        "showToc": true
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "Sidebar of pages, breadcrumbs, previous and next links, and an on-this-page list around your content",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/docs-layout",
+    "inserted": {
+      "category": "layout",
+      "children": [],
+      "content": {
+        "data": {
+          "copyPage": true,
+          "rootPageId": "",
+          "showBreadcrumbs": true,
+          "showPrevNext": true,
+          "showToc": true
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Docs layout",
+      "name": "core/docs-layout",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Docs layout"
   },
   "core/file": {
     "category": "media",
@@ -1092,6 +1325,344 @@
     },
     "isContainer": false,
     "label": "Gallery"
+  },
+  "core/grid": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "align": "stretch",
+        "columns": 3,
+        "minItemWidth": "",
+        "phoneColumns": 1,
+        "tabletColumns": 2
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "gap": "1.5rem",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "Equal items side by side that wrap: cards, features, team",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/grid",
+    "inserted": {
+      "category": "layout",
+      "children": [
+        {
+          "category": "layout",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "level": 3,
+                "value": "First feature"
+              },
+              "id": "id-2",
+              "label": "Heading",
+              "name": "core/heading",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-1",
+              "settings": {},
+              "styles": {
+                "fontSize": "1.25rem",
+                "fontWeight": "600",
+                "margin": "0"
+              },
+              "type": "block"
+            },
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "One or two lines about it."
+              },
+              "id": "id-3",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-1",
+              "settings": {},
+              "styles": {
+                "fontSize": "16px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "link": "",
+              "linkLabel": "",
+              "linkTarget": "_self",
+              "look": "bordered"
+            },
+            "kind": "structured"
+          },
+          "id": "id-1",
+          "label": "Card",
+          "name": "core/card",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "borderRadius": "12px",
+            "boxSizing": "border-box",
+            "gap": "0.5rem",
+            "margin": "0",
+            "padding": "1.5rem",
+            "width": "100%"
+          },
+          "type": "container"
+        },
+        {
+          "category": "layout",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "level": 3,
+                "value": "Second feature"
+              },
+              "id": "id-5",
+              "label": "Heading",
+              "name": "core/heading",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-4",
+              "settings": {},
+              "styles": {
+                "fontSize": "1.25rem",
+                "fontWeight": "600",
+                "margin": "0"
+              },
+              "type": "block"
+            },
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "One or two lines about it."
+              },
+              "id": "id-6",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-4",
+              "settings": {},
+              "styles": {
+                "fontSize": "16px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "link": "",
+              "linkLabel": "",
+              "linkTarget": "_self",
+              "look": "bordered"
+            },
+            "kind": "structured"
+          },
+          "id": "id-4",
+          "label": "Card",
+          "name": "core/card",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "borderRadius": "12px",
+            "boxSizing": "border-box",
+            "gap": "0.5rem",
+            "margin": "0",
+            "padding": "1.5rem",
+            "width": "100%"
+          },
+          "type": "container"
+        },
+        {
+          "category": "layout",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "level": 3,
+                "value": "Third feature"
+              },
+              "id": "id-8",
+              "label": "Heading",
+              "name": "core/heading",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-7",
+              "settings": {},
+              "styles": {
+                "fontSize": "1.25rem",
+                "fontWeight": "600",
+                "margin": "0"
+              },
+              "type": "block"
+            },
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "One or two lines about it."
+              },
+              "id": "id-9",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-7",
+              "settings": {},
+              "styles": {
+                "fontSize": "16px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "link": "",
+              "linkLabel": "",
+              "linkTarget": "_self",
+              "look": "bordered"
+            },
+            "kind": "structured"
+          },
+          "id": "id-7",
+          "label": "Card",
+          "name": "core/card",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "borderRadius": "12px",
+            "boxSizing": "border-box",
+            "gap": "0.5rem",
+            "margin": "0",
+            "padding": "1.5rem",
+            "width": "100%"
+          },
+          "type": "container"
+        }
+      ],
+      "content": {
+        "data": {
+          "align": "stretch",
+          "columns": 3,
+          "minItemWidth": "",
+          "phoneColumns": 1,
+          "tabletColumns": 2
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Grid",
+      "name": "core/grid",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "gap": "1.5rem",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Grid"
   },
   "core/group": {
     "category": "layout",
@@ -1650,6 +2221,7 @@
       "data": {
         "anchor": "",
         "className": "",
+        "marker": "default",
         "ordered": false,
         "values": "<li>List item 1</li><li>List item 2</li><li>List item 3</li>"
       },
@@ -1668,6 +2240,7 @@
         "data": {
           "anchor": "",
           "className": "",
+          "marker": "default",
           "ordered": false,
           "values": "<li>List item 1</li><li>List item 2</li><li>List item 3</li>"
         },
@@ -1696,12 +2269,125 @@
     "isContainer": false,
     "label": "List"
   },
+  "core/logo-cloud": {
+    "category": "media",
+    "defaultContent": {
+      "data": {
+        "columns": 5,
+        "grayscale": true,
+        "layout": "row",
+        "logoHeight": "40px",
+        "logos": [
+          {
+            "alt": "Logo 1",
+            "href": "",
+            "url": "/placeholder.png"
+          },
+          {
+            "alt": "Logo 2",
+            "href": "",
+            "url": "/placeholder.png"
+          },
+          {
+            "alt": "Logo 3",
+            "href": "",
+            "url": "/placeholder.png"
+          },
+          {
+            "alt": "Logo 4",
+            "href": "",
+            "url": "/placeholder.png"
+          },
+          {
+            "alt": "Logo 5",
+            "href": "",
+            "url": "/placeholder.png"
+          }
+        ],
+        "marquee": false
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "Logos of customers or partners in a row or grid",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/logo-cloud",
+    "inserted": {
+      "category": "media",
+      "content": {
+        "data": {
+          "columns": 5,
+          "grayscale": true,
+          "layout": "row",
+          "logoHeight": "40px",
+          "logos": [
+            {
+              "alt": "Logo 1",
+              "href": "",
+              "url": "/placeholder.png"
+            },
+            {
+              "alt": "Logo 2",
+              "href": "",
+              "url": "/placeholder.png"
+            },
+            {
+              "alt": "Logo 3",
+              "href": "",
+              "url": "/placeholder.png"
+            },
+            {
+              "alt": "Logo 4",
+              "href": "",
+              "url": "/placeholder.png"
+            },
+            {
+              "alt": "Logo 5",
+              "href": "",
+              "url": "/placeholder.png"
+            }
+          ],
+          "marquee": false
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Logo cloud",
+      "name": "core/logo-cloud",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Logo cloud"
+  },
   "core/markdown": {
     "category": "advanced",
     "defaultContent": {
       "data": {
         "className": "",
-        "content": ""
+        "content": "",
+        "mdx": false
       },
       "kind": "structured"
     },
@@ -1710,14 +2396,15 @@
     },
     "description": "Add rich text using Markdown format",
     "handlesOwnChildren": false,
-    "hasSettings": false,
+    "hasSettings": true,
     "id": "core/markdown",
     "inserted": {
       "category": "advanced",
       "content": {
         "data": {
           "className": "",
-          "content": ""
+          "content": "",
+          "mdx": false
         },
         "kind": "structured"
       },
@@ -2205,6 +2892,54 @@
     "isContainer": false,
     "label": "Quote"
   },
+  "core/search": {
+    "category": "advanced",
+    "defaultContent": {
+      "data": {
+        "label": "Search",
+        "placeholder": "Search this site"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "margin": "0"
+    },
+    "description": "A search button that opens site search (Ctrl or ⌘ + K)",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "core/search",
+    "inserted": {
+      "category": "advanced",
+      "content": {
+        "data": {
+          "label": "Search",
+          "placeholder": "Search this site"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Search",
+      "name": "core/search",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "margin": "0",
+        "padding": "20px 20px 0"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Search"
+  },
   "core/select": {
     "category": "form",
     "defaultContent": {
@@ -2462,6 +3197,392 @@
     "isContainer": true,
     "label": "Stack"
   },
+  "core/step": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "title": "Step title"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "One step inside Steps",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/step",
+    "inserted": {
+      "category": "layout",
+      "children": [
+        {
+          "category": "basic",
+          "content": {
+            "kind": "text",
+            "value": "Explain what to do in this step."
+          },
+          "id": "id-1",
+          "label": "Paragraph",
+          "name": "core/paragraph",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "fontSize": "16px",
+            "lineHeight": "1.6",
+            "margin": "0"
+          },
+          "type": "block"
+        }
+      ],
+      "content": {
+        "data": {
+          "title": "Step title"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Step",
+      "name": "core/step",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Step"
+  },
+  "core/steps": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "layout": "vertical",
+        "marker": "number"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "Numbered steps down the page or in a row",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/steps",
+    "inserted": {
+      "category": "layout",
+      "children": [
+        {
+          "category": "layout",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "Explain what to do in this step."
+              },
+              "id": "id-2",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-1",
+              "settings": {},
+              "styles": {
+                "fontSize": "16px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "title": "First step"
+            },
+            "kind": "structured"
+          },
+          "id": "id-1",
+          "label": "Step",
+          "name": "core/step",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "boxSizing": "border-box",
+            "margin": "0",
+            "width": "100%"
+          },
+          "type": "container"
+        },
+        {
+          "category": "layout",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "Explain what to do in this step."
+              },
+              "id": "id-4",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-3",
+              "settings": {},
+              "styles": {
+                "fontSize": "16px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "title": "Second step"
+            },
+            "kind": "structured"
+          },
+          "id": "id-3",
+          "label": "Step",
+          "name": "core/step",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "boxSizing": "border-box",
+            "margin": "0",
+            "width": "100%"
+          },
+          "type": "container"
+        },
+        {
+          "category": "layout",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "Explain what to do in this step."
+              },
+              "id": "id-6",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-5",
+              "settings": {},
+              "styles": {
+                "fontSize": "16px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "title": "Third step"
+            },
+            "kind": "structured"
+          },
+          "id": "id-5",
+          "label": "Step",
+          "name": "core/step",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "boxSizing": "border-box",
+            "margin": "0",
+            "width": "100%"
+          },
+          "type": "container"
+        }
+      ],
+      "content": {
+        "data": {
+          "layout": "vertical",
+          "marker": "number"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Steps",
+      "name": "core/steps",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Steps"
+  },
+  "core/tab": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "title": "Tab"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "One tab inside Tabs",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/tab",
+    "inserted": {
+      "category": "layout",
+      "children": [
+        {
+          "category": "basic",
+          "content": {
+            "kind": "text",
+            "value": "What shows under this tab."
+          },
+          "id": "id-1",
+          "label": "Paragraph",
+          "name": "core/paragraph",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "fontSize": "16px",
+            "lineHeight": "1.6",
+            "margin": "0"
+          },
+          "type": "block"
+        }
+      ],
+      "content": {
+        "data": {
+          "title": "Tab"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Tab",
+      "name": "core/tab",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Tab"
+  },
   "core/table": {
     "category": "advanced",
     "defaultContent": {
@@ -2623,6 +3744,174 @@
     },
     "isContainer": false,
     "label": "Table"
+  },
+  "core/tabs": {
+    "category": "layout",
+    "defaultContent": {
+      "data": {
+        "look": "underline"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "Content that switches when a tab is chosen",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "core/tabs",
+    "inserted": {
+      "category": "layout",
+      "children": [
+        {
+          "category": "layout",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "What shows under \"First tab\"."
+              },
+              "id": "id-2",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-1",
+              "settings": {},
+              "styles": {
+                "fontSize": "16px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "title": "First tab"
+            },
+            "kind": "structured"
+          },
+          "id": "id-1",
+          "label": "Tab",
+          "name": "core/tab",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "boxSizing": "border-box",
+            "margin": "0",
+            "width": "100%"
+          },
+          "type": "container"
+        },
+        {
+          "category": "layout",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "What shows under \"Second tab\"."
+              },
+              "id": "id-4",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-3",
+              "settings": {},
+              "styles": {
+                "fontSize": "16px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "title": "Second tab"
+            },
+            "kind": "structured"
+          },
+          "id": "id-3",
+          "label": "Tab",
+          "name": "core/tab",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "boxSizing": "border-box",
+            "margin": "0",
+            "width": "100%"
+          },
+          "type": "container"
+        }
+      ],
+      "content": {
+        "data": {
+          "look": "underline"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Tabs",
+      "name": "core/tabs",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Tabs"
   },
   "core/template-part": {
     "category": "layout",

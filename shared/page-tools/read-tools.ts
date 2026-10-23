@@ -1,7 +1,9 @@
 import { z } from "zod";
-import { BLOCK_CATALOG, findBlockEntry } from "../block-catalog/entries.js";
+import { resolveBlockName } from "../block-catalog/block-names.js";
+import { BLOCK_CATALOG, getBlockEntry } from "../block-catalog/entries.js";
 import { createDefaultBlock } from "../block-catalog/create-default-block.js";
 import { PAGE_DESIGN_GUIDE } from "../block-catalog/page-design-guide.js";
+import { describeContentFields } from "./content-fields.js";
 import { outlinePage } from "./outline-page.js";
 import { defineTool, readPageTree } from "./tool-helpers.js";
 import { countBlocks, findBlockById } from "./tree-find.js";
@@ -20,7 +22,7 @@ const createOutlineTool = (ctx: PageToolContext): PageTool =>
 			name: "get_page_outline",
 			title: "Page outline",
 			description:
-				'Read this first. Returns a short outline of the whole page: one indented line per block with its name (no "core/"), its id, a custom label if it has one, and the key content (first words of text, heading level, button link, picture and alt text, stack type, header variant, popup slug, form field name). Use it to find the ids that get_block and change_blocks need, and read it again after anything changed the page. A line marked "← selected" is the block the person picked. Very large pages fold their deepest levels as "(+N inside)"; read those with get_block. It does not show styles or settings.',
+				'Read this first. Returns a short outline of the whole page: one indented line per block with its name (no "core/", and change_blocks takes it that way too), its id, a custom label if it has one, and the key content (first words of text, heading level, button link, picture and alt text, stack type, header variant, popup slug, form field name). Use it to find the ids that get_block and change_blocks need, and read it again after anything changed the page. A line marked "← selected" is the block the person picked. Very large pages fold their deepest levels as "(+N inside)"; read those with get_block. It does not show styles or settings.',
 			inputShape: {},
 			changesPage: false,
 			run: async () => {
@@ -98,14 +100,6 @@ const createListTypesTool = (ctx: PageToolContext): PageTool =>
 		},
 	});
 
-/** Names close to what the agent typed, so a typo gets a suggestion. */
-const suggestNames = (name: string): string[] => {
-	const needle = name.toLowerCase().replace(/^core\//, "");
-	return BLOCK_CATALOG.filter((entry) => entry.name.toLowerCase().includes(needle) || needle.includes(entry.name.replace(/^\w+\//, ""))).map(
-		(entry) => entry.name,
-	);
-};
-
 const createGetBlockTypeTool = (ctx: PageToolContext): PageTool =>
 	defineTool({
 		ctx,
@@ -113,18 +107,13 @@ const createGetBlockTypeTool = (ctx: PageToolContext): PageTool =>
 			name: "get_block_type",
 			title: "Block type details",
 			description:
-				'Returns one block type in full: label, description, kind, category, where it may sit, the note on when to use it, and an example block exactly as the editor inserts it (default content, styles and starting children). The example\'s "content" shows the fields you can set; send those fields under "content" in change_blocks. Use it before you build a block you have not used yet.',
-			inputShape: { name: z.string().min(1).describe("Block name from list_block_types, such as core/stack.") },
+				'Returns one block type in full: label, description, kind, category, where it may sit, the note on when to use it, its content fields (send them under "content" in change_blocks; no other field is accepted), and an example block exactly as the editor inserts it (default content, styles and starting children). Use it before you build a block you have not used yet.',
+			inputShape: { name: z.string().min(1).describe("Block name, such as stack or core/stack.") },
 			changesPage: false,
 			run: async ({ name }) => {
-				const entry = findBlockEntry(name);
-				if (!entry) {
-					const close = suggestNames(name);
-					return {
-						ok: false,
-						text: `Unknown block type "${name}".${close.length > 0 ? ` Did you mean ${close.slice(0, 5).join(", ")}?` : ""} Call list_block_types for the valid names.`,
-					};
-				}
+				const resolved = resolveBlockName(name);
+				if (!resolved.ok) return { ok: false, text: resolved.message };
+				const entry = getBlockEntry(resolved.name);
 				let counter = 0;
 				const example = createDefaultBlock({
 					name: entry.name,
@@ -138,6 +127,7 @@ const createGetBlockTypeTool = (ctx: PageToolContext): PageTool =>
 						`Kind: ${entry.kind}${entry.kind === "container" ? " (can hold other blocks)" : " (cannot hold other blocks)"}. Category: ${entry.category}.`,
 						entry.placement?.rootOnly ? "Placement: page root only, one per page." : "",
 						`When to use: ${entry.agentNote}`,
+						`Content fields: ${describeContentFields(entry.name)}`,
 						`Example (what a new one looks like; ids are made up):`,
 						JSON.stringify(example),
 					]

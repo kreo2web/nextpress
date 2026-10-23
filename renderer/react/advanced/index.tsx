@@ -1,7 +1,9 @@
 import * as React from "react";
 import type { BlockConfig } from "@shared/schema-types";
+import { CodeView, parseLineList } from "@shared/markdown";
 import { sanitizeHtml } from "@shared/sanitize-html";
 import { readTextAlign } from "@shared/text-align";
+import { readListMarker } from "@shared/blocks/list-markers-css";
 import { getRenderProps, parseTextContent, parseStructuredContent, parseHtmlContent, parseMarkdownContent } from "../render-helpers";
 import {
 	effectiveIconGlyphColor,
@@ -92,11 +94,16 @@ export function QuoteBlock(block: BlockConfig) {
 export function ListBlock(block: BlockConfig) {
 	const { style, className, attributes } = getRenderProps(block);
 	// Lists store their `<li>` items as HTML in `values` (matches the client block).
-	const raw = (block.content || {}) as Record<string, unknown>;
+	// The catalog and editor save lists as structured content; flat content still reads through the same helper.
+	const raw = parseStructuredContent(block.content);
 	const ordered = !!raw.ordered;
 	const valuesHtml = typeof raw.values === "string" ? raw.values : "";
 
-	const mergedClassName = ["wp-block-list", className]
+	// Custom markers (check, arrow, dash, none) are drawn in CSS and take over the indent, so the
+	// inline defaults below step aside for them. Kept in sync with the client list renderer.
+	const marker = readListMarker(typeof raw.marker === "string" ? raw.marker : undefined);
+	const customMarker = !ordered && marker !== "default" ? marker : null;
+	const mergedClassName = ["wp-block-list", className, customMarker ? `np-list--${customMarker}` : ""]
 		.filter(Boolean)
 		.join(" ");
 
@@ -104,10 +111,9 @@ export function ListBlock(block: BlockConfig) {
 	// sync with the client list renderer so preview and publish match.
 	const listType = raw.type as string | undefined;
 	const listStyle: React.CSSProperties = {
-		listStyleType: ordered ? "decimal" : "disc",
-		paddingLeft: "1.5em",
+		...(customMarker ? {} : { listStyleType: ordered ? "decimal" : "disc", paddingLeft: "1.5em" }),
 		...style,
-		...(listType && !ordered
+		...(listType && !ordered && !customMarker
 			? { listStyleType: listType as React.CSSProperties["listStyleType"] }
 			: {}),
 	};
@@ -171,94 +177,29 @@ export function ListBlock(block: BlockConfig) {
 
 /**
  * Code Block Component
- * Renders code with optional language syntax highlighting class
+ * The shared code view: colored on the server, title, marked lines, line numbers and a copy button
+ * (published pages copy through `/vendor/code.js`, so it works without React on the page).
  */
 export function CodeBlock(block: BlockConfig) {
 	const { style, className, attributes } = getRenderProps(block);
 	const data = parseStructuredContent(block.content);
-	const codeContent = (data.content as string) || "";
-	const language = data.language as string | undefined;
-	const showLineNumbers = Boolean(data.showLineNumbers);
-	const wrapLines = data.wrapLines !== false;
-	const showCopyButton = Boolean(data.showCopyButton);
-	const [copied, setCopied] = React.useState(false);
-
-	const mergedClassName = [
-		"wp-block-code",
-		language ? `language-${language}` : "",
-		showLineNumbers ? "has-line-numbers" : "",
-		className,
-	]
-		.filter(Boolean)
-		.join(" ");
-
-	const lines = codeContent.split("\n");
-
 	const savedMaxWidth = style.maxWidth;
-	const preStyle: React.CSSProperties = {
-		backgroundColor: "#1e293b",
-		color: "#f8fafc",
-		padding: "1rem",
-		borderRadius: "6px",
-		fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-		fontSize: "0.875rem",
-		lineHeight: "1.6",
-		...style,
-		overflowX: "auto",
-		boxSizing: "border-box",
-		maxWidth:
-			typeof savedMaxWidth === "string" && savedMaxWidth !== ""
-				? savedMaxWidth
-				: "100%",
-	};
 
 	return (
-		<pre className={mergedClassName || undefined} style={preStyle} {...attributes}>
-			{language ? (
-				<div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem", gap: "0.75rem", alignItems: "center" }}>
-					{showCopyButton ? (
-						<button
-							type="button"
-							onClick={() => {
-								navigator.clipboard
-									?.writeText(codeContent)
-									.then(() => {
-										setCopied(true);
-										window.setTimeout(() => setCopied(false), 1500);
-									})
-									.catch(() => undefined);
-							}}
-							style={{
-								background: "none",
-								border: "none",
-								padding: 0,
-								cursor: "pointer",
-								fontSize: "0.75rem",
-								color: copied ? "#34d399" : "#94a3b8",
-								fontFamily: "sans-serif",
-							}}
-						>
-							{copied ? "Copied" : "Copy"}
-						</button>
-					) : null}
-					<span style={{ fontSize: "0.75rem", textTransform: "uppercase", color: "#94a3b8", letterSpacing: "0.05em", fontFamily: "sans-serif" }}>
-						{language}
-					</span>
-				</div>
-			) : null}
-			<code style={{ display: "block", whiteSpace: wrapLines ? "pre-wrap" : "pre", wordBreak: wrapLines ? "break-word" : "normal" }}>
-				{showLineNumbers
-					? lines.map((line, idx) => (
-							<div key={idx} style={{ display: "flex", gap: "1rem" }}>
-								<span style={{ color: "#64748b", userSelect: "none", textAlign: "right", minWidth: "1.5rem", flexShrink: 0 }}>
-									{idx + 1}
-								</span>
-								<span style={{ flex: 1, minWidth: 0 }}>{line || " "}</span>
-							</div>
-						))
-					: codeContent}
-			</code>
-		</pre>
+		<div
+			className={["wp-block-code", className].filter(Boolean).join(" ")}
+			style={{ ...style, maxWidth: typeof savedMaxWidth === "string" && savedMaxWidth !== "" ? savedMaxWidth : "100%" }}
+			{...attributes}>
+			<CodeView
+				code={typeof data.content === "string" ? data.content : ""}
+				language={typeof data.language === "string" ? data.language : null}
+				title={typeof data.title === "string" ? data.title : null}
+				highlightLines={parseLineList(typeof data.highlightLines === "string" ? data.highlightLines : "")}
+				showLineNumbers={Boolean(data.showLineNumbers)}
+				wrapLines={data.wrapLines !== false}
+				showCopyButton={Boolean(data.showCopyButton)}
+			/>
+		</div>
 	);
 }
 

@@ -10,7 +10,8 @@ export type FeedPost = {
 
 export type FeedSite = { name: string; url: string; description: string };
 
-const escapeXml = (value: string): string =>
+/** Text made safe inside XML, for the feed and the sitemap. */
+export const escapeXml = (value: string): string =>
 	value.replace(/[<>&'"]/g, (char) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[char] ?? char);
 
 const rfc822 = (value: Date | string | null): string | null => {

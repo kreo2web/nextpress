@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
-import { Streamdown } from "streamdown";
+import { MarkdownView } from "@shared/markdown";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -304,16 +304,22 @@ export const MessageBranchPage = ({
   );
 };
 
-export type MessageResponseProps = ComponentProps<typeof Streamdown>;
+export type MessageResponseProps = { children?: string; className?: string };
 
+const copyReplyCode = (code: string): void => {
+  void navigator.clipboard?.writeText(code).catch((error: unknown) =>
+    console.error({ atFunction: "MessageResponse.copy", data: { error }, message: "The browser refused to copy the code" })
+  );
+};
+
+/** An assistant reply, rendered by the same markdown pipeline as pages (colored code, diagrams), compact for chat. */
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
-    <Streamdown
-      className={cn(
-        "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-        className
-      )}
-      {...props}
+  ({ className, children }: MessageResponseProps) => (
+    <MarkdownView
+      text={children ?? ""}
+      mode="streaming"
+      onCopyCode={copyReplyCode}
+      className={cn("np-prose-compact size-full", className)}
     />
   ),
   (prevProps, nextProps) => prevProps.children === nextProps.children

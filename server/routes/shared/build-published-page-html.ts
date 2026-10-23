@@ -36,6 +36,8 @@ import { buildScrollbarCss } from "@shared/scrollbar-model";
 import { collectBlockExtraCss, treeHasScrollingHeader } from "@shared/collect-block-extra-css";
 import { POPUP_BLOCK_NAME } from "@shared/popup-model";
 import { FORM_BLOCK_NAME } from "@shared/form-model";
+import { SEARCH_BLOCK_NAME } from "@shared/blocks/search-model";
+import { DOCS_LAYOUT_BLOCK_NAME } from "@shared/blocks/docs-layout-model";
 import { parsePageOther } from "@shared/page-other";
 import {
 	buildPublishedDocumentMeta,
@@ -170,6 +172,19 @@ export function buildPublishedPageHtml({
 	}
 	if (allBlocks.some((b) => b.name === POPUP_BLOCK_NAME)) {
 		bodyParts.push(`<script src="/vendor/popup.js"></script>`);
+	}
+	if (allBlocks.some((b) => b.name === "core/tabs")) {
+		bodyParts.push(`<script src="/vendor/tabs.js"></script>`);
+	}
+	if (allBlocks.some((b) => b.name === SEARCH_BLOCK_NAME)) {
+		bodyParts.push(`<script src="/vendor/search.js"></script>`);
+	}
+	if (allBlocks.some((b) => b.name === DOCS_LAYOUT_BLOCK_NAME)) {
+		bodyParts.push(`<script src="/vendor/docs.js"></script>`);
+	}
+	// Copy buttons on code blocks and on code inside markdown.
+	if (allBlocks.some((b) => b.name === "core/code" || b.name === "core/markdown")) {
+		bodyParts.push(`<script src="/vendor/code.js"></script>`);
 	}
 	if (documentHasBlockName({ blocks, name: "post/list" })) {
 		bodyParts.push(`<script src="/vendor/post-list-overlay.js"></script>`);

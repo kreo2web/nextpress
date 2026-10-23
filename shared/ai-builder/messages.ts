@@ -54,5 +54,6 @@ export const AI_ASSISTANT_MESSAGES = {
 	busyOrQuota: "The AI service is busy or out of credit. Try again in a minute.",
 	noAnswer: "The AI service didn't answer. Try again in a moment.",
 	noToolUse: "This model can chat but can't use tools, so it can't build pages.",
+	malformedToolInput: "The assistant sent a change that didn't fit the page. Try asking again, or ask for one section at a time.",
 	testOk: "The connection works. This model can use tools.",
 } as const;

@@ -14,6 +14,7 @@ import {
   Users,
   Cog,
   Download,
+  UserRound,
 } from 'lucide-react';
 import type { SiteAction } from '@shared/access';
 import { NEXTPRESS_CONFIG } from '../../../config';
@@ -43,6 +44,7 @@ const menuItems: MenuItem[] = [
   { label: 'Plugins', path: '/admin/plugins', icon: Plug, section: 'System', needs: 'main-site-admin' },
   { label: 'Sites', path: '/admin/sites', icon: Globe, section: 'System', needs: 'manage_site' },
   { label: 'People', path: '/admin/users', icon: Users, section: 'System', needs: 'manage_people' },
+  { label: 'Your account', path: '/admin/account', icon: UserRound, section: 'System' },
   { label: 'Settings', path: '/admin/settings', icon: Cog, section: 'System', needs: 'manage_site' },
 ];
 

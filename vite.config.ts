@@ -132,6 +132,11 @@ export default defineConfig({
       // Renders assistant answers. It pulls CommonJS helpers (style-to-js) that the
       // browser cannot import named/default exports from unless they are bundled.
       "streamdown",
+      // Markdown and MDX (shared/markdown). remark-mdx reaches acorn-jsx and unified reaches
+      // extend, both CommonJS; served raw the page crashes ("does not provide an export named 'default'").
+      "remark-mdx",
+      "remark-parse",
+      "unified",
     ],
   },
 });

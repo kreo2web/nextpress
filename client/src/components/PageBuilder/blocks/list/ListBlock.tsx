@@ -15,6 +15,7 @@ import { useSettingsState } from "../useSettingsState";
 import { SettingsChipGroup } from "../../settings-chip-group";
 import { sanitizeHtml } from "../../utils";
 import { LIST_DEFAULT_CONTENT } from "@shared/block-catalog/text-blocks";
+import { readListMarker, type ListMarker } from "@shared/blocks/list-markers-css";
 import { catalogMeta } from "../catalog-meta";
 
 // ============================================================================
@@ -28,6 +29,8 @@ type ListContent = {
   start?: number;
   reversed?: boolean;
   type?: string;
+  /** Bullet shape for unordered lists; "default" keeps the browser's bullets. */
+  marker?: string;
   anchor?: string;
   className?: string;
 };
@@ -38,6 +41,20 @@ const LIST_KIND_OPTIONS = [
   { value: "unordered", label: "Bullets" },
   { value: "ordered", label: "Numbers" },
 ];
+
+const LIST_MARKER_OPTIONS: { value: ListMarker; label: string }[] = [
+  { value: "default", label: "Default" },
+  { value: "check", label: "Check" },
+  { value: "arrow", label: "Arrow" },
+  { value: "dash", label: "Dash" },
+  { value: "none", label: "None" },
+];
+
+/** Custom markers replace the browser's bullet, so the list's own bullet style no longer applies. */
+function readCustomMarker({ ordered, marker }: { ordered: boolean; marker?: string }): ListMarker | null {
+  const value = readListMarker(marker);
+  return !ordered && value !== "default" ? value : null;
+}
 
 /**
  * WHY: Enter must keep a blank line while the field is focused. Saved HTML
@@ -143,19 +160,21 @@ function ListRenderer({
 
   // Map Gutenberg-like attributes
   const anchor: string | undefined = content?.anchor;
-  const className: string | undefined = content?.className;
   const reversed: boolean | undefined = isOrdered ? content?.reversed : undefined;
   const start: number | undefined = isOrdered ? content?.start : undefined;
   const listType: string | undefined = content?.type;
+  const customMarker = readCustomMarker({ ordered: isOrdered, marker: content?.marker });
+  // Custom markers draw their own indent and bullet in CSS, so the inline defaults step aside.
+  const markerClass = customMarker ? `np-list--${customMarker}` : undefined;
+  const className = [content?.className, markerClass].filter(Boolean).join(" ") || undefined;
 
   const style: React.CSSProperties = {
     // Restore default markers + indent (global CSS reset strips them). Kept in
     // sync with the SSR list renderer so preview and publish match.
-    listStyleType: isOrdered ? 'decimal' : 'disc',
-    paddingLeft: '1.5em',
+    ...(customMarker ? {} : { listStyleType: isOrdered ? 'decimal' : 'disc', paddingLeft: '1.5em' }),
     ...styles,
     // For unordered lists, map `type` to CSS list-style-type if present
-    ...(listType && !isOrdered ? { listStyleType: listType as React.CSSProperties['listStyleType'] } : {}),
+    ...(listType && !isOrdered && !customMarker ? { listStyleType: listType as React.CSSProperties['listStyleType'] } : {}),
   };
 
   const commonProps = {
@@ -280,24 +299,36 @@ function ListSettings({ block, onUpdate }: ListSettingsProps) {
               />
             </div>
           ) : (
-            <div className="space-y-2">
-              <SettingsLabel htmlFor="list-type-unordered">Bullet Style</SettingsLabel>
-              <Select
-                value={readBulletStyle({ type: content?.type })}
-                onValueChange={(value) =>
-                  updateContent({ type: value === "disc" ? undefined : value })
-                }
-              >
-                <SelectTrigger id="list-type-unordered" className="h-9">
-                  <SelectValue placeholder="Dot" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="disc">Dot</SelectItem>
-                  <SelectItem value="circle">Circle</SelectItem>
-                  <SelectItem value="square">Square</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <SettingsChipGroup
+                label="Marker"
+                ariaLabel="List marker"
+                options={LIST_MARKER_OPTIONS}
+                value={readListMarker(content?.marker)}
+                onChange={(value) => updateContent({ marker: value === "default" ? undefined : value })}
+              />
+              {/* Bullet Style only changes the browser's own bullet, so it hides when a custom marker is set. */}
+              {!readCustomMarker({ ordered: false, marker: content?.marker }) && (
+                <div className="space-y-2">
+                  <SettingsLabel htmlFor="list-type-unordered">Bullet Style</SettingsLabel>
+                  <Select
+                    value={readBulletStyle({ type: content?.type })}
+                    onValueChange={(value) =>
+                      updateContent({ type: value === "disc" ? undefined : value })
+                    }
+                  >
+                    <SelectTrigger id="list-type-unordered" className="h-9">
+                      <SelectValue placeholder="Dot" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="disc">Dot</SelectItem>
+                      <SelectItem value="circle">Circle</SelectItem>
+                      <SelectItem value="square">Square</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </>
           )}
           {isOrdered && (
             <div className="space-y-2">

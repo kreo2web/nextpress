@@ -48,7 +48,8 @@ export type MediaSummary = {
 	height?: number;
 };
 
-export type PageSummary = { id: string; title: string; slug: string; status: string };
+/** `path` is the page's full address without the leading slash (`guides/install`); it equals `slug` for top-level pages. */
+export type PageSummary = { id: string; title: string; slug: string; path?: string; status: string };
 
 export type TemplatePartSummary = { id: string; name: string; rootBlock: string };
 
@@ -104,10 +105,14 @@ export type PageTool = {
 /** A new block described by an agent: the tools fill in ids, defaults and structure. */
 export type BlockSpec = {
 	name: BlockName;
+	/** The agent's own short name for this block, usable as an id by later ops in the same call. Never saved. */
+	ref?: string;
 	label?: string;
 	/** The block's saved content fields (`value`, `level`, `url`, …), laid over its defaults. */
 	content?: Record<string, unknown>;
 	/** CSS styles, laid over the block's default styles. `null` removes a default. */
 	styles?: Record<string, string | number | null>;
+	/** A layer of an overlay Stack that fills behind the others instead of setting the size (`settings.stackFillBehind`). */
+	fillBehind?: boolean;
 	children?: BlockSpec[];
 };

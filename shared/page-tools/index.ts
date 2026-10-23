@@ -1,5 +1,5 @@
 export { PAGE_DESIGN_GUIDE } from "../block-catalog/page-design-guide.js";
-export { blockSpecSchema, changeBlocksShape, changeOpSchema, MAX_NEW_BLOCKS_PER_CALL, MAX_OPS_PER_CALL } from "./block-spec-schema.js";
+export { changeBlocksShape, changeOpSchema, createBlockSpecSchema, MAX_NEW_BLOCKS_PER_CALL, MAX_OPS_PER_CALL } from "./block-spec-schema.js";
 export { type BuildFromSpecParams, buildBlockFromSpec } from "./build-from-spec.js";
 export {
 	type BlockValidationIssue,
@@ -11,12 +11,15 @@ export {
 	type ValidateBlockTreeResult,
 } from "./check-block-structure.js";
 export { type CheckPageResult, checkBlocksOnTheirOwn, checkPage, type PageProblem, type PageProblemKind } from "./check-page.js";
+export { describeContentFields, explainUnknownContentFields } from "./content-fields.js";
 export { createPageTools } from "./create-page-tools.js";
+export { type EqualColumn, layoutEqualColumns } from "./equal-columns.js";
 export { explainFocusRefusal, isInsideFocus } from "./focus.js";
 export { mergeBlockUpdate } from "./merge-block-update.js";
 export { mergeContentFields, mergeStyleFields } from "./merge-content.js";
 export { normalizeBlockSubtree, normalizeBlockTree } from "./normalize-block-tree.js";
 export { type OutlinePageParams, outlinePage } from "./outline-page.js";
+export { repairChangeBlocksInput } from "./repair-change-blocks-input.js";
 export {
 	type PatchBlockTreeErr,
 	type PatchBlockTreeOk,

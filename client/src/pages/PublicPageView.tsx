@@ -25,6 +25,8 @@ import type { AuthorDisplay } from "@shared/author-display";
 interface PublicPageData extends Post {
   /** HTML content for non-page-builder pages */
   content?: string;
+  /** A page's real address without the leading slash (`guides/install`), set by the server. */
+  path?: string;
   /** Whether this page uses the page builder */
   usePageBuilder?: boolean;
   /** Content type discriminator: 'page' | 'post' */
@@ -151,7 +153,7 @@ export default function PublicPageView({ slug: propSlug, type = 'page' }: Public
   const visitorStyle = buildVisitorDocumentStyle({ themeCssVars, design });
 
   const canonicalUrl = publishedCanonicalUrl({
-    requestUrl: window.location.href,
+    requestUrl: type === 'page' && data.path ? `${window.location.origin}/${data.path}` : window.location.href,
     siteUrl: data.site?.url,
     pageCanonical: seo?.canonicalUrl,
   });

@@ -41,6 +41,16 @@ import SelectBlock from './select/SelectBlock';
 import TemplatePartBlock from './template-part/TemplatePartBlock';
 
 // Post blocks
+import GridBlock from './grid/GridBlock';
+import CardBlock from './card/CardBlock';
+import BadgeBlock from './badge/BadgeBlock';
+import StepsBlock from './steps/StepsBlock';
+import StepBlock from './steps/StepBlock';
+import TabsBlock from './tabs/TabsBlock';
+import TabBlock from './tabs/TabBlock';
+import LogoCloudBlock from './logo-cloud/LogoCloudBlock';
+import SearchBlock from './search/SearchBlock';
+import DocsLayoutBlock from './docs-layout/DocsLayoutBlock';
 import PostTitleBlock from './post-title/PostTitleBlock';
 import PostExcerptBlock from './post-excerpt/PostExcerptBlock';
 import PostFeaturedImageBlock from './post-featured-image/PostFeaturedImageBlock';
@@ -142,6 +152,16 @@ export const blockRegistry: Record<string, BlockDefinition> = {
   'core/textarea': TextareaBlock,
   'core/select': SelectBlock,
   'core/template-part': TemplatePartBlock,
+  'core/grid': GridBlock,
+  'core/card': CardBlock,
+  'core/badge': BadgeBlock,
+  'core/steps': StepsBlock,
+  'core/step': StepBlock,
+  'core/tabs': TabsBlock,
+  'core/tab': TabBlock,
+  'core/logo-cloud': LogoCloudBlock,
+  'core/search': SearchBlock,
+  'core/docs-layout': DocsLayoutBlock,
 
   // Post blocks
   'post/title': PostTitleBlock,

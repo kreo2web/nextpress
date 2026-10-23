@@ -15,10 +15,10 @@ const asPrompt = ({ description, text }: { description: string; text: string }):
 
 const BUILD_PAGE_WORKFLOW = `# Workflow
 1. Learn the site. Call get_site_context (name, theme colours, settings). Call list_pages (link only to pages that exist), list_media (pictures to use) and list_template_parts (reuse a shared header or footer when the site has one).
-2. Get a page to work on. For a new page call create_page with just a title: it starts as a draft. Then call get_page_outline with its id. If the page is empty, the first block you insert is the page shell (core/page-shell).
+2. Get a page to work on. For a new page call create_page with just a title: it starts as a draft. Then call get_page_outline with its id. An empty page gets its page shell automatically with the first block you add at the root.
 3. Learn the blocks. Call list_block_types to see the blocks and when to use each. Call get_block_type before you use a block for the first time, to see its fields.
-4. Build in small steps. Call change_page_blocks with one section per call (header, hero, features...). Each reply lists the new blocks with their ids; use those ids in later calls. If a call is refused, the reply says why: fix it and send the whole call again. If you are told the page changed somewhere else, call get_page_outline again first.
-5. Check. Call check_page and fix every problem it lists. For phone warnings call apply_page_phone_fixes, then check_page again.
+4. Build in small steps. Call change_page_blocks with one section per call (header, hero, features...). To fill a block you are making in the same call, give it a ref and use the ref as parentId in a later op. Each reply lists the new blocks with their ids; use those ids in later calls. If a call is refused, the reply says why: fix it and send the whole call again. If you are told the page changed somewhere else, call get_page_outline again first.
+5. Check. Each change_page_blocks reply checks the page. If it lists phone warnings, call apply_page_phone_fixes. You don't need check_page after a change.
 6. Preview. Call preview_page with the page's id and give the owner the link.
 7. Leave it as a draft. Do not call publish_page unless the owner asks. Say in one or two plain sentences what you built and what the owner still needs to fill in (the [bracketed] placeholders).`;
 
@@ -51,7 +51,7 @@ Request: ${request}
 1. Call get_page_outline with id "${id}" and find block ${blockId}. If it is not on the page, say so and stop; do not pick another block.
 2. Call get_page_block with id "${id}" and block_id "${blockId}" to read its content and styles.
 3. Make the change with change_page_blocks. Touch only block ${blockId} and the blocks inside it: update it, replace it, or add, move or remove blocks inside it. Do not edit, move or delete anything outside it, even if it looks related. If the request cannot be done inside the block, say what would need to change and ask.
-4. Call check_page. Do not run apply_page_phone_fixes here: it repairs the whole page. If check_page shows a phone warning for this block, fix it with an update on this block.
+4. Read the reply: it checks the page. Do not run apply_page_phone_fixes here: it repairs the whole page. If the reply shows a phone warning for this block, fix it with an update on this block.
 5. Reply in one or two plain sentences saying what changed.`;
 }
 

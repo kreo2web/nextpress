@@ -32,6 +32,8 @@ export const PARAGRAPH_DEFAULT_CONTENT = {
 export const LIST_DEFAULT_CONTENT = {
 	ordered: false,
 	values: "<li>List item 1</li><li>List item 2</li><li>List item 3</li>",
+	/** Bullet shape for unordered lists: "default", "check", "arrow", "dash" or "none". */
+	marker: "default",
 	anchor: "",
 	className: "",
 };
@@ -52,10 +54,14 @@ export const PULLQUOTE_DEFAULT_CONTENT = {
 export const CODE_DEFAULT_CONTENT = {
 	content: '// Write your code here\nfunction hello() {\n  console.log("Hello, World!");\n}',
 	language: "javascript",
+	/** A file name or caption shown above the code. */
+	title: "",
+	/** Lines to mark, e.g. "2, 4-6". */
+	highlightLines: "",
 	className: "",
 	showLineNumbers: false,
 	wrapLines: true,
-	showCopyButton: false,
+	showCopyButton: true,
 };
 
 export const PREFORMATTED_DEFAULT_CONTENT = {
@@ -70,6 +76,8 @@ export const HTML_DEFAULT_CONTENT = {
 
 export const MARKDOWN_DEFAULT_CONTENT = {
 	content: "",
+	/** Read the text as MDX, so docs components like `<Callout>` work. Nothing in it is ever run. */
+	mdx: false,
 	className: "",
 };
 

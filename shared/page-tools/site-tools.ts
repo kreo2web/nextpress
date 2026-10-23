@@ -43,7 +43,7 @@ const createListPagesTool = ({ ctx, listPages }: { ctx: PageToolContext; listPag
 			name: "list_pages",
 			title: "Site pages",
 			description:
-				"Lists the pages on this site with title, address (slug) and status. Use it before you add a link, and link only to addresses in this list. If the page a link needs does not exist, say so instead of inventing an address.",
+				"Lists the pages on this site with title, address and status. Use it before you add a link, and link only to addresses in this list. If the page a link needs does not exist, say so instead of inventing an address.",
 			inputShape: {},
 			changesPage: false,
 			run: async () => {
@@ -51,7 +51,7 @@ const createListPagesTool = ({ ctx, listPages }: { ctx: PageToolContext; listPag
 				if (pages.length === 0) return { ok: true, text: "The site has no pages yet." };
 				return {
 					ok: true,
-					text: pages.map((page) => `- ${JSON.stringify(page.title)} link=/${page.slug.replace(/^\//, "")} status=${page.status} id=${page.id}`).join("\n"),
+					text: pages.map((page) => `- ${JSON.stringify(page.title)} link=/${(page.path ?? page.slug).replace(/^\//, "")} status=${page.status} id=${page.id}`).join("\n"),
 				};
 			},
 		},

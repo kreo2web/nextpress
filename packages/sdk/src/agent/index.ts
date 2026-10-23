@@ -10,6 +10,7 @@ export {
 	type BuildFromSpecParams,
 	type CheckPageResult,
 	checkPage,
+	createBlockSpecSchema,
 	createPageTools,
 	type MediaSummary,
 	type OutlinePageParams,

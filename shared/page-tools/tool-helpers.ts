@@ -12,7 +12,8 @@ const formatPath = (path: Array<string | number>): string =>
 export const explainInputProblems = (error: z.ZodError): string => {
 	const lines = error.issues.slice(0, MAX_INPUT_PROBLEMS).map((issue) => {
 		const where = formatPath(issue.path);
-		return `- ${where ? `${where}: ` : ""}${issue.message}`;
+		const keys = issue.code === z.ZodIssueCode.unrecognized_keys ? ` (not allowed here: ${issue.keys.join(", ")})` : "";
+		return `- ${where ? `${where}: ` : ""}${issue.message}${keys}`;
 	});
 	const more = error.issues.length - MAX_INPUT_PROBLEMS;
 	return [...lines, ...(more > 0 ? [`- and ${more} more`] : [])].join("\n");

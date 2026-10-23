@@ -30,6 +30,7 @@ import { DomainInputWithVerify } from '@/components/domain';
 import { ApiKeysPanel } from '@/components/settings/ApiKeysPanel';
 import { AiSettingsPanel } from '@/components/settings/ai-settings';
 import { TimezoneField } from '@/components/settings/timezone-field';
+import { AccountPanel } from '@/components/account/account-panel';
 import { useSiteAccess } from '@/hooks/use-site-access';
 
 /**
@@ -174,8 +175,11 @@ function SettingsScreen() {
   const { toast } = useToast();
   const settingsSaveAckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [settingsJustSaved, setSettingsJustSaved] = useState(false);
-  // The AI tab saves on its own, so the header Save (for the other tabs' form) steps aside there.
-  const [initialTab] = useState(() => (new URLSearchParams(window.location.search).get('tab') === 'ai' ? 'ai' : 'general'));
+  // The AI and account tabs save on their own, so the header Save (for the other tabs' form) steps aside there.
+  const [initialTab] = useState(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get('tab');
+    return requestedTab === 'ai' || requestedTab === 'account' ? requestedTab : 'general';
+  });
   const [activeTab, setActiveTab] = useState(initialTab);
 
   // Fetch current settings from new consolidated API
@@ -723,15 +727,20 @@ function SettingsScreen() {
   );
 
   return (
-    <AdminLayout title="Settings" actions={activeTab === 'ai' ? undefined : saveActions}>
+    <AdminLayout title="Settings" actions={activeTab === 'ai' || activeTab === 'account' ? undefined : saveActions}>
           <Tabs defaultValue={initialTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full max-w-3xl grid-cols-3 gap-1 group-data-[orientation=horizontal]/tabs:h-auto sm:grid-cols-6 sm:gap-0 sm:group-data-[orientation=horizontal]/tabs:h-9">
+              <TabsTrigger value="account">Your account</TabsTrigger>
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="reading">Reading</TabsTrigger>
               <TabsTrigger value="discussion">Discussion</TabsTrigger>
               <TabsTrigger value="ai">AI</TabsTrigger>
               <TabsTrigger value="system">System</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="account">
+              <AccountPanel />
+            </TabsContent>
 
             {/* General Settings */}
             <TabsContent value="general">

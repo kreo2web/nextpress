@@ -10,9 +10,13 @@
 - **Resource**: `nextpress://design-guide`; the blocks catalog now carries an agent note per block.
 - Short server `instructions` pointing agents at the outline → change → check workflow.
 - Page-changing calls queue per page, so two sent together land in order.
+- The new section blocks from the SDK catalog (grid, card, badge, steps, tabs, logo cloud, search) work in `change_page_blocks` and `build_blocks` with no MCP change.
 
 ### Changed
-- 44 tools, up from 30. `patch_page_blocks`/`patch_post_blocks`/`build_blocks` keep working; their descriptions point at `change_page_blocks`.
+- 44 tools, up from 30.
+- `build_blocks` takes the same block shape as `change_page_blocks` (`name`, `label`, `content`, `styles`, `children`) and builds it the same way. The old node fields (`text`, `level`, `url`, `alt`, `settings`) are gone, and so is the `buildBlocksFromNodes` export (now `buildBlocksFromSpecs`).
+- `validate_blocks`, `patch_page_blocks` and `patch_post_blocks` will be removed in 0.4; their descriptions say so and point at `check_page` / `change_page_blocks`.
+- `change_page_blocks` gets the SDK's agent help: short block names, `ref`, checked content fields, `fillBehind`, a page check in every reply, and a page shell on an empty page. The `build_page` and `edit_block` prompts and the server instructions no longer ask for `check_page` after each change.
 - Tool descriptions, replies and the guide use the MCP tool names.
 
 ### Fixed

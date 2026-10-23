@@ -12,6 +12,15 @@ const SPAN_CHROME_BLOCKS = new Set([
   "core/columns",
   "core/form",
   "core/template-part", // a linked template is one layout block, so it fills its slot like one
+  // Section blocks: each lays out its own items, so it needs the full slot like columns do.
+  "core/grid",
+  "core/card",
+  "core/steps",
+  "core/step",
+  "core/tabs",
+  "core/tab",
+  "core/logo-cloud",
+  "core/docs-layout",
 ]);
 
 /** Headers and layout blocks fill the slot; text and media start hugged. */
