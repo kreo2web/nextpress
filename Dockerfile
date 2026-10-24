@@ -1,5 +1,8 @@
+# Node is pinned to an exact release, not the moving `node:24` tag: a build machine with an old cached
+# `node:24` would otherwise ship a Node with known holes. 24.22.1 is the 2026-10-21 security release
+# (Brotli decoder RCE, TLS hostname and DNS checks). Bump both FROM lines on each Node security release.
 # Build stage
-FROM node:24-alpine AS builder
+FROM node:24.22.1-alpine AS builder
 
 WORKDIR /app
 
@@ -19,7 +22,7 @@ COPY . .
 RUN pnpm build
 
 # Runtime stage
-FROM node:24-alpine
+FROM node:24.22.1-alpine
 
 WORKDIR /app
 
