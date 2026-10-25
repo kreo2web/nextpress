@@ -47,6 +47,8 @@ type PageImportDeps = {
 		featuredImage: string | null;
 		blocks: BlockConfig[];
 		other: unknown;
+		parentId?: string;
+		menuOrder?: number;
 	}) => Promise<PageRow>;
 	findThemesByName: (name: string) => Promise<Theme[]>;
 	createTheme: (data: {
@@ -92,7 +94,47 @@ export function createPageImporter(deps: PageImportDeps) {
 	};
 
 	/** One page from the file: the main page first, then any linked pages that came along. */
-	type IncomingPage = { title: string; slug: string; featuredImage: string | null; other: Record<string, unknown>; blocks: BlockConfig[] };
+	type IncomingPage = {
+		title: string;
+		slug: string;
+		featuredImage: string | null;
+		other: Record<string, unknown>;
+		blocks: BlockConfig[];
+		parentSlug?: string;
+		menuOrder?: number;
+	};
+
+	/** Index of each page's parent inside the file, when its parent came along. */
+	const findParentIndexes = (incoming: IncomingPage[]): (number | undefined)[] => {
+		const indexBySlug = new Map(incoming.map((page, index) => [page.slug.toLowerCase(), index] as const));
+		return incoming.map((page, index) => {
+			const parentIndex = page.parentSlug ? indexBySlug.get(page.parentSlug.toLowerCase()) : undefined;
+			return parentIndex === index ? undefined : parentIndex;
+		});
+	};
+
+	/**
+	 * The order to create pages in: every parent before its children, otherwise as in the file.
+	 * A loop of parents (a hand-edited file) is cut where it closes, so that page lands at the top.
+	 */
+	const orderParentsFirst = (parentIndexes: (number | undefined)[]): { order: number[]; parentOf: (number | undefined)[] } => {
+		const order: number[] = [];
+		const parentOf = [...parentIndexes];
+		const state = new Map<number, "visiting" | "done">();
+		const visit = (index: number): void => {
+			if (state.get(index) === "done") return;
+			state.set(index, "visiting");
+			const parent = parentOf[index];
+			if (parent !== undefined) {
+				if (state.get(parent) === "visiting") parentOf[index] = undefined;
+				else visit(parent);
+			}
+			state.set(index, "done");
+			order.push(index);
+		};
+		parentIndexes.forEach((_, index) => visit(index));
+		return { order, parentOf };
+	};
 
 	const checkContent = (page: IncomingPage) => {
 		const validation = validateContentForSave({
@@ -148,8 +190,10 @@ export function createPageImporter(deps: PageImportDeps) {
 				.filter(([from, to]) => from && from !== to),
 		);
 
-		const created: PageRow[] = [];
-		for (const [index, page] of incoming.entries()) {
+		const { order, parentOf } = orderParentsFirst(findParentIndexes(incoming));
+		const createdAt: PageRow[] = [];
+		for (const index of order) {
+			const page = incoming[index]!;
 			const moved = rewritePageLinks({
 				value: rewriteFileRefs({
 					value: { blocks: page.blocks, other: page.other, featuredImage: page.featuredImage },
@@ -158,22 +202,26 @@ export function createPageImporter(deps: PageImportDeps) {
 				slugMap,
 			});
 			const validation = checkContent({ ...page, ...moved });
-			created.push(
-				await deps.createPage({
-					title: page.title.trim() || "Imported page",
-					slug: slugs[index]!,
-					siteId,
-					authorId,
-					status: deps.draftStatus,
-					featuredImage: moved.featuredImage,
-					blocks: ensureRootPageShell({
-						blocks: Array.isArray(validation.blocks) ? (validation.blocks as BlockConfig[]) : [],
-						shellId: deps.generateId(),
-					}).blocks,
-					other: validation.other,
-				}),
-			);
+			const parentIndex = parentOf[index];
+			const parentId = parentIndex === undefined ? undefined : createdAt[parentIndex]?.id;
+			createdAt[index] = await deps.createPage({
+				title: page.title.trim() || "Imported page",
+				slug: slugs[index]!,
+				siteId,
+				authorId,
+				status: deps.draftStatus,
+				featuredImage: moved.featuredImage,
+				blocks: ensureRootPageShell({
+					blocks: Array.isArray(validation.blocks) ? (validation.blocks as BlockConfig[]) : [],
+					shellId: deps.generateId(),
+				}).blocks,
+				other: validation.other,
+				...(parentId ? { parentId } : {}),
+				...(typeof page.menuOrder === "number" ? { menuOrder: page.menuOrder } : {}),
+			});
 		}
+		// Results keep the file's order, so the main page stays first.
+		const created = incoming.map((_, index) => createdAt[index]!);
 
 		const theme: ImportedTheme = !pkg.theme
 			? { status: "none" }

@@ -3,6 +3,7 @@ import { resolveBlockName } from "../block-catalog/block-names.js";
 import { BLOCK_CATALOG, getBlockEntry } from "../block-catalog/entries.js";
 import { createDefaultBlock } from "../block-catalog/create-default-block.js";
 import { PAGE_DESIGN_GUIDE } from "../block-catalog/page-design-guide.js";
+import type { BlockCatalogEntry } from "../block-catalog/types.js";
 import { describeContentFields } from "./content-fields.js";
 import { outlinePage } from "./outline-page.js";
 import { defineTool, readPageTree } from "./tool-helpers.js";
@@ -14,6 +15,10 @@ const BIG_PAGE_BLOCKS = 400;
 const BIG_PAGE_OUTLINE_DEPTH = 3;
 /** A single block bigger than this (as JSON text) is read as an outline of its children. */
 const MAX_BLOCK_JSON_CHARS = 20_000;
+
+/** A block's group for an agent: `docs`, or `advanced (also docs)` when another group lists it too. */
+const describeCategory = (entry: BlockCatalogEntry): string =>
+	entry.alsoIn && entry.alsoIn.length > 0 ? `${entry.category} (also ${entry.alsoIn.join(", ")})` : entry.category;
 
 const createOutlineTool = (ctx: PageToolContext): PageTool =>
 	defineTool({
@@ -88,13 +93,13 @@ const createListTypesTool = (ctx: PageToolContext): PageTool =>
 			name: "list_block_types",
 			title: "Block types",
 			description:
-				"Lists every block type you can add: name, label, kind (block = holds no other blocks, container = holds blocks), category, and a note on when to use it. Use it to pick the right block for a section. For one block's fields and an example, call get_block_type.",
+				"Lists every block type you can add: name, label, kind (block = holds no other blocks, container = holds blocks), category, and a note on when to use it. Docs blocks are named docs/… and keep that prefix when you use them; a block that another group lists too shows \"(also docs)\". Use it to pick the right block for a section. For one block's fields and an example, call get_block_type.",
 			inputShape: {},
 			changesPage: false,
 			run: async () => ({
 				ok: true,
 				text: BLOCK_CATALOG.map(
-					(entry) => `${entry.name} | ${entry.label} | ${entry.kind} | ${entry.category} | ${entry.agentNote}`,
+					(entry) => `${entry.name} | ${entry.label} | ${entry.kind} | ${describeCategory(entry)} | ${entry.agentNote}`,
 				).join("\n"),
 			}),
 		},
@@ -124,7 +129,7 @@ const createGetBlockTypeTool = (ctx: PageToolContext): PageTool =>
 					ok: true,
 					text: [
 						`${entry.name}: ${entry.label}. ${entry.description}`,
-						`Kind: ${entry.kind}${entry.kind === "container" ? " (can hold other blocks)" : " (cannot hold other blocks)"}. Category: ${entry.category}.`,
+						`Kind: ${entry.kind}${entry.kind === "container" ? " (can hold other blocks)" : " (cannot hold other blocks)"}. Category: ${describeCategory(entry)}.`,
 						entry.placement?.rootOnly ? "Placement: page root only, one per page." : "",
 						`When to use: ${entry.agentNote}`,
 						`Content fields: ${describeContentFields(entry.name)}`,

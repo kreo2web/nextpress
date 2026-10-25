@@ -116,17 +116,29 @@ export function createPagePackageBuilder({
 		return { ...described, size: bytes.length, data: bytes.toString("base64") };
 	};
 
-	const toPackagePage = async (row: PageRow): Promise<PackageExtraPage> => ({
-		title: row.title,
-		slug: row.slug,
-		featuredImage: row.featuredImage ?? null,
-		other: isRecord(row.other) ? row.other : {},
-		blocks: await resolvePageParts({
-			siteId: String(row.siteId),
-			pageId: row.id,
-			blocks: Array.isArray(row.blocks) ? (row.blocks as BlockConfig[]) : [],
-		}),
-	});
+	/** `parentSlug` only when the parent is in the same file, so the tree can be rebuilt there. */
+	const toPackagePage = async ({
+		row,
+		slugById,
+	}: {
+		row: PageRow;
+		slugById: Map<string, string>;
+	}): Promise<PackageExtraPage> => {
+		const parentSlug = row.parentId ? slugById.get(row.parentId) : undefined;
+		return {
+			title: row.title,
+			slug: row.slug,
+			featuredImage: row.featuredImage ?? null,
+			other: isRecord(row.other) ? row.other : {},
+			...(parentSlug ? { parentSlug } : {}),
+			menuOrder: row.menuOrder ?? 0,
+			blocks: await resolvePageParts({
+				siteId: String(row.siteId),
+				pageId: row.id,
+				blocks: Array.isArray(row.blocks) ? (row.blocks as BlockConfig[]) : [],
+			}),
+		};
+	};
 
 	/**
 	 * The page as one package, with any linked pages the owner chose (`extraPages`, same site).
@@ -142,8 +154,9 @@ export function createPagePackageBuilder({
 		includeFiles: boolean;
 	}): Promise<PagePackage> => {
 		const siteId = String(page.siteId);
-		const main = await toPackagePage(page);
-		const extras = await Promise.all(extraPages.map(toPackagePage));
+		const slugById = new Map([page, ...extraPages].map((row) => [row.id, row.slug]));
+		const main = await toPackagePage({ row: page, slugById });
+		const extras = await Promise.all(extraPages.map((row) => toPackagePage({ row, slugById })));
 		const siteMedia = await listSiteMedia(siteId);
 		const mediaByUrl = new Map(siteMedia.map((item) => [item.url, item]));
 
@@ -179,6 +192,8 @@ export function createPagePackageBuilder({
 				slug: main.slug,
 				featuredImage: packed.featuredImage,
 				other: packed.other,
+				...(main.parentSlug ? { parentSlug: main.parentSlug } : {}),
+				menuOrder: main.menuOrder,
 			},
 			blocks: packed.blocks,
 			...(packed.extras.length > 0 ? { extraPages: packed.extras } : {}),

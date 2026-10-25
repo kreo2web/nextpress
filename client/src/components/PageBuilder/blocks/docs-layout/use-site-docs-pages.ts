@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { DocsPage } from "@shared/blocks/docs-layout-tree";
 import { appendSiteIdToUrl } from "@/lib/site-api";
 import { useOptionalActiveSite } from "@/hooks/useActiveSite";
+import { useDocsCanvasSource } from "../../docs-mode/docs-canvas-source";
 
 const PER_PAGE = 100;
 /** A stop for a runaway loop: 100 pages per request, so this is far more pages than a site has. */
@@ -30,14 +31,19 @@ export const fetchAllSitePages = async (siteId: string): Promise<DocsPage[]> => 
 /**
  * The site's pages for the editor's sidebar preview and the Root page picker. Drafts are included
  * so the preview matches what the editor is building; the published sidebar leaves them out.
+ *
+ * Inside the docs editor the pages come from the docs' own tree instead (with the page being
+ * edited as it is right now), so this reads the whole site only for the page builder.
  */
 export function useSiteDocsPages(): { pages: DocsPage[]; isLoading: boolean } {
+	const docsSource = useDocsCanvasSource();
 	const siteId = useOptionalActiveSite()?.activeSiteId ?? "";
 	const { data, isLoading } = useQuery({
 		queryKey: ["docs-layout-pages", siteId],
 		queryFn: () => fetchAllSitePages(siteId),
-		enabled: Boolean(siteId),
+		enabled: Boolean(siteId) && !docsSource,
 		staleTime: 30_000,
 	});
+	if (docsSource) return { pages: docsSource.pages, isLoading: false };
 	return { pages: data ?? [], isLoading: Boolean(siteId) && isLoading };
 }

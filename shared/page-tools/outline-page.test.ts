@@ -102,4 +102,21 @@ describe("outlinePage", () => {
 		const outline = outlinePage({ blocks: [makeHeading({ id: "h1", text: "Title", level: 3 }), makeBlock({ name: "core/spacer", id: "sp" })] });
 		expect(outline.split("\n")).toEqual(['heading id=h1 level=3 text="Title"', "spacer id=sp"]);
 	});
+
+	it("keeps the docs/ prefix on docs blocks and shows what identifies each", () => {
+		const blocks: BlockConfig[] = [
+			makeBlock({ name: "docs/callout", id: "c", content: { kind: "structured", data: { type: "warning", title: "Back up first" } } }),
+			makeBlock({ name: "docs/file-tree", id: "t", content: { kind: "structured", data: { tree: "src/\n  app.ts" } } }),
+			makeBlock({ name: "docs/params", id: "p" }),
+			makeBlock({ name: "docs/example", id: "e", content: { kind: "structured", data: { layout: "stacked" } } }),
+		];
+		// A callout and an example start with child blocks; only the top-level lines are checked here.
+		const lines = outlinePage({ blocks }).split("\n").filter((line) => !line.startsWith(" "));
+		expect(lines).toEqual([
+			'docs/callout id=c type=warning title="Back up first"',
+			'docs/file-tree id=t text="src/ app.ts"',
+			"docs/params id=p items=2",
+			"docs/example id=e layout=stacked",
+		]);
+	});
 });

@@ -56,6 +56,12 @@ import { EditorPopupsProvider } from './popup-links';
 import { AssistantLockFrame, PageAssistantProvider, type AssistantPageRef } from './assistant';
 import { useOptionalActiveSite } from '@/hooks/useActiveSite';
 import type { BuilderSidebarTab } from './BuilderSidebar';
+import { DocsModeProvider, type DocsModeProps } from './docs-mode/DocsModeProvider';
+import { DocsInspectorSidebar } from './docs-mode/DocsInspectorSidebar';
+import { DocsResponsiveSidebar } from './docs-mode/DocsResponsiveSidebar';
+import { MdxView } from './docs-mode/MdxView';
+import { isDocsFrameBlockName } from './docs-mode/docs-frame-context';
+import type { DocsDragBridge } from './docs-mode/docs-mode-context';
 
 function useMountEffect(effect: () => void | (() => void)) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,6 +122,9 @@ interface PageBuilderProps {
   currentPostId?: string;
   contentType?: 'post' | 'page' | 'template';
   isTemplateEditor?: boolean;
+  /** `docs` turns the builder into the docs editor (see `docs-mode/`); it needs `docs` too. Pages and posts leave it out. */
+  mode?: 'page' | 'docs';
+  docs?: DocsModeProps;
 }
 
 export default function PageBuilder({
@@ -133,8 +142,12 @@ export default function PageBuilder({
   currentPostId,
   contentType,
   isTemplateEditor = false,
+  mode = 'page',
+  docs,
 }: PageBuilderProps) {
   const data = post;
+  const docsMode = mode === 'docs' && docs ? docs : null;
+  const docsDragBridge = useRef<DocsDragBridge>({ handleDrop: null, describe: null });
   const isTemplate = isTemplateEditor;
   const resolvedContentType =
     contentType === 'template' ? 'page' : (contentType ?? 'page');
@@ -447,12 +460,12 @@ export default function PageBuilder({
     contentType: resolvedContentType,
   });
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback((override?: BlockConfig[]) => {
     if (onSaveRequest) {
       runParentOwnedSave({
         inFlight: parentSaveInFlightRef,
         request: async () => {
-          const result = await onSaveRequest(blocks);
+          const result = await onSaveRequest(override ?? blocks);
           if (result && typeof result === 'object' && 'id' in result) {
             onSave?.(result);
           }
@@ -868,10 +881,36 @@ export default function PageBuilder({
     if (id !== editingBlockIdRef.current) setEditingBlockId(null);
   }, []);
 
+  /** Picks a block, or puts the pick down. The docs frame is never picked: it is drawn, not edited. */
+  const pickBlock = useCallback(
+    (id: string | null) => {
+      const target = id && docsMode ? findBlock(currentStateRef.current, id) : null;
+      setSelectedBlockId(target && isDocsFrameBlockName(target.name) ? null : id);
+      if (id !== editingBlockIdRef.current) setEditingBlockId(null);
+    },
+    [docsMode],
+  );
+  const docsView = docsMode?.state.view ?? 'visual';
+
   return (
     <div className="npb-editor-shell flex h-full min-h-0 flex-col bg-npb-canvas-bg">
       <SkipLink href="#builder-canvas">Skip to canvas</SkipLink>
       <PageProvider pageOther={data?.other as any} pageId={!isTemplate && resolvedContentType === 'page' && data?.id ? String(data.id) : undefined} postDocument={postDocument}>
+        <DocsModeProvider
+          docs={docsMode}
+          pageId={data?.id ? String(data.id) : ''}
+          siteId={pageSiteId || activeSiteId}
+          blocks={blocks}
+          getBlocks={getCurrentBlocks}
+          meta={{ title: pageMeta?.title ?? '', slug: pageMeta?.slug ?? '', status: pageMeta?.status ?? 'draft', version: pageMeta?.version ?? 0 }}
+          onMetaChange={(meta) => onPageMetaChange?.(meta)}
+          selectedBlockId={selectedBlockId}
+          selectBlock={pickBlock}
+          updateBlock={updateBlockPartial}
+          commitBlocks={(next) => commitBlocks(next)}
+          applyBlocks={applyAssistantBlocks}
+          save={handleSave}
+          dragBridge={docsDragBridge}>
         <EditorColorMemoryProvider blocks={blocks}>
         <EditorPopupsProvider blocks={blocks}>
         <DeviceViewProvider device={deviceView}>
@@ -882,6 +921,10 @@ export default function PageBuilder({
           editingBlockId,
           hoveredBlockId,
           onSelect: (id) => {
+            if (docsMode) {
+              pickBlock(id);
+              return;
+            }
             setSelectedBlockId(id);
             if (id !== editingBlockIdRef.current) {
               setEditingBlockId(null);
@@ -891,6 +934,7 @@ export default function PageBuilder({
             }
           },
           onStartEditing: (id) => {
+            if (docsMode && isDocsFrameBlockName(findBlock(currentStateRef.current, id)?.name ?? '')) return;
             setSelectedBlockId(id);
             setEditingBlockId(id);
           },
@@ -904,9 +948,15 @@ export default function PageBuilder({
         }}>
         <div className="flex min-h-0 flex-1 flex-col">
         <DragDropContext
-          onDragEnd={(result: DndDropResult) => handleDragEnd(result)}
+          onDragEnd={(result: DndDropResult) => {
+            // A row dragged inside the docs navigation list belongs to the list, not to the canvas.
+            if (docsDragBridge.current.handleDrop?.(result)) return;
+            handleDragEnd(result);
+          }}
           onDragStart={() => {/* DnD started */}}
           renderOverlay={({ id }) => {
+            const navTitle = docsDragBridge.current.describe?.(id);
+            if (navTitle) return <div className="rounded-md border border-npb-border-strong bg-npb-surface-overlay px-2.5 py-1.5 text-xs font-medium text-npb-text-primary shadow-lg">{navTitle}</div>;
             // id may refer directly to block definition id (library drag) or block instance id (canvas drag)
             // Attempt to resolve instance id by checking current blocks mapping name
             let def = blockRegistry[id];
@@ -945,6 +995,9 @@ export default function PageBuilder({
           <div className="flex min-h-0 flex-1">
             {sidebarVisible ? (
               <MotionSidebarPanel visible={sidebarVisible} className="h-full shrink-0">
+                {docsMode ? (
+                  <DocsResponsiveSidebar parentBlock={parentBlock} updateBlock={updateBlockPartial} setHoverHighlight={setHoverHighlight} onToggleSidebar={toggleSidebar} />
+                ) : (
                 <BuilderResponsiveSidebar
                   activeTab={activeTab}
                   setActiveTab={setActiveTab}
@@ -959,6 +1012,7 @@ export default function PageBuilder({
                   onApplyResponsiveDefaults={handleApplyResponsiveDefaults}
                   responsiveHealthBannerDismissed={responsiveHealthBannerDismissed}
                 />
+                )}
               </MotionSidebarPanel>
             ) : null}
             <AssistantLockFrame className="npb-editor-main flex min-h-0 min-w-0 flex-1 flex-col">
@@ -980,6 +1034,7 @@ export default function PageBuilder({
                     setActiveTab('settings');
                   }
                 }}
+                docsView={docsMode ? docsView : undefined}
                 sidebarVisible={sidebarVisible}
                 onToggleSidebar={toggleSidebar}
                 inspectorVisible={isWideLayout ? inspectorVisible : undefined}
@@ -1002,6 +1057,9 @@ export default function PageBuilder({
               />
               {pageTransfer.dialogs}
               <div className="flex min-h-0 flex-1">
+                {docsMode && docsView === 'mdx' ? (
+                  <MdxView />
+                ) : (
                 <BuilderCanvas
                   blocks={blocks}
                   deviceView={deviceView}
@@ -1014,8 +1072,12 @@ export default function PageBuilder({
                   hoverHighlight={hoverHighlight}
                   onBlockChange={handleBlockChange}
                 />
+                )}
                 {isWideLayout && inspectorVisible ? (
                   <MotionSidebarPanel visible={inspectorVisible} className="h-full shrink-0">
+                    {docsMode ? (
+                      <DocsInspectorSidebar parentBlock={parentBlock} updateBlock={updateBlockPartial} setHoverHighlight={setHoverHighlight} onToggleInspector={toggleInspector} />
+                    ) : (
                     <BuilderInspectorSidebar
                       selectedBlock={selectedBlock}
                       parentBlock={parentBlock}
@@ -1023,6 +1085,7 @@ export default function PageBuilder({
                       setHoverHighlight={setHoverHighlight}
                       onToggleInspector={toggleInspector}
                     />
+                    )}
                   </MotionSidebarPanel>
                 ) : null}
               </div>
@@ -1054,6 +1117,7 @@ export default function PageBuilder({
         </DeviceViewProvider>
         </EditorPopupsProvider>
         </EditorColorMemoryProvider>
+        </DocsModeProvider>
       </PageProvider>
     </div>
   );

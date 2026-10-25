@@ -45,20 +45,30 @@ const useDiagram = ({ source, render }: { source: string; render?: DiagramRender
 	return state;
 };
 
+/** What a reader sees in place of a diagram that can't be drawn. The library's own reason is left out: it names internals, and the text below shows what to fix. */
+const DIAGRAM_ERROR_MESSAGE = "This diagram couldn't be drawn. Check the text below for a typo or a missing arrow.";
+
 /**
- * A Mermaid diagram (a ```` ```mermaid ```` fence) drawn as SVG by Pele. If the text has a
- * mistake, the reader sees the reason and the diagram text instead of a broken page.
+ * A Mermaid diagram (a ```` ```mermaid ```` fence, or a docs diagram block) drawn as SVG by Pele, with an
+ * optional caption under it. If the text has a mistake, the reader sees a plain message and the diagram
+ * text instead of a broken page.
  */
-export function DiagramView({ source, render }: { source: string; render?: DiagramRenderer }): JSX.Element {
+export function DiagramView({ source, render, caption }: { source: string; render?: DiagramRenderer; caption?: string | null }): JSX.Element {
 	const state = useDiagram({ source, render });
 	if (state.error !== null) {
 		return (
 			<figure className="np-diagram np-diagram-error">
-				<figcaption>{`This diagram couldn't be drawn: ${state.error}`}</figcaption>
+				<figcaption>{DIAGRAM_ERROR_MESSAGE}</figcaption>
 				<pre>{source}</pre>
 			</figure>
 		);
 	}
 	if (state.svg === null) return <figure className="np-diagram np-diagram-loading" aria-busy="true" />;
-	return <figure className="np-diagram" role="img" aria-label="Diagram" dangerouslySetInnerHTML={{ __html: state.svg }} />;
+	const shownCaption = caption?.trim() ?? "";
+	return (
+		<figure className="np-diagram">
+			<div className="np-diagram__picture" role="img" aria-label="Diagram" dangerouslySetInnerHTML={{ __html: state.svg }} />
+			{shownCaption ? <figcaption>{shownCaption}</figcaption> : null}
+		</figure>
+	);
 }

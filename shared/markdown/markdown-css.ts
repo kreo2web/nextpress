@@ -62,7 +62,21 @@ export const MARKDOWN_CSS = `
 .np-code[data-wrap] .np-code-pre { white-space: pre-wrap; word-break: break-word; }
 .np-code .kirari-line { display: inline-block; min-width: 100%; }
 .np-code[data-line-numbers] .kirari-line::before { content: attr(data-line); display: inline-block; width: 2.5ch; margin-right: 1.25ch; text-align: right; color: #5f6675; user-select: none; }
-.np-code .np-code-line-marked { background: rgba(157, 189, 255, 0.12); box-shadow: inset 2px 0 0 #9dbdff; }
+.np-code .kirari-line-highlighted { background: rgba(157, 189, 255, 0.12); box-shadow: inset 2px 0 0 #9dbdff; }
+/* Diff code (\`\`\`diff): the whole added or removed line is tinted, not only its text. */
+.np-code .kirari-line:has(> .kirari-inserted) { background: rgba(169, 217, 148, 0.12); box-shadow: inset 2px 0 0 #a9d994; }
+.np-code .kirari-line:has(> .kirari-deleted) { background: rgba(242, 160, 169, 0.12); box-shadow: inset 2px 0 0 #f2a0a9; }
+/* Long code shows its first 14 lines; the "Show all" checkbox opens the rest with no script. */
+.np-code[data-folds] .np-code-pre { max-height: calc(14 * 1.65em + 1.75rem); overflow-y: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 3rem), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 3rem), transparent); }
+.np-code[data-folds]:has(.np-code-fold-input:checked) .np-code-pre { max-height: none; -webkit-mask-image: none; mask-image: none; }
+.np-code-fold { display: flex; justify-content: center; padding: 0.45rem; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.np-code-fold-button { position: relative; cursor: pointer; font: 500 0.75rem/1.4 ui-sans-serif, system-ui, sans-serif; color: #c9d0dc; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 6px; padding: 0.2rem 0.7rem; }
+.np-code-fold-button:hover { color: #dce1ea; background: rgba(255, 255, 255, 0.08); }
+.np-code-fold-button:has(:focus-visible) { outline: 2px solid var(--npb-accent, #2563eb); outline-offset: 2px; }
+.np-code-fold-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.np-code-fold-less { display: none; }
+.np-code:has(.np-code-fold-input:checked) .np-code-fold-more { display: none; }
+.np-code:has(.np-code-fold-input:checked) .np-code-fold-less { display: inline; }
 .kirari-keyword { color: var(--kirari-keyword); } .kirari-variable { color: var(--kirari-variable); }
 .kirari-property { color: var(--kirari-property); } .kirari-function { color: var(--kirari-function); }
 .kirari-string { color: var(--kirari-string); } .kirari-number { color: var(--kirari-number); }
@@ -82,6 +96,7 @@ export const MARKDOWN_CSS = `
   margin: 1.25em 0; overflow-x: auto; text-align: center;
 }
 .np-diagram svg { max-width: 100%; height: auto; }
+.np-diagram figcaption { margin-top: 0.5rem; font-size: 0.875rem; line-height: 1.5; color: var(--npb-text-secondary, #52525b); }
 .np-diagram-loading { min-height: 4rem; }
 .np-diagram-error { text-align: left; padding: 0.75rem 1rem; border: 1px dashed var(--npb-border-default, #d4d4d8); border-radius: 8px; color: var(--npb-text-secondary, #52525b); }
 .np-diagram-error pre { margin: 0.5rem 0 0; white-space: pre-wrap; font-size: 0.85em; }

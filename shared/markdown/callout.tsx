@@ -1,7 +1,7 @@
 import type { JSX, ReactNode } from "react";
+import { CALLOUT_TYPES, readCalloutType, type CalloutType } from "../blocks/callout-model.js";
 
-export const CALLOUT_TYPES = ["note", "tip", "warning", "danger", "success"] as const;
-export type CalloutType = (typeof CALLOUT_TYPES)[number];
+export { CALLOUT_TYPES, readCalloutType, type CalloutType };
 
 /** Lucide icon paths (ISC), inlined so shared code needs no icon package. */
 const ICON_PATHS: Record<CalloutType, readonly string[]> = {
@@ -21,10 +21,6 @@ const SPOKEN_LABEL: Record<CalloutType, string> = {
 	success: "Success",
 };
 
-/** Any other value an author types is shown as a note. */
-export const readCalloutType = (value: string | null | undefined): CalloutType =>
-	CALLOUT_TYPES.find((type) => type === value) ?? "note";
-
 /** A highlighted note in a page: `<Callout type="warning" title="Back up first">…</Callout>` in MDX. */
 export function Callout({ type, title, children }: { type?: string | null; title?: string | null; children?: ReactNode }): JSX.Element {
 	const kind = readCalloutType(type);
@@ -37,7 +33,7 @@ export function Callout({ type, title, children }: { type?: string | null; title
 			</svg>
 			<div className="np-callout-body">
 				<span className="np-visually-hidden">{`${SPOKEN_LABEL[kind]}: `}</span>
-				{title ? <p className="np-callout-title">{title}</p> : null}
+				{title?.trim() ? <p className="np-callout-title">{title.trim()}</p> : null}
 				{children}
 			</div>
 		</aside>

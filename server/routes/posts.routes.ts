@@ -36,6 +36,7 @@ import {
 } from '@shared/content-list-query';
 import { buildTitleSearchFilters } from '../lib/content-list-filters';
 import { z } from 'zod';
+import { forgetDocumentChats } from '../lib/assistant-chats';
 
 /**
  * Creates Posts CRUD routes for the NextPress API.
@@ -494,6 +495,7 @@ export function createPostsRoutes(deps: Deps): Router {
 
         await models.posts.delete(id);
         hooks.doAction('delete_post', id);
+        await forgetDocumentChats({ models, documentKind: 'post', documentId: id });
 
         res.json({ message: 'Post deleted successfully' });
       } catch (error) {

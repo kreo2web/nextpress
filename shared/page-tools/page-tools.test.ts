@@ -122,6 +122,24 @@ describe("read tools", () => {
 		expect(result.text).toContain("core/stack | Stack | container |");
 	});
 
+	it("list_block_types groups the docs blocks under docs, and marks the core blocks the docs group also shows", async () => {
+		const { result } = await run({ tool: "list_block_types", blocks: [] });
+		const rows = result.text.split("\n").map((line) => line.split(" | "));
+		const names = rows.map((row) => row[0]);
+		const categoryOf = (name: string): string | undefined => rows.find((row) => row[0] === name)?.[3];
+
+		const docsBlocks = names.filter((name) => name.startsWith("docs/"));
+		expect(docsBlocks).toEqual(expect.arrayContaining(["docs/callout", "docs/code-group", "docs/file-tree", "docs/params", "docs/example"]));
+		for (const name of docsBlocks) expect(categoryOf(name), name).toBe("docs");
+		const first = names.indexOf(docsBlocks[0]);
+		expect(names.slice(first, first + docsBlocks.length)).toEqual(docsBlocks);
+
+		const alsoInDocs = ["core/code", "core/image", "core/table", "core/tabs", "core/steps", "core/grid", "core/accordion", "core/separator", "core/markdown"];
+		for (const name of alsoInDocs) expect(categoryOf(name), name).toMatch(/^[a-z]+ \(also docs\)$/);
+		expect(categoryOf("core/code")).toBe("advanced (also docs)");
+		expect(categoryOf("core/heading")).toBe("basic");
+	});
+
 	it("get_block_type gives the entry, its note and an example as the editor inserts it", async () => {
 		const { result } = await run({ tool: "get_block_type", input: { name: "core/heading" }, blocks: [] });
 		expect(result.ok).toBe(true);
@@ -140,9 +158,27 @@ describe("read tools", () => {
 	it("get_block_type suggests names for a near miss", async () => {
 		const { result } = await run({ tool: "get_block_type", input: { name: "core/head" }, blocks: [] });
 		expect(result.ok).toBe(false);
-		expect(result.text).toContain('Unknown block name "core/head". Did you mean core/heading, core/header?');
+		expect(result.text).toContain('Unknown block name "core/head". Did you mean core/heading, core/header, docs/heading?');
 		const nothing = await run({ tool: "get_block_type", input: { name: "zzz" }, blocks: [] });
 		expect(nothing.result.text).toBe('Unknown block name "zzz". Call list_block_types for the valid names.');
+	});
+
+	it("get_block_type takes a docs block by its full name and says when another group lists a block too", async () => {
+		const callout = await run({ tool: "get_block_type", input: { name: "docs/callout" }, blocks: [] });
+		expect(callout.result.ok).toBe(true);
+		expect(callout.result.text).toContain("docs/callout: Callout.");
+		expect(callout.result.text).toContain("Category: docs.");
+
+		const code = await run({ tool: "get_block_type", input: { name: "core/code" }, blocks: [] });
+		expect(code.result.text).toContain("Category: advanced (also docs).");
+	});
+
+	it("get_block_type refuses a docs block written without its prefix and suggests the full name", async () => {
+		const { result } = await run({ tool: "get_block_type", input: { name: "callout" }, blocks: [] });
+		expect(result).toEqual({
+			ok: false,
+			text: 'Unknown block name "callout". Did you mean docs/callout? Call list_block_types for the valid names.',
+		});
 	});
 
 	it("get_block_type takes a name without core/, and lists the block's content fields", async () => {

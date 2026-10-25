@@ -8,21 +8,34 @@ import { cn } from "@/lib/utils";
  * the next section by a hairline (design system §16 — dividers, not nested boxes).
  * Chrome reads tokens from `.npb-editor-sidebar` (see `client/src/index.css`).
  * A block with only one section should use `SettingsSection` instead — nothing to open or close.
+ *
+ * Pass `open` and `onOpenChange` when something else has to open the section (the docs editor opens
+ * Docs › Header when the top bar is clicked); without them the card keeps its own open state.
  */
 export function CollapsibleCard({
 	title,
 	icon: Icon,
 	children,
 	defaultOpen = false,
+	open,
+	onOpenChange,
 	className = "",
 }: {
 	title: string;
 	icon?: ComponentType<{ className?: string }>;
 	children: ReactNode;
 	defaultOpen?: boolean;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
 	className?: string;
 }) {
-	const [isOpen, setIsOpen] = useState(defaultOpen);
+	const [ownOpen, setOwnOpen] = useState(defaultOpen);
+	const isOpen = open ?? ownOpen;
+	const setIsOpen = (next: boolean | ((current: boolean) => boolean)) => {
+		const value = typeof next === "function" ? next(isOpen) : next;
+		if (open === undefined) setOwnOpen(value);
+		onOpenChange?.(value);
+	};
 	const panelId = useId();
 
 	return (
@@ -36,7 +49,7 @@ export function CollapsibleCard({
 			<button
 				type="button"
 				className="npb-settings-collapsible-header npb-settings-collapsible-trigger !px-4 !py-3"
-				onClick={() => setIsOpen((open) => !open)}
+				onClick={() => setIsOpen((current) => !current)}
 				aria-expanded={isOpen}
 				aria-controls={panelId}
 			>

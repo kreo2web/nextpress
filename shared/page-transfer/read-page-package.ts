@@ -22,14 +22,19 @@ const blockSchema = z.custom<BlockConfig>(
 		typeof (value as { name?: unknown }).name === "string",
 );
 
-/** Most linked pages one file may bring; a whole small site, not a whole large one. */
-const MAX_EXTRA_PAGES = 50;
+/**
+ * Most extra pages one file may bring. Docs export puts a whole docs in one file, and real docs
+ * run to hundreds of pages; the file size limit still caps how much one import can write.
+ */
+const MAX_EXTRA_PAGES = 500;
 
 const pageSchema = z.object({
 	title: z.string().min(1).max(500),
 	slug: z.string().max(500),
 	featuredImage: z.string().max(2048).nullable(),
 	other: z.record(z.string(), z.any()),
+	parentSlug: z.string().max(500).optional(),
+	menuOrder: z.number().int().optional(),
 });
 
 const packageSchema = z.object({

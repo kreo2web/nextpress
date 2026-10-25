@@ -8,6 +8,7 @@ import type {
 	BlogsResource,
 	CommentsResource,
 	DashboardResource,
+	DocsResource,
 	FormsResource,
 	HealthResource,
 	HooksResource,
@@ -59,6 +60,7 @@ export type NextpressClient = {
 	plugins: PluginsResource;
 	hooks: HooksResource;
 	dashboard: DashboardResource;
+	docs: DocsResource;
 	preview: PreviewResource;
 	public: PublicResource;
 	import: ImportResource;

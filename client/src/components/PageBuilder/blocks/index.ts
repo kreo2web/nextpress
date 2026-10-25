@@ -51,6 +51,18 @@ import TabBlock from './tabs/TabBlock';
 import LogoCloudBlock from './logo-cloud/LogoCloudBlock';
 import SearchBlock from './search/SearchBlock';
 import DocsLayoutBlock from './docs-layout/DocsLayoutBlock';
+import DocsShellBlock from './docs-shell/DocsShellBlock';
+import DocsPageBlock from './docs-page/DocsPageBlock';
+import CalloutBlock from './callout/CalloutBlock';
+import DocsHeadingBlock from './docs-heading/DocsHeadingBlock';
+import DocsListBlock from './docs-list/DocsListBlock';
+import DocsTextBlock from './docs-text/DocsTextBlock';
+import CodeGroupBlock from './code-group/CodeGroupBlock';
+import FileTreeBlock from './file-tree/FileTreeBlock';
+import ParamsBlock from './params/ParamsBlock';
+import CodeExampleBlock from './code-example/CodeExampleBlock';
+import DiagramBlock from './diagram/DiagramBlock';
+import UpdateBlock from './update/UpdateBlock';
 import PostTitleBlock from './post-title/PostTitleBlock';
 import PostExcerptBlock from './post-excerpt/PostExcerptBlock';
 import PostFeaturedImageBlock from './post-featured-image/PostFeaturedImageBlock';
@@ -162,6 +174,20 @@ export const blockRegistry: Record<string, BlockDefinition> = {
   'core/logo-cloud': LogoCloudBlock,
   'core/search': SearchBlock,
   'core/docs-layout': DocsLayoutBlock,
+
+  // Docs blocks (category "docs", names start with docs/)
+  'docs/heading': DocsHeadingBlock,
+  'docs/text': DocsTextBlock,
+  'docs/list': DocsListBlock,
+  'docs/shell': DocsShellBlock,
+  'docs/page': DocsPageBlock,
+  'docs/callout': CalloutBlock,
+  'docs/code-group': CodeGroupBlock,
+  'docs/file-tree': FileTreeBlock,
+  'docs/params': ParamsBlock,
+  'docs/example': CodeExampleBlock,
+  'docs/diagram': DiagramBlock,
+  'docs/update': UpdateBlock,
 
   // Post blocks
   'post/title': PostTitleBlock,

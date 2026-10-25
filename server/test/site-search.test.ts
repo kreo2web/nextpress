@@ -7,8 +7,6 @@ import type { Deps } from "../routes/shared/deps";
 import { createPublicRoutes } from "../routes/public.routes";
 import { createAgentPageRoutes } from "../routes/agent-pages.routes";
 import { createRenderRoutes } from "../routes/render.routes";
-import { createSiteSearch } from "../lib/site-search/site-search";
-import { buildSearchIndex } from "../lib/site-search/build-search-index";
 
 const SITE = { id: "550e8400-e29b-41d4-a716-446655440000", name: "Docs", siteUrl: "http://localhost:5000" };
 
@@ -40,9 +38,7 @@ const aboutPage = page({ slug: "about", title: "About us", blocks: [paragraph("e
 const draftPage = page({ slug: "secret-plans", title: "Secret plans", status: "draft", blocks: [paragraph("f", "zebra launch")] });
 const lockedPage = page({ slug: "locked", title: "Locked", password: "pw", blocks: [paragraph("g", "zebra vault")] });
 
-type Counters = { findMany: number };
-
-const fakeModels = ({ pages, counters }: { pages: () => FakePage[]; counters?: Counters }): Deps["models"] => {
+const fakeModels = ({ pages }: { pages: () => FakePage[] }): Deps["models"] => {
 	const matches = (filters: { where: string; equals?: string }[]): FakePage[] =>
 		pages().filter((row) => filters.every((filter) => (row as Record<string, unknown>)[filter.where] === filter.equals));
 	return {
@@ -55,7 +51,6 @@ const fakeModels = ({ pages, counters }: { pages: () => FakePage[]; counters?: C
 		pages: {
 			count: async ({ where }: { where: { where: string; equals?: string }[] }) => matches(where).length,
 			findManyWhere: async (filters: { where: string; equals?: string }[], options?: { limit?: number }) => {
-				if (filters.some((filter) => filter.where === "status") && options?.limit !== 1 && counters) counters.findMany += 1;
 				const rows = matches(filters).sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 				return options?.limit ? rows.slice(0, options.limit) : rows;
 			},
@@ -83,102 +78,6 @@ const serve = async ({ models, agentFirst = false }: { models: Deps["models"]; a
 
 afterEach(async () => {
 	await Promise.all(servers.splice(0).map((server) => new Promise<void>((resolve) => server.close(() => resolve()))));
-});
-
-describe("buildSearchIndex", () => {
-	const index = buildSearchIndex([installPage, aboutPage].map((row) => ({ id: row.id, title: row.title, slug: row.slug, blocks: row.blocks })));
-
-	it("finds a page by its title", () => {
-		expect(index.search({ query: "install", limit: 5 })[0]).toMatchObject({ title: "Install NextPress", path: "/install" });
-	});
-
-	it("links to the section when the words are under a heading", () => {
-		const [hit] = index.search({ query: "uploads", limit: 5 });
-		expect(hit).toMatchObject({ title: "Install NextPress", path: "/install#backups" });
-		expect(hit.snippet).toContain("uploads folder");
-	});
-
-	it("matches the start of a word and shows each page once", () => {
-		const hits = index.search({ query: "inst", limit: 5 });
-		expect(hits.map((hit) => hit.path)).toEqual(["/install"]);
-	});
-
-	it("returns nothing for words that are not there, and respects the limit", () => {
-		expect(index.search({ query: "xylophone", limit: 5 })).toEqual([]);
-		expect(index.search({ query: "e", limit: 1 }).length).toBeLessThanOrEqual(1);
-	});
-});
-
-describe("site search cache", () => {
-	it("builds once, then again only after the site's pages change", async () => {
-		let rows = [installPage, aboutPage];
-		const counters: Counters = { findMany: 0 };
-		const search = createSiteSearch({ models: fakeModels({ pages: () => rows, counters }) });
-
-		await search.search({ siteId: SITE.id, query: "install", limit: 5 });
-		await search.search({ siteId: SITE.id, query: "websites", limit: 5 });
-		expect(counters.findMany).toBe(1);
-
-		rows = [installPage, { ...aboutPage, blocks: [paragraph("e", "We make quokkas."), ], version: 2, updatedAt: new Date("2026-10-02T00:00:00Z") }];
-		const hits = await search.search({ siteId: SITE.id, query: "quokkas", limit: 5 });
-		expect(counters.findMany).toBe(2);
-		expect(hits[0]?.path).toBe("/about");
-
-		rows = [installPage];
-		expect(await search.search({ siteId: SITE.id, query: "quokkas", limit: 5 })).toEqual([]);
-		expect(counters.findMany).toBe(3);
-	});
-
-	it("never indexes drafts or passworded pages", async () => {
-		const search = createSiteSearch({ models: fakeModels({ pages: () => [installPage, draftPage, lockedPage] }) });
-		expect(await search.search({ siteId: SITE.id, query: "zebra", limit: 5 })).toEqual([]);
-	});
-});
-
-describe("GET /api/public/search", () => {
-	const rows = () => [installPage, aboutPage, draftPage, lockedPage];
-
-	it("answers with results", async () => {
-		const get = await serve({ models: fakeModels({ pages: rows }) });
-		const body = (await (await get("/api/public/search?q=backups")).json()) as { results: { title: string; path: string; snippet: string }[] };
-		expect(body.results[0]).toMatchObject({ title: "Install NextPress", path: "/install#backups" });
-	});
-
-	it("answers an empty or blank q with an empty list", async () => {
-		const get = await serve({ models: fakeModels({ pages: rows }) });
-		expect(await (await get("/api/public/search")).json()).toEqual({ results: [] });
-		expect(await (await get("/api/public/search?q=%20%20")).json()).toEqual({ results: [] });
-	});
-
-	it("caps results at 20 and cuts a long q to 100 characters", async () => {
-		const many = Array.from({ length: 30 }, (_, number) => page({ slug: `guide-${number}`, title: `Guide ${number}`, blocks: [paragraph(`p${number}`, "guide text")] }));
-		const get = await serve({ models: fakeModels({ pages: () => many }) });
-		const body = (await (await get("/api/public/search?q=guide&limit=500")).json()) as { results: unknown[] };
-		expect(body.results).toHaveLength(20);
-		const long = await get(`/api/public/search?q=${"a".repeat(400)}`);
-		expect(long.status).toBe(200);
-	});
-
-	it("keeps drafts and passworded pages out of results", async () => {
-		const get = await serve({ models: fakeModels({ pages: rows }) });
-		expect(await (await get("/api/public/search?q=zebra")).json()).toEqual({ results: [] });
-	});
-
-	it("slows one address down with a plain message after many searches", async () => {
-		const get = await serve({ models: fakeModels({ pages: rows }) });
-		let last = 200;
-		let message = "";
-		for (let count = 0; count < 70; count += 1) {
-			const response = await get("/api/public/search?q=install");
-			last = response.status;
-			if (last === 429) {
-				message = ((await response.json()) as { message: string }).message;
-				break;
-			}
-		}
-		expect(last).toBe(429);
-		expect(message).toBe("Too many searches in a row. Wait a moment and try again.");
-	});
 });
 
 describe("pages for agents", () => {
@@ -229,18 +128,10 @@ describe("pages for agents", () => {
 	});
 });
 
-describe("nested pages in search and for agents", () => {
+describe("nested pages for agents", () => {
 	const guides = page({ slug: "guides", title: "Guides", status: "draft", blocks: [paragraph("n1", "Start here.")] });
 	const nested = page({ slug: "backup", title: "Back up your site", parentId: guides.id, blocks: [heading("n2", "Back up your site", 1), paragraph("n3", "Copy the narwhal folder."), heading("n4", "Restore"), paragraph("n5", "Put the narwhal files back.")] });
 	const rows = () => [guides, nested, aboutPage];
-
-	it("gives search results the full address, even when the parent is a draft", async () => {
-		const search = createSiteSearch({ models: fakeModels({ pages: rows }) });
-		const [hit] = await search.search({ siteId: SITE.id, query: "restore", limit: 5 });
-		expect(hit).toMatchObject({ title: "Back up your site", path: "/guides/backup#restore" });
-		const [top] = await search.search({ siteId: SITE.id, query: "websites", limit: 5 });
-		expect(top.path).toBe("/about");
-	});
 
 	it("links nested pages in /llms.txt by their full address", async () => {
 		const get = await serve({ models: fakeModels({ pages: rows }), agentFirst: true });

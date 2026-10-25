@@ -46,7 +46,7 @@ describe("defaultCanvasChromeMode", () => {
   });
 
   it("spans the section blocks that lay out their own items", () => {
-    for (const name of ["core/grid", "core/card", "core/steps", "core/step", "core/tabs", "core/tab", "core/logo-cloud", "core/docs-layout"]) {
+    for (const name of ["core/grid", "core/card", "core/steps", "core/step", "core/tabs", "core/tab", "core/logo-cloud", "core/docs-layout", "docs/callout", "docs/code-group", "docs/file-tree", "docs/params", "docs/example", "docs/diagram", "docs/update"]) {
       expect(defaultCanvasChromeMode(name)).toBe("span");
     }
     expect(defaultCanvasChromeMode("core/badge")).toBe("hug");

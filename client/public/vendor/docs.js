@@ -160,8 +160,73 @@
     });
   });
 
+  /*
+   * Pictures in a docs page open larger: click, Enter or Space opens a dialog; Esc, Close, a click
+   * outside or on the big picture closes it, and focus goes back to the picture. A picture inside a
+   * link keeps the link.
+   */
+  function closeZoom(dialog) {
+    if (typeof dialog.close === "function") dialog.close();
+    else dialog.dispatchEvent(new Event("close"));
+  }
+
+  function openZoom(img) {
+    var dialog = document.createElement("dialog");
+    dialog.className = "np-zoom";
+    dialog.setAttribute("aria-label", img.alt ? "Picture: " + img.alt : "Picture");
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "np-zoom__close";
+    close.textContent = "Close";
+    var big = document.createElement("img");
+    big.src = img.currentSrc || img.src;
+    big.alt = img.alt || "";
+    dialog.appendChild(close);
+    dialog.appendChild(big);
+    document.body.appendChild(dialog);
+    dialog.addEventListener("close", function () {
+      dialog.remove();
+      img.focus();
+    });
+    close.addEventListener("click", function () {
+      closeZoom(dialog);
+    });
+    dialog.addEventListener("click", function (event) {
+      if (event.target === dialog || event.target === big) closeZoom(dialog);
+    });
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+    close.focus();
+  }
+
+  function prepareZoom(root) {
+    Array.prototype.forEach.call(root.querySelectorAll(".np-docs__content img"), function (img) {
+      if (img.hasAttribute("data-np-zoom") || img.closest("a, button")) return;
+      img.setAttribute("data-np-zoom", "");
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.setAttribute("aria-label", (img.alt ? img.alt + ". " : "") + "Open larger");
+    });
+  }
+
+  document.addEventListener("click", function (event) {
+    var img = event.target instanceof Element ? event.target.closest("img[data-np-zoom]") : null;
+    if (img) openZoom(img);
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    var img = event.target instanceof Element && event.target.matches("img[data-np-zoom]") ? event.target : null;
+    if (!img) return;
+    event.preventDefault();
+    openZoom(img);
+  });
+
   function start() {
-    Array.prototype.forEach.call(document.querySelectorAll("[data-np-docs]"), watchHeadings);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-np-docs]"), function (root) {
+      watchHeadings(root);
+      prepareZoom(root);
+    });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();

@@ -64,6 +64,7 @@ function useMdxProblem({ text, mdx }: { text: string; mdx: boolean }): string | 
 // ============================================================================
 
 interface MarkdownRendererProps {
+  blockId: string;
   content: MarkdownContent;
   styles?: React.CSSProperties;
   isPreview?: boolean;
@@ -71,6 +72,7 @@ interface MarkdownRendererProps {
 }
 
 function MarkdownRenderer({
+  blockId,
   content,
   styles,
   isPreview,
@@ -85,7 +87,7 @@ function MarkdownRenderer({
   if (isPreview) {
     return (
       <BlockShell blockClass="wp-block-markdown" className={content?.className} style={styles}>
-        <MarkdownView text={markdownText} mdx={mdx} />
+        <MarkdownView text={markdownText} mdx={mdx} idPrefix={blockId} />
       </BlockShell>
     );
   }
@@ -100,7 +102,7 @@ function MarkdownRenderer({
           height={getMarkdownEditorHeight(markdownText)}
           hideToolbar={false}
           visibleDragbar={true}
-          components={{ preview: (source) => <MarkdownView text={source} mdx={mdx} className="px-4 py-3" /> }}
+          components={{ preview: (source) => <MarkdownView text={source} mdx={mdx} idPrefix={blockId} className="px-4 py-3" /> }}
         />
       </div>
       {mdxProblem ? (
@@ -159,8 +161,9 @@ const MarkdownBlock = createBlockDefinition<MarkdownContent>({
   defaultContent: DEFAULT_CONTENT,
   settings: MarkdownSettings,
   hasSettings: true,
-  render: ({ content, styles, setContent, isPreview }) => (
+  render: ({ value, content, styles, setContent, isPreview }) => (
     <MarkdownRenderer
+      blockId={value.id}
       content={content}
       styles={styles}
       isPreview={isPreview}

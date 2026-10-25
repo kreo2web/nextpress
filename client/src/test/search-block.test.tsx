@@ -72,7 +72,12 @@ describe("Search block", () => {
         page: { id: "p", title: "Docs", blocks, other: { seo: {}, design: {} } } as Parameters<typeof buildPublishedPageHtml>[0]["page"],
         canonicalUrl: "http://localhost:5000/docs",
       });
-    expect(build([searchBlock({})])).toContain('<script src="/vendor/search.js"></script>');
-    expect(build([])).not.toContain("/vendor/search.js");
+    const withSearch = build([searchBlock({})]);
+    expect(withSearch).toContain('<script src="/vendor/search.js"></script>');
+    // search.js fetches the search library itself on first open, so the page never lists it up front.
+    expect(withSearch).not.toContain("minisearch");
+    const without = build([]);
+    expect(without).not.toContain("/vendor/search.js");
+    expect(without).not.toContain("minisearch");
   });
 });

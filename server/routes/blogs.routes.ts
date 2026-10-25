@@ -8,6 +8,7 @@ import { resolveReadSiteId } from '../lib/content-access';
 import { assertCanOnItem, readerCanEdit } from '../lib/access';
 import { resolveSiteThemeSettings } from './shared/resolve-site-theme-settings';
 import { mergePageOtherWithThemeDefaults } from '@shared/theme-to-page-design';
+import { scheduleSearchIndexRebuild } from '../lib/site-search';
 
 /**
  * Builds a PostList block config pre-configured for a specific blog.
@@ -202,6 +203,7 @@ export function createBlogsRoutes(deps: Deps): Router {
         } as any);
 
         hooks.doAction('save_blog', updatedBlog);
+        scheduleSearchIndexRebuild({ models, siteId });
 
         return updatedBlog;
       });
@@ -277,7 +279,10 @@ export function createBlogsRoutes(deps: Deps): Router {
           const { err: pageErr } = await safeTryAsync(async () => {
             // Only the blog's own index page on the same site; a tampered link never reaches another site.
             const page = await models.pages.findById(pageId);
-            if (page && String(page.siteId) === String(blog.siteId)) await models.pages.delete(pageId);
+            if (page && String(page.siteId) === String(blog.siteId)) {
+              await models.pages.delete(pageId);
+              scheduleSearchIndexRebuild({ models, siteId: String(page.siteId) });
+            }
           });
           if (pageErr) {
             console.warn({ atFunction: 'blogs.delete', data: { blogId: id, pageId, error: pageErr }, message: 'The blog was deleted but its page could not be' });

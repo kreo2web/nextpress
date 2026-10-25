@@ -13,7 +13,8 @@ export const MCP_SERVER_VERSION = "0.3.0";
  */
 const SERVER_INSTRUCTIONS = `NextPress CMS. Pages are trees of blocks; the owner reviews your work in the dashboard.
 To build or change a page: read it with get_page_outline, look up blocks with list_block_types and get_block_type, change it in small steps with change_page_blocks (each reply checks the page), then run preview_page. New pages stay drafts; publish only when the owner asks.
-The build_page prompt and the nextpress://design-guide resource hold the full guide. get_page_history and restore_page_version undo a bad change.`;
+The build_page prompt and the nextpress://design-guide resource hold the full guide. get_page_history and restore_page_version undo a bad change.
+To write docs pages, use the write_docs prompt or the nextpress://docs/guide resource (get_docs_guide returns the same text).`;
 
 /**
  * Create the NextPress MCP server with content-core tools, resources and prompts.

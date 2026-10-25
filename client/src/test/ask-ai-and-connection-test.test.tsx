@@ -9,6 +9,7 @@ import { makeBlock } from '@shared/page-tools/test-support/memory-context';
 import { AskAiButton, PageAssistantProvider } from '@/components/PageBuilder/assistant';
 import { AiConnectionTest } from '@/components/settings/ai-settings/ai-connection-test';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { createFakeChatServer } from './fixtures/fake-chat-server';
 
 const SITE_ID = '3f2b8a40-6c1d-4a57-9e0b-5d7c1a2b9e11';
 const PAGE_ID = '9a1c2b3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d';
@@ -58,7 +59,7 @@ const stubAiFetch = ({
 }): void => {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    createFakeChatServer().fetchWith(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = new URL(String(input), 'http://localhost').pathname;
       if (path === '/api/ai-builder/status') return json({ enabled, canManage });
       return onChat(JSON.parse(String(init?.body)) as AiChatRequest);
@@ -105,7 +106,7 @@ describe('Ask AI on a block', () => {
     const chatBodies: AiChatRequest[] = [];
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      createFakeChatServer().fetchWith(async (input: RequestInfo | URL, init?: RequestInit) => {
         const path = new URL(String(input), 'http://localhost').pathname;
         if (path === '/api/ai-builder/status') return json({ enabled: true, canManage: false });
         chatBodies.push(JSON.parse(String(init?.body)) as AiChatRequest);

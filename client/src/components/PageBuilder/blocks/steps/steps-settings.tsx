@@ -15,6 +15,7 @@ const LAYOUT_OPTIONS = [
 const MARKER_OPTIONS = [
 	{ value: "number", label: "Numbers" },
 	{ value: "dot", label: "Dots" },
+	{ value: "icon", label: "Icons" },
 ];
 
 type StepsSettingsProps = {
@@ -55,14 +56,19 @@ export function StepsSettings({ block, onUpdate }: StepsSettingsProps) {
 					onChange={(value) => updateContent({ layout: value === "horizontal" ? "horizontal" : "vertical" })}
 				/>
 				{content.layout === "horizontal" ? (
-					<p className="npb-settings-hint-muted text-xs">On phones the steps stack down the page.</p>
+					<p className="npb-settings-hint-muted text-xs">
+						An arrow points from each step to the next. On phones the steps stack down the page.
+					</p>
 				) : null}
 				<SettingsChipGroup
 					label="Marker"
 					options={MARKER_OPTIONS}
 					value={content.marker}
-					onChange={(value) => updateContent({ marker: value === "dot" ? "dot" : "number" })}
+					onChange={(value) => updateContent({ marker: readStepsContent({ kind: "structured", data: { marker: value } }).marker })}
 				/>
+				{content.marker === "icon" ? (
+					<p className="npb-settings-hint-muted text-xs">Pick each step's icon in that step's settings.</p>
+				) : null}
 			</div>
 		</CollapsibleCard>
 	);

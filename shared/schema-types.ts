@@ -206,11 +206,22 @@ export interface PageIconSettings {
   defaultSize?: number;
 }
 
+/**
+ * A docs page's place in its docs, beyond parent and order. `group`: shown in the sidebar as a
+ * label for the pages under it, never as a link. `hidden`: left out of the sidebar, still opens
+ * from its address.
+ */
+export interface PageDocsFlags {
+  group?: boolean;
+  hidden?: boolean;
+}
+
 /** Structure for page.other jsonb field */
 export interface PageOther {
   seo?: PageSeoSettings;
   design?: PageDesignSettings;
   icons?: PageIconSettings;
+  docs?: PageDocsFlags;
   [key: string]: unknown;
 }
 
@@ -287,7 +298,7 @@ export interface BlockConfig {
 
 	// Display metadata
 	label?: string; // User-facing display name (e.g., 'Heading', 'Two Columns')
-	category?: "basic" | "form" | "layout" | "media" | "advanced" | "post";
+	category?: "basic" | "form" | "layout" | "media" | "docs" | "advanced" | "post";
 
 	// Content - Discriminated union for type-safe handling
 	// - For text blocks: { kind: 'text', value: '...' }

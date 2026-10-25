@@ -2,6 +2,7 @@ export type { AuthResource } from "./auth.js";
 export type { BlogsResource } from "./blogs.js";
 export type { CommentsResource } from "./comments.js";
 export type { DashboardResource } from "./dashboard.js";
+export type { DocsResource } from "./docs.js";
 export type { FormSubmissionsResource, FormsResource } from "./forms.js";
 export type { HealthResource } from "./health.js";
 export type { HooksResource } from "./hooks.js";

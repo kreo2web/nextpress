@@ -12,6 +12,8 @@ export type CardLook = (typeof CARD_LOOKS)[number];
  * clickable: an overlay link named by `linkLabel`, so buttons inside still work on their own.
  */
 export type CardContent = {
+	/** A heading at the top of the card (the MDX `title`). Empty for none. */
+	title: string;
 	look: CardLook;
 	link: string;
 	/** What a screen reader says for the card's link, e.g. "Read the pricing guide". */
@@ -19,11 +21,12 @@ export type CardContent = {
 	linkTarget: "_self" | "_blank";
 };
 
-export const DEFAULT_CARD_CONTENT: CardContent = { look: "bordered", link: "", linkLabel: "", linkTarget: "_self" };
+export const DEFAULT_CARD_CONTENT: CardContent = { title: "", look: "bordered", link: "", linkLabel: "", linkTarget: "_self" };
 
 export function readCardContent(content: BlockContent | undefined): CardContent {
 	const data = readStructuredData(content);
 	return {
+		title: readText(data.title).trim(),
 		look: readChoice({ value: data.look, options: CARD_LOOKS, fallback: "bordered" }),
 		link: readText(data.link).trim(),
 		linkLabel: readText(data.linkLabel).trim(),

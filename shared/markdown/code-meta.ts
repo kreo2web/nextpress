@@ -1,11 +1,17 @@
 /** Most lines one range may mark, so a typo like `1-99999` can't build a huge set. */
 const MAX_RANGE_LINES = 5000;
 
-/** What a code fence's info line says besides the language, e.g. ```` ```ts {2,4-6} title="app.ts" showLineNumbers ````. */
+/**
+ * What a code fence's info line says that the page itself shows, e.g. ```` ```ts {2,4-6} title="app.ts" showLineNumbers ````.
+ * The `{2,4-6}` is not read here: Kirari's markdown plugin marks those lines.
+ */
 export type CodeFenceMeta = {
 	title: string | null;
-	highlightLines: Set<number>;
 	showLineNumbers: boolean;
+	/** `wrap`: long lines wrap instead of scrolling sideways. */
+	wrap: boolean;
+	/** Long code folds to its first lines unless the fence says `noFold`. */
+	fold: boolean;
 };
 
 /**
@@ -31,7 +37,8 @@ export const parseCodeFenceMeta = (meta: string | null | undefined): CodeFenceMe
 	const title = /\b(?:title|filename)=(?:"([^"]*)"|'([^']*)'|(\S+))/.exec(text);
 	return {
 		title: title ? (title[1] ?? title[2] ?? title[3] ?? null) : null,
-		highlightLines: parseLineList(/\{([^}]*)\}/.exec(text)?.[1]),
 		showLineNumbers: /\b(?:showLineNumbers|lineNumbers)\b/.test(text),
+		wrap: /\bwrap\b/.test(text),
+		fold: !/\bno[Ff]old\b/.test(text),
 	};
 };

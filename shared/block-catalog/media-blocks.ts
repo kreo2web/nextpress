@@ -120,6 +120,7 @@ export const MEDIA_BLOCKS: readonly WrittenBlockEntry[] = [
 		label: "Image",
 		description: "Add an image",
 		category: "media",
+		alsoIn: ["docs"],
 		kind: "block",
 		defaultContent: () => fresh(IMAGE_DEFAULT_CONTENT),
 		defaultStyles: {

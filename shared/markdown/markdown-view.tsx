@@ -2,13 +2,17 @@ import { createElement, useMemo, type ComponentType, type JSX, type ReactNode } 
 import remarkMdx from "remark-mdx";
 import { type Components, defaultRemarkPlugins, type ExtraProps, Streamdown } from "streamdown";
 import type { Pluggable } from "unified";
+import { resolveCodeLanguage } from "./code-languages.js";
 import { parseCodeFenceMeta } from "./code-meta.js";
-import { CodeView } from "./code-view.js";
+import { CodeFrame } from "./code-view.js";
 import { type DiagramRenderer, DiagramView } from "./diagram-view.js";
+import { MarkdownIdContext } from "./components/doc-children.js";
+import { remarkDocComponentIds } from "./doc-component-ids.js";
 import { DOC_COMPONENT_PROPS, DOC_COMPONENT_RENDERERS, DOC_COMPONENT_TAGS } from "./doc-components.js";
 import { readHeadingId, remarkHeadingIds } from "./heading-ids.js";
 import { escapeMdxBraces } from "./mdx-text.js";
 import { parseMarkdown } from "./parse-markdown.js";
+import { buildRehypePlugins, readFenceLanguage } from "./rehype-plugins.js";
 import { remarkSafeMdx } from "./safe-mdx.js";
 
 export type MarkdownViewProps = {
@@ -21,10 +25,13 @@ export type MarkdownViewProps = {
 	renderDiagram?: DiagramRenderer;
 	/** Copy for code blocks where React runs (chat). Published pages copy through `code.js`. */
 	onCopyCode?: (code: string) => void;
+	/** The markdown block's id. Tabs in MDX build their element ids from it, so two markdown blocks on one page never clash. */
+	idPrefix?: string;
 	className?: string;
 };
 
-type HastNode = { properties?: Record<string, unknown> };
+/** The syntax-tree node React hands each element (its `node` prop), as far as the code fence reads it. */
+type HastNode = { type?: string; value?: string; properties?: { metastring?: string }; children?: HastNode[] };
 type ElementProps = Record<string, unknown> & ExtraProps & { children?: ReactNode; className?: string; id?: string };
 /** The props Streamdown hands an override for one HTML element. */
 type PropsOf<Tag extends keyof JSX.IntrinsicElements> = JSX.IntrinsicElements[Tag] & ExtraProps;
@@ -46,31 +53,34 @@ const heading =
 	({ node: _node, id, ...props }) =>
 		createElement(tag, { ...props, id: readHeadingId(id) });
 
-const childText = (children: ReactNode): string =>
-	Array.isArray(children) ? children.map(childText).join("") : typeof children === "string" || typeof children === "number" ? String(children) : "";
+/** The text inside a syntax-tree node with the tags removed: the code as the author wrote it, whatever the highlighter wrapped around it. */
+const readNodeText = (node: HastNode | undefined): string =>
+	node?.type === "text" ? (node.value ?? "") : (node?.children ?? []).map(readNodeText).join("");
 
-const readMetaString = (node: HastNode | undefined): string | null => {
-	const meta = node?.properties?.metastring;
-	return typeof meta === "string" ? meta : null;
-};
-
-/** Fenced code: Mermaid becomes a diagram, everything else a colored code block with the fence's title and marked lines. */
+/**
+ * Fenced code. Mermaid becomes a diagram. Everything else arrives already colored by Kirari's
+ * plugin (see `rehype-plugins.ts`), so its lines are forwarded as they are into our code frame,
+ * which adds the fence's title, the language name, line numbers and the copy button.
+ */
 const createCodeFence =
 	({ renderDiagram, onCopyCode }: Pick<MarkdownViewProps, "renderDiagram" | "onCopyCode">): ComponentType<PropsOf<"code">> =>
 	({ className, children, node }) => {
-		const language = /language-(\S+)/.exec(className ?? "")?.[1] ?? null;
-		const code = childText(children).replace(/\n$/, "");
-		if (language === "mermaid") return <DiagramView source={code} render={renderDiagram} />;
-		const meta = parseCodeFenceMeta(readMetaString(node as HastNode | undefined));
+		const typed = readFenceLanguage(className);
+		const tree = node as HastNode | undefined;
+		const code = readNodeText(tree);
+		const meta = parseCodeFenceMeta(tree?.properties?.metastring);
+		if (typed === "mermaid") return <DiagramView source={code} render={renderDiagram} caption={meta.title} />;
 		return (
-			<CodeView
-				code={code}
-				language={language}
+			<CodeFrame
+				language={resolveCodeLanguage(typed)}
 				title={meta.title}
-				highlightLines={meta.highlightLines}
 				showLineNumbers={meta.showLineNumbers}
-				onCopy={onCopyCode}
-			/>
+				wrapLines={meta.wrap}
+				fold={meta.fold}
+				copyText={code}
+				onCopy={onCopyCode}>
+				{children}
+			</CodeFrame>
 		);
 	};
 
@@ -108,12 +118,15 @@ const buildComponents = (options: Pick<MarkdownViewProps, "renderDiagram" | "onC
 	...DOC_COMPONENT_RENDERERS,
 });
 
+/** Built once: Streamdown's HTML steps with the docs tags allowed, then Kirari's plugin for fenced code. */
+const REHYPE_PLUGINS = buildRehypePlugins({ allowedTags: DOC_COMPONENT_TAGS });
+
 /**
  * Markdown (or MDX) as NextPress shows it everywhere: the editor, published pages (rendered on the
  * server) and the AI chat. GitHub tables and task lists, colored code, Mermaid diagrams, anchored
  * headings, and the docs components in `doc-components.tsx`. Raw HTML is sanitized; MDX is never run.
  */
-export function MarkdownView({ text, mdx = false, mode = "static", renderDiagram, onCopyCode, className }: MarkdownViewProps): JSX.Element {
+export function MarkdownView({ text, mdx = false, mode = "static", renderDiagram, onCopyCode, idPrefix, className }: MarkdownViewProps): JSX.Element {
 	// MDX that doesn't parse would throw mid-render; it shows as plain markdown instead (the editor says why).
 	const useMdx = useMemo(
 		() => mdx && mode === "static" && parseMarkdown({ text, mdx: true, components: DOC_COMPONENT_PROPS }).ok,
@@ -123,22 +136,25 @@ export function MarkdownView({ text, mdx = false, mode = "static", renderDiagram
 	const remarkPlugins = useMemo(
 		(): Pluggable[] => [
 			...Object.values(defaultRemarkPlugins),
-			...(useMdx ? ([remarkMdx, [remarkSafeMdx, { components: DOC_COMPONENT_PROPS }]] as Pluggable[]) : []),
+			...(useMdx ? ([remarkMdx, [remarkSafeMdx, { components: DOC_COMPONENT_PROPS }], remarkDocComponentIds] as Pluggable[]) : []),
 			remarkHeadingIds as Pluggable,
 		],
 		[useMdx],
 	);
 
 	return (
-		<Streamdown
-			mode={mode}
-			// Streamdown puts `space-y-4` on its wrapper; this conflicting class makes tailwind-merge drop it, so the
-			// spacing in markdown-css.ts applies. It has no CSS of its own (`unset` is invalid inside calc()).
-			className={["np-prose space-y-[unset]", className].filter(Boolean).join(" ")}
-			remarkPlugins={remarkPlugins}
-			allowedTags={DOC_COMPONENT_TAGS}
-			components={components}>
-			{useMdx ? escapeMdxBraces(text) : text}
-		</Streamdown>
+		<MarkdownIdContext.Provider value={idPrefix ?? "md"}>
+			<Streamdown
+				mode={mode}
+				// Streamdown puts `space-y-4` on its wrapper; this conflicting class makes tailwind-merge drop it, so the
+				// spacing in markdown-css.ts applies. It has no CSS of its own (`unset` is invalid inside calc()).
+				className={["np-prose space-y-[unset]", className].filter(Boolean).join(" ")}
+				remarkPlugins={remarkPlugins}
+				rehypePlugins={REHYPE_PLUGINS}
+				allowedTags={DOC_COMPONENT_TAGS}
+				components={components}>
+				{useMdx ? escapeMdxBraces(text) : text}
+			</Streamdown>
+		</MarkdownIdContext.Provider>
 	);
 }

@@ -119,4 +119,33 @@ describe("blocksToMarkdown", () => {
 	it("is empty for an empty page", () => {
 		expect(blocksToMarkdown([])).toBe("");
 	});
+
+	it("writes callouts as quotes, file trees as text and parameters as a list", () => {
+		const docs = blocksToMarkdown([
+			block({ id: "co", name: "docs/callout", data: { type: "warning", title: "Back up first" }, children: [paragraph("cp", "Copy the uploads folder.")] }),
+			block({ id: "ft", name: "docs/file-tree", data: { tree: "src/\n  app.ts *" } }),
+			block({
+				id: "pa",
+				name: "docs/params",
+				data: { items: [{ name: "limit", type: "number", default: "20", required: false, description: "How many\nto return." }, { name: "  ", type: "half typed" }, { name: "siteId", type: "string", required: true, description: "" }] },
+			}),
+		]);
+		expect(docs).toContain("> **Warning:** Back up first\n>\n> Copy the uploads folder.");
+		expect(docs).toContain("```\nsrc/\n  app.ts *\n```");
+		expect(docs).toContain("- `limit` (number), default `20`: How many to return.\n- `siteId` (string), required");
+		expect(docs).not.toContain("half typed");
+	});
+});
+
+describe("extractPageText for docs components", () => {
+	it("finds words in file trees and parameter lists", () => {
+		const { text } = extractPageText([
+			block({ id: "ft", name: "docs/file-tree", data: { tree: "src/\n  router.ts *  # routes live here" } }),
+			block({ id: "pa", name: "docs/params", data: { items: [{ name: "timeout", type: "number", description: "Seconds to wait." }] } }),
+		]);
+		expect(text).toContain("router.ts");
+		expect(text).toContain("routes live here");
+		expect(text).toContain("timeout");
+		expect(text).toContain("Seconds to wait.");
+	});
 });

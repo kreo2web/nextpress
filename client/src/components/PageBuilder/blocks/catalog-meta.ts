@@ -6,6 +6,7 @@ type CatalogMeta = {
   label: string;
   description: string;
   category: BlockCategory;
+  alsoIn?: BlockCategory[];
   defaultStyles: Record<string, string | number>;
   isContainer?: boolean;
   defaultChildren?: BlockDefinition["defaultChildren"];
@@ -23,6 +24,7 @@ export const catalogMeta = (name: BlockName): CatalogMeta => {
     label: entry.label,
     description: entry.description,
     category: entry.category,
+    ...(entry.alsoIn ? { alsoIn: [...entry.alsoIn] } : {}),
     defaultStyles: { ...entry.defaultStyles },
     ...(entry.kind === "container" ? { isContainer: true } : {}),
     ...(entry.defaultChildren ? { defaultChildren: entry.defaultChildren } : {}),

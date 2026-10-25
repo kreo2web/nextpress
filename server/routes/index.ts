@@ -11,6 +11,7 @@ import { createUsersRoutes } from './users.routes';
 import { createPostsRoutes } from './posts.routes';
 import { createPagesRoutes } from './pages.routes';
 import { createPageTransferRoutes } from './page-transfer.routes';
+import { createDocsRoutes } from './docs.routes';
 import { createFormsRoutes } from './forms.routes';
 import { createBlogsRoutes } from './blogs.routes';
 import { createCommentsRoutes } from './comments.routes';
@@ -34,6 +35,7 @@ import { createWordPressImportRoutes } from './import.wordpress.routes';
 import { createSystemRoutes } from './system.routes';
 import { createAiBuilderRoutes } from './ai-builder.routes';
 import { createAiAssistantRoutes } from './ai-builder-chat.routes';
+import { createAssistantChatBodyParser, createAssistantChatsRoutes } from './assistant-chats.routes';
 import { createAiSettingsService, createConnectionTester, lookupHostAddresses } from '../lib/ai-builder';
 
 /** Big enough for a long page tree plus the recent chat. */
@@ -91,6 +93,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Registered first: the general parser below skips a body that is already read.
   app.use('/api/ai-builder/chat', express.json({ limit: AI_CHAT_BODY_LIMIT }));
 
+  // A saved assistant chat can be 256 KB: read it after sign-in, with its own limit. Same order rule as above.
+  const getSessionUserId = (req: Request) => deps.authService.getCurrentUserId(req);
+  app.put(
+    '/api/assistant/chats/:chatId',
+    createAssistantChatBodyParser({ requireSession: requireSessionAuth, getUserId: getSessionUserId }),
+  );
+
   // JSON body parsing for all non-Better-Auth routes
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
@@ -126,6 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/posts', createPostsRoutes(deps));
   app.use('/api/pages', createPagesRoutes(deps));
   app.use('/api/page-transfer', createPageTransferRoutes(deps));
+  app.use('/api/docs', createDocsRoutes(deps));
   app.use('/api/forms', createFormsRoutes(deps));
   app.use('/api/blogs', createBlogsRoutes(deps));
 
@@ -160,6 +170,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
   app.use('/api/ai-builder', createAiBuilderRoutes(aiRouteBase));
   app.use('/api/ai-builder', createAiAssistantRoutes({ ...aiRouteBase, resolveDns: lookupHostAddresses }));
+  app.use(
+    '/api/assistant/chats',
+    createAssistantChatsRoutes({ models: deps.models, requireSession: requireSessionAuth, getUserId: getSessionUserId }),
+  );
 
   app.use('/api/preview', createPreviewRoutes(deps));
   app.use('/api/public', createPublicRoutes(deps));
@@ -193,6 +207,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     'popup.js': vendorCandidates('popup.js'),
     'form.js': vendorCandidates('form.js'),
     'select.js': vendorCandidates('select.js'),
+    // Search in the browser (search.js loads it on first use). Served from the package, as animate.css is; the image installs production packages.
+    'minisearch.js': vendorCandidates('minisearch.js', path.join(process.cwd(), 'node_modules/minisearch/dist/umd/index.js')),
   };
 
   for (const [filename, candidates] of Object.entries(vendorFileSources)) {

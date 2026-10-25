@@ -1,5 +1,6 @@
 export { createPackageFileStore, type PackageFileStore } from "./store-package-files";
 export { createPagePackageBuilder } from "./build-page-package";
+export { createPagePackageBuilderFromDeps } from "./builder-from-deps";
 export {
 	createPageImporter,
 	isPageImportRefusal,

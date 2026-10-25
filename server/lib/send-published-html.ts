@@ -8,6 +8,8 @@ import { resolveSiteThemeSettings } from "../routes/shared/resolve-site-theme-se
 import { bindPublishedPostLists } from "./bind-published-post-lists";
 import { bindPublishedDocsLayout } from "./bind-published-docs-layout";
 import { DOCS_LAYOUT_BLOCK_NAME } from "@shared/blocks/docs-layout-model";
+import { DOCS_PAGE_BLOCK_NAME } from "@shared/blocks/docs-page-model";
+import { DOCS_SHELL_BLOCK_NAME } from "@shared/blocks/docs-shell-model";
 import { readListPage } from "@shared/bind-post-list";
 import { resolvePageTemplateParts, templatePartsStamp } from "./template-parts";
 import { canonicalUrlWithoutQuery, publishedPageCache, publishedPageCacheKey } from "./published-page-cache";
@@ -27,7 +29,7 @@ import {
  * A new comment, a new post, a renamed author, or a renamed or moved page (the docs layout's
  * sidebar) does not raise this document's version.
  */
-const LIVE_BLOCK_NAMES = ["post/list", "post/comments", "post/navigation", "post/author-box", DOCS_LAYOUT_BLOCK_NAME] as const;
+const LIVE_BLOCK_NAMES = ["post/list", "post/comments", "post/navigation", "post/author-box", DOCS_LAYOUT_BLOCK_NAME, DOCS_SHELL_BLOCK_NAME, DOCS_PAGE_BLOCK_NAME] as const;
 
 const canCacheBlocks = (blocks: BlockConfig[]): boolean =>
 	!LIVE_BLOCK_NAMES.some((name) => documentHasBlockName({ blocks, name }));
@@ -179,7 +181,7 @@ export async function sendPublishedHtml({
 			})
 		: prepared.blocks;
 	const blocks = siteId
-		? await bindPublishedDocsLayout({ models, siteId, pageId: document.id, blocks: listedBlocks })
+		? await bindPublishedDocsLayout({ models, siteId, pageId: document.id, blocks: listedBlocks, description: pageSeo?.metaDescription ?? "" })
 		: listedBlocks;
 
 	const html = buildPublishedPageHtml({

@@ -98,7 +98,16 @@ html:has(.np-search-dialog[open]) { overflow: hidden; }
   background: color-mix(in srgb, var(--npb-accent, #3b82f6) 12%, transparent);
 }
 .np-search-dialog__title { display: block; font-weight: 600; }
+.np-search-dialog__section { font-weight: 400; color: var(--npb-text-secondary, #52525b); }
+.np-search-dialog__section::before { content: "›"; margin: 0 0.45em; color: var(--npb-text-muted, #71717a); }
 .np-search-dialog__snippet { display: block; margin-top: 0.15rem; font-size: 0.85rem; color: var(--npb-text-secondary, #52525b); }
+/* The words that matched. Tinted, not the browser's yellow, so it reads on light and dark pages alike. */
+.np-search-dialog__result mark {
+  padding: 0 0.1em;
+  border-radius: 0.2rem;
+  background: color-mix(in srgb, var(--npb-accent, #3b82f6) 24%, transparent);
+  color: inherit;
+}
 .np-search-dialog__status { margin: 0; padding: 1.25rem 1rem; text-align: center; font-size: 0.9rem; color: var(--npb-text-muted, #71717a); }
 .np-search-dialog__status:empty { display: none; }
 @keyframes np-search-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }

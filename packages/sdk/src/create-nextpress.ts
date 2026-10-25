@@ -9,6 +9,7 @@ import { createAuthResource } from "./resources/auth.js";
 import { createBlogsResource } from "./resources/blogs.js";
 import { createCommentsResource } from "./resources/comments.js";
 import { createDashboardResource } from "./resources/dashboard.js";
+import { createDocsResource } from "./resources/docs.js";
 import { createFormsResource } from "./resources/forms.js";
 import { createHealthResource } from "./resources/health.js";
 import { createHooksResource } from "./resources/hooks.js";
@@ -91,6 +92,7 @@ export function createNextpress(options: NextpressOptions): NextpressClient {
 		plugins: createPluginsResource({ http }),
 		hooks: createHooksResource({ http }),
 		dashboard: createDashboardResource({ http }),
+		docs: createDocsResource({ http }),
 		preview,
 		public: createPublicResource({ http }),
 		import: createImportResource({ http }),

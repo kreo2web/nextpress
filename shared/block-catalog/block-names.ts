@@ -50,6 +50,18 @@ export const BLOCK_NAMES = [
 	"core/logo-cloud",
 	"core/search",
 	"core/docs-layout",
+	"docs/shell",
+	"docs/page",
+	"docs/heading",
+	"docs/text",
+	"docs/list",
+	"docs/callout",
+	"docs/code-group",
+	"docs/file-tree",
+	"docs/params",
+	"docs/example",
+	"docs/diagram",
+	"docs/update",
 	"post/title",
 	"post/excerpt",
 	"post/featured-image",
@@ -81,8 +93,8 @@ export type ResolvedBlockName = { ok: true; name: BlockName } | { ok: false; mes
 
 /**
  * The block an agent means. A name without a prefix is a `core/` block, the way the page outline
- * prints it (`heading` is `core/heading`); `post/` blocks keep their prefix, so `list` is never
- * mistaken for `post/list`.
+ * prints it (`heading` is `core/heading`); `post/` and `docs/` blocks keep their prefix, so `list`
+ * is never mistaken for `post/list`, and `callout` is refused with a hint to write `docs/callout`.
  *
  * WHY: agents copy names from the outline. Refusing the short spelling there cost them a step.
  */

@@ -45,6 +45,37 @@ describe("block catalog", () => {
 		}
 	});
 
+	it("gives every docs/ block the docs category, and the docs category only to docs/ blocks", () => {
+		const inDocs = RAW_BLOCK_ENTRIES.filter((entry) => entry.category === "docs").map((entry) => entry.name);
+		const prefixed = RAW_BLOCK_ENTRIES.filter((entry) => entry.name.startsWith("docs/")).map((entry) => entry.name);
+		expect(inDocs.sort()).toEqual(prefixed.sort());
+		expect(inDocs).toEqual(expect.arrayContaining(["docs/callout", "docs/code-group", "docs/example", "docs/file-tree", "docs/params"]));
+	});
+
+	it("lists nine core blocks in the docs group too, each still at home in its own group", () => {
+		const borrowed = RAW_BLOCK_ENTRIES.filter((entry) => entry.alsoIn?.includes("docs")).map((entry) => entry.name);
+		expect(borrowed).toEqual(
+			expect.arrayContaining([
+				"core/accordion",
+				"core/code",
+				"core/grid",
+				"core/image",
+				"core/markdown",
+				"core/separator",
+				"core/steps",
+				"core/table",
+				"core/tabs",
+			]),
+		);
+		for (const entry of RAW_BLOCK_ENTRIES.filter((candidate) => candidate.alsoIn?.includes("docs"))) {
+			expect(entry.category, entry.name).not.toBe("docs");
+		}
+	});
+
+	it("never lists a block under its own category a second time", () => {
+		for (const entry of RAW_BLOCK_ENTRIES) expect(entry.alsoIn ?? [], entry.name).not.toContain(entry.category);
+	});
+
 	it("returns null for a name NextPress does not know", () => {
 		expect(createDefaultBlock({ name: "core/nope", id: "x", newId: () => "y" })).toBeNull();
 	});

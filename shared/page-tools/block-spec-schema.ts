@@ -53,7 +53,7 @@ const DEEPEST_KEYS_TEXT =
 const makeSpecFields = (described: boolean) => ({
 	name: say({
 		schema: makeBlockNameSchema(),
-		text: "Block name, such as heading or stack (core/ may be left out; post/ blocks need it).",
+		text: "Block name, such as heading or stack (core/ may be left out; post/ and docs/ blocks need their prefix).",
 		described,
 	}),
 	ref: say({

@@ -1,5 +1,8 @@
 import { registerBlogTools } from "./blog-tools.js";
 import { registerBlockTools } from "./block-tools.js";
+import { registerDocsContentTools } from "./docs-content-tools.js";
+import { registerDocsPageTools } from "./docs-page-tools.js";
+import { registerDocsTools } from "./docs-tools.js";
 import { registerFormTools } from "./form-tools.js";
 import { registerHistoryTools } from "./history-tools.js";
 import { registerMediaTools } from "./media-tools.js";
@@ -40,4 +43,7 @@ export function registerContentTools({
 	registerPatchTools(deps);
 	registerHistoryTools(deps);
 	registerFormTools(deps);
+	registerDocsTools(deps);
+	registerDocsPageTools(deps);
+	registerDocsContentTools(deps);
 }

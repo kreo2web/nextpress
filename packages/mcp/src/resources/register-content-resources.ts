@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { BLOCK_DEFINITIONS, PAGE_DESIGN_GUIDE, type NextpressClient } from "@nextpress-org/sdk";
 import { toMcpText } from "../tools/mcp-tool-text.js";
 import { registerBlockSchemaResource } from "../tools/patch-tools.js";
+import { DOCS_GUIDE, DOCS_GUIDE_URI } from "../docs/docs-guide.js";
 import { readBlockAgentNotes } from "./read-block-notes.js";
 
 /**
@@ -134,5 +135,25 @@ export function registerContentResources({
 				],
 			};
 		},
+	);
+
+	server.registerResource(
+		"docs-guide",
+		DOCS_GUIDE_URI,
+		{
+			title: "Docs writing guide",
+			description:
+				"How to write good docs pages in NextPress, in plain words, with the MDX cheat sheet for every component",
+			mimeType: "text/markdown",
+		},
+		async (uri) => ({
+			contents: [
+				{
+					uri: uri.href,
+					mimeType: "text/markdown",
+					text: DOCS_GUIDE,
+				},
+			],
+		}),
 	);
 }

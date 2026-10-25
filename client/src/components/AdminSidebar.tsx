@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'wouter';
 import {
   Gauge,
+  BookOpen,
   FileText,
   File,
   Image,
@@ -34,6 +35,7 @@ const menuItems: MenuItem[] = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: Gauge },
   { label: 'Posts', path: '/admin/posts', icon: FileText, section: 'Content', needs: 'edit_content' },
   { label: 'Pages', path: '/admin/pages', icon: File, section: 'Content', needs: 'edit_content' },
+  { label: 'Docs', path: '/admin/docs', icon: BookOpen, section: 'Content', needs: 'edit_content' },
   { label: 'Media', path: '/admin/media', icon: Image, section: 'Content', needs: 'edit_content' },
   { label: 'Comments', path: '/admin/comments', icon: MessageCircle, section: 'Content', needs: 'moderate_comments' },
   { label: 'Forms', path: '/admin/forms', icon: Inbox, section: 'Content', needs: 'edit_content' },

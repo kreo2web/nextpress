@@ -3,6 +3,7 @@ import remarkMdx from "remark-mdx";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { escapeMdxBraces } from "./mdx-text.js";
+import type { MdxNode } from "./mdx-tree.js";
 import { type DocComponentAllowlist, remarkSafeMdx } from "./safe-mdx.js";
 
 /** A markdown syntax tree node, as far as the readers here need it. */
@@ -11,6 +12,15 @@ export type MarkdownNode = {
 	value?: string;
 	depth?: number;
 	alt?: string | null;
+	/** A link's address. */
+	url?: string;
+	/** Task-list items: true or false when the item has a checkbox. */
+	checked?: boolean | null;
+	/** Lists: numbered or not, and the first number. */
+	ordered?: boolean | null;
+	start?: number | null;
+	/** Where the node sits in the source text. */
+	position?: { start: { offset?: number }; end: { offset?: number } };
 	children?: MarkdownNode[];
 };
 
@@ -52,6 +62,24 @@ export const parseMarkdown = ({
 	try {
 		const tree = processor.runSync(processor.parse(mdx ? escapeMdxBraces(text) : text)) as MarkdownNode;
 		return { ok: true, tree };
+	} catch (error) {
+		return { ok: false, ...describeFailure(error as ParseFailure) };
+	}
+};
+
+/** MDX as written (`parseMdxAsWritten`): the tree, and the text its positions point into. */
+export type ParsedMdxTree = { ok: true; tree: MdxNode; source: string } | { ok: false; message: string; line: number | null };
+
+/**
+ * MDX as written, with every element kept: no allowlist, so no tag is unwrapped. The docs converter
+ * decides what each element becomes, and keeps whatever it can't hold word for word from `source`.
+ * Braces are escaped the same way `parseMarkdown` escapes them. Never throws.
+ */
+export const parseMdxAsWritten = ({ text }: { text: string }): ParsedMdxTree => {
+	const source = escapeMdxBraces(text);
+	const processor = unified().use(remarkParse).use(remarkGfm).use(remarkMdx);
+	try {
+		return { ok: true, tree: processor.runSync(processor.parse(source)) as MdxNode, source };
 	} catch (error) {
 		return { ok: false, ...describeFailure(error as ParseFailure) };
 	}

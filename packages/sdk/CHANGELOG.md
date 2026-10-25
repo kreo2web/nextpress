@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Docs** — `docs.list`, `create`, `tree`, `treeOfPage`, `updateSettings`, `addItem`, `updateItem`, `reorder`, `deleteItem`, `readPage`, `writePage` and `exportFile`, over the server's `/api/docs` routes. Changes return a result (`isErr`); reads throw a `NextpressError`. `exportFile` returns the docs as a page file that `pageTransfer.import` takes.
+- A refused MDX write keeps its line: `readDocsMdxProblem(error)` returns the message and the line to fix. A page changed since it was read is `VERSION_STALE` (409), and nothing is saved.
+- Docs types and input schemas (`DocsSettings`, `DocsTree`, `DocsTreeItem`, `WriteDocsPageResult`, …), copied from the server's contract so the published package needs no app files.
+
 ## [0.3.0] - 2026-10-17
 
 ### Added
@@ -24,7 +31,8 @@
   - The input description is about 30% smaller: only an insert's outer block carries descriptions.
 - `createBlockSpecSchema()` — the block shape `change_blocks` takes, for tools that take blocks elsewhere (MCP `build_blocks`).
 - Block catalog: `core/code` has `title` (file name above the code) and `highlightLines` ("2, 4-6"), and shows its copy button by default; `core/markdown` has `mdx` (docs components such as `<Callout>`, never run). Agent notes describe both.
-- Block catalog: section blocks `core/grid`, `core/card`, `core/badge`, `core/steps` + `core/step`, `core/tabs` + `core/tab`, `core/logo-cloud`, `core/search` (a search button for the site) and `core/docs-layout` (sidebar from the page tree, "On this page", previous/next, Copy page). `core/list` has `marker` (check, arrow, dash, none) and `core/columns` has `reverseOnPhones`. `core/step` only goes inside Steps and `core/tab` only inside Tabs; the page check refuses them elsewhere. `PageSummary` takes an optional `path` (`guides/install` for a page under Guides), which `list_pages` shows as its link; the in-editor assistant fills it in.
+- Block catalog: section blocks `core/grid`, `core/card`, `core/badge`, `core/steps` + `core/step`, `core/tabs` + `core/tab`, `core/logo-cloud`, `core/search` (a search button for the site) and `core/docs-layout` (sidebar from the page tree, "On this page", previous/next, Copy page).
+- Block catalog: docs components `core/callout`, `core/code-group` (code tabs that remember the reader's choice), `core/file-tree`, `core/params` and `core/code-example`. Markdown blocks with `mdx: true` take the same components as tags (`<Callout>`, `<Tabs>`, `<CodeGroup>`, `<Steps>`, `<Cards>`, `<Accordion>`, `<FileTree>`, `<Param>`, `<Example>`, `<Kbd>`, `<Badge>`); props may be literal strings or `{2}` / `{true}`, and nothing is ever run. `core/list` has `marker` (check, arrow, dash, none) and `core/columns` has `reverseOnPhones`. `core/step` only goes inside Steps and `core/tab` only inside Tabs; the page check refuses them elsewhere. `PageSummary` takes an optional `path` (`guides/install` for a page under Guides), which `list_pages` shows as its link; the in-editor assistant fills it in.
 
 ### Changed
 - Block defaults, names and the phone-layout check now come from the shared block catalog (`shared/block-catalog/`), so SDK-built blocks match what the editor inserts.

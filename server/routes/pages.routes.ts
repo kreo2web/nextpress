@@ -40,6 +40,8 @@ import { z } from 'zod';
 import { reIdBlocks } from '@shared/re-id-blocks';
 import { ContentAccessError } from '../lib/content-access';
 import { leftoverDesignForDuplicate, otherForDuplicatedPage, uniquePageSlug } from './shared/duplicate-page';
+import { scheduleSearchIndexRebuild } from '../lib/site-search';
+import { isPageVersionStale, savePageVersion } from '../lib/save-page-version';
 
 /**
  * Validates that a slug is unique (application-level check before insert).
@@ -219,6 +221,7 @@ export function createPagesRoutes(deps: Deps): Router {
       for (const item of parsed.data.items) {
         await models.pages.update(item.id, { menuOrder: item.menuOrder });
       }
+      scheduleSearchIndexRebuild({ models, siteId: parsed.data.siteId });
 
       res.json({ ok: true, updated: parsed.data.items.length });
     }),
@@ -356,6 +359,7 @@ export function createPagesRoutes(deps: Deps): Router {
       });
 
       hooks.doAction('save_post', page);
+      scheduleSearchIndexRebuild({ models, siteId: String(existingPage.siteId) });
       res.json(enrichPageForApi(page));
     }),
   );
@@ -435,6 +439,7 @@ export function createPagesRoutes(deps: Deps): Router {
 
         const page = await models.pages.create(pageData);
         hooks.doAction('save_post', page);
+        scheduleSearchIndexRebuild({ models, siteId });
 
         if (page.status === CONFIG.STATUS.PUBLISH) {
           hooks.doAction('publish_post', page);
@@ -557,6 +562,7 @@ export function createPagesRoutes(deps: Deps): Router {
           other: contentValidation.other,
         });
         hooks.doAction('save_post', page);
+        scheduleSearchIndexRebuild({ models, siteId: String(source.siteId) });
         return page;
       });
 
@@ -666,17 +672,6 @@ export function createPagesRoutes(deps: Deps): Router {
           return res.status(statusCode).json({ message: (error as Error).message });
         }
 
-        const previousSnapshot = {
-          version: existingPage.version ?? 0,
-          updatedAt: existingPage.updatedAt
-            ? new Date(existingPage.updatedAt as any).toISOString()
-            : new Date().toISOString(),
-          blocks: existingPage.blocks ?? [],
-          authorId: (existingPage as any).authorId,
-        };
-
-        const existingHistory = Array.isArray(existingPage.history) ? existingPage.history : [];
-        
         let nextSlug = existingPage.slug;
         if (parsed.slug && parsed.slug !== existingPage.slug) {
           nextSlug = await validateSlugUniqueness(
@@ -687,24 +682,25 @@ export function createPagesRoutes(deps: Deps): Router {
           );
         }
 
-        const pageData = {
-          ...parsed,
-          slug: nextSlug,
-          version: expectedVersion + 1,
-          history: [previousSnapshot, ...existingHistory], // append previous snapshot to existing history
-        };
-
-        const wasPublished = existingPage.status === 'publish';
-        const page = await models.pages.update(id, pageData);
-
-        hooks.doAction('save_post', page);
-
-        if (!wasPublished && page.status === 'publish') {
-          hooks.doAction('publish_post', page);
-        }
+        // Version bump, history entry, hooks and the search rebuild: the one save path for pages.
+        const page = await savePageVersion({
+          models,
+          hooks,
+          page: existingPage,
+          changes: { ...parsed, slug: nextSlug },
+          expectedVersion,
+        });
 
         res.json(enrichPageForApi(page));
       } catch (error) {
+        if (error instanceof Error && isPageVersionStale(error)) {
+          return res.status(409).json({
+            code: VERSION_STALE,
+            message: error.message,
+            remoteVersion: error.remoteVersion,
+            expectedVersion: error.expectedVersion,
+          });
+        }
         console.error('Error updating page:', error);
         res.status(500).json({ message: 'Failed to update page' });
       }
@@ -742,6 +738,7 @@ export function createPagesRoutes(deps: Deps): Router {
           slug: page.slug ?? null,
           siteId: String(page.siteId),
         });
+        scheduleSearchIndexRebuild({ models, siteId: String(page.siteId) });
 
         res.json({ message: 'Page deleted successfully' });
       } catch (error) {

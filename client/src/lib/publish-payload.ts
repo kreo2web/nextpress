@@ -10,7 +10,13 @@ export type PublishPayload = {
   slug: string;
   expectedVersion: number;
   siteId?: string;
+  /** The page's title and settings as edited, when the editor holds them apart from its blocks (the docs editor). */
+  title?: string;
+  other?: Record<string, unknown>;
 };
+
+/** What the editor adds to a publish beyond the blocks: edits that would otherwise stay behind in the draft. */
+export type PublishExtra = { title?: string; other?: Record<string, unknown> };
 
 const generateSlug = (title: string): string =>
   title
@@ -29,6 +35,7 @@ export function buildPublishPayload({
   slug,
   contentType,
   action,
+  extra,
   now = new Date(),
 }: {
   post: Page | Post;
@@ -36,6 +43,7 @@ export function buildPublishPayload({
   slug: string;
   contentType: 'page' | 'post';
   action: PublishAction;
+  extra?: PublishExtra;
   now?: Date;
 }): PublishPayload {
   const isPublish = action === 'publish';
@@ -50,6 +58,8 @@ export function buildPublishPayload({
   if (contentType === 'page' && 'siteId' in post && post.siteId) {
     payload.siteId = post.siteId;
   }
+  if (extra?.title) payload.title = extra.title;
+  if (extra?.other) payload.other = extra.other;
 
   return payload;
 }

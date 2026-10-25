@@ -1,5 +1,7 @@
 import * as React from "react";
 import type { BlockConfig } from "@shared/schema-types";
+import { TabPanelView } from "@shared/blocks/tabs-view";
+import type { ViewAttributes } from "@shared/blocks/view-attributes";
 import { getRenderProps, renderChildBlocks } from "../render-helpers";
 
 /**
@@ -9,8 +11,8 @@ import { getRenderProps, renderChildBlocks } from "../render-helpers";
 export function TabBlock(block: BlockConfig) {
 	const { style, className, attributes } = getRenderProps(block);
 	return (
-		<div className={["wp-block-tab", className].filter(Boolean).join(" ")} style={style} {...attributes}>
+		<TabPanelView className={className} style={style} attributes={attributes as ViewAttributes}>
 			{renderChildBlocks(block.children ?? [])}
-		</div>
+		</TabPanelView>
 	);
 }

@@ -20,6 +20,7 @@ const CardBlock = createBlockDefinition<CardContent>({
 	hasSettings: true,
 	render: ({ value, content, isPreview, onNestedBlockChange }) => (
 		<div className={["wp-block-card", `np-card--${content.look}`, content.link ? "is-linked" : ""].filter(Boolean).join(" ")}>
+			{content.title ? <h3 className="np-card__title">{content.title}</h3> : null}
 			<ContainerChildren block={value} isPreview={isPreview ?? false} stackClassName={CARD_BODY_CLASS} onBlockChange={onNestedBlockChange} />
 			{content.link ? <p className="np-card__link-note">Links to {content.link}</p> : null}
 		</div>

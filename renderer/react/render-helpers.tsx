@@ -115,7 +115,7 @@ export function parseMarkdownContent(content: BlockContent | undefined): { conte
 export interface RenderProps {
 	style: CSSProperties;
 	className: string;
-	attributes: Record<string, unknown>;
+	attributes: Record<string, string>;
 	children: React.ReactNode;
 	tokenStyles: Record<string, string>;
 }
@@ -129,7 +129,7 @@ export function getRenderProps(block: BlockConfig): RenderProps {
 
 	const mergedClassName = resolved.classNames.join(" ");
 
-	const attributes: Record<string, unknown> = { ...resolved.attributes };
+	const attributes: Record<string, string> = { ...resolved.attributes };
 
 	const children = renderChildBlocks(block.children || []);
 

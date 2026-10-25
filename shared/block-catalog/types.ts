@@ -1,7 +1,7 @@
 import type { BlockConfig, BlockContent } from "../schema-types.js";
 import type { BlockName } from "./block-names.js";
 
-export type BlockCatalogCategory = "basic" | "form" | "layout" | "media" | "advanced" | "post";
+export type BlockCatalogCategory = "basic" | "form" | "layout" | "media" | "docs" | "advanced" | "post";
 
 /** Where a block may sit. Only rules the editor or server already enforce are recorded. */
 export type BlockPlacement = {
@@ -23,6 +23,12 @@ export type BlockCatalogEntry = {
 	/** Shown to people in the block library. */
 	description: string;
 	category: BlockCatalogCategory;
+	/**
+	 * Other groups that list this block too (the Docs group shows `core/code`, `core/image` and
+	 * more). The block keeps one name and one home `category`; this only decides where the block
+	 * library and `list_block_types` show it.
+	 */
+	alsoIn?: BlockCatalogCategory[];
 	/** Containers hold child blocks; other blocks never do. */
 	kind: "block" | "container";
 	/** What a new block saves as content (the stored shape). A fresh object every call. */

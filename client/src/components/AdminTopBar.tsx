@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SiteSwitcher } from '@/components/SiteSwitcher';
+import { NewContentButton } from '@/components/new-content';
+import { useSiteAccess } from '@/hooks/use-site-access';
 import { ChangePasswordDialog } from '@/components/account/change-password-dialog';
 import { getAccountInitials } from '@/components/account/use-account-profile';
 import { signOutAndLeave } from '@/components/account/sign-out';
@@ -21,7 +23,8 @@ export default function AdminTopBar() {
   const { isDark, toggleTheme } = useTheme();
   const [, setLocation] = useLocation();
   const [passwordOpen, setPasswordOpen] = useState(false);
-
+  // Making content needs the same right as the Pages and Posts screens; the server checks it again.
+  const canMakeContent = useSiteAccess().can('edit_content');
 
   return (
     <div className="admin-top-bar fixed top-0 left-0 right-0 z-50 flex h-8 items-center justify-between px-4">
@@ -30,6 +33,7 @@ export default function AdminTopBar() {
         <SiteSwitcher />
       </div>
       <div className="flex items-center gap-3">
+        {canMakeContent ? <NewContentButton variant="chrome" /> : null}
         <Button
           type="button"
           variant="ghost"

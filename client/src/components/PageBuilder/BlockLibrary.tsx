@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { blockRegistry } from './blocks';
-import type { BlockDefinition } from './blocks/types';
+import type { BlockCategory, BlockDefinition } from './blocks/types';
 import { TEMPLATE_PART_BLOCK_NAME } from '@shared/template-parts';
 import { Box, ChevronDown, ChevronRight, Search, X } from 'lucide-react';
 
@@ -29,50 +29,63 @@ if (import.meta.env.DEBUG_BUILDER) {
 
 // A template part means nothing until a template is chosen, so it is added from the Templates group,
 // not dragged in from here.
-const HIDDEN_FROM_LIBRARY = new Set([TEMPLATE_PART_BLOCK_NAME, "core/divider"]);
+// `core/docs-layout` is the older all-in-one docs block, kept only so existing pages keep working.
+const HIDDEN_FROM_LIBRARY = new Set([TEMPLATE_PART_BLOCK_NAME, "core/divider", "core/docs-layout"]);
 
 const allBlocks = Object.values(blockRegistry).filter(
   (block, index, arr) =>
     arr.findIndex((b) => b.id === block.id) === index && !HIDDEN_FROM_LIBRARY.has(block.id)
 );
 
+/** The groups in the order the page builder's library shows them. Docs blocks are not here: they live in the docs editor. */
+const LIBRARY_GROUPS: ReadonlyArray<{ id: BlockCategory; name: string }> = [
+  { id: 'basic', name: 'Basic' },
+  { id: 'form', name: 'Form fields' },
+  { id: 'media', name: 'Media' },
+  { id: 'layout', name: 'Layout' },
+  { id: 'advanced', name: 'Advanced' },
+  { id: 'post', name: 'Post' },
+];
+
+/** Which editor the library is for: the page builder's design blocks, or the docs editor's docs blocks. */
+export type BlockLibraryMode = 'page' | 'docs';
+
+/**
+ * The docs frame (page shell, docs shell, docs page). The docs editor draws it itself and takes
+ * blocks only inside the docs page, so no library ever offers these.
+ */
+export const DOCS_FRAME_BLOCKS: ReadonlySet<string> = new Set(['docs/shell', 'docs/page']);
+
+/**
+ * The blocks one group shows: the ones that belong to it, then blocks from other groups that
+ * list themselves here with `alsoIn` (the Docs group also shows Code, Image, Table and more).
+ *
+ * WHY: someone writing docs should find everything for a docs page in one place, while each
+ * block keeps a single name and its own home group.
+ */
+const blocksInGroup = (groupId: BlockCategory): BlockDefinition[] => [
+  ...allBlocks.filter((block) => block.category === groupId),
+  ...allBlocks.filter((block) => block.category !== groupId && block.alsoIn?.includes(groupId)),
+];
+
 /**
  * Category groups for the block library sidebar (Basic, Media, …).
  * Exported so BuilderSidebar can own accordion open state for fold-all.
+ *
+ * `mode: 'docs'` is the docs editor's inserter: one group, the Docs group (the `docs` category and
+ * the blocks that list themselves in it), and nothing else, because other blocks may not survive
+ * being saved as MDX. The default `'page'` is the page builder, which never shows the Docs group.
  */
-export function buildBlockLibraryCategories(): BlockLibraryCategory[] {
-  let cats: BlockLibraryCategory[] = [
-    {
-      id: 'basic',
-      name: 'Basic',
-      blocks: allBlocks.filter((b) => b.category === 'basic'),
-    },
-    {
-      id: 'form',
-      name: 'Form fields',
-      blocks: allBlocks.filter((b) => b.category === 'form'),
-    },
-    {
-      id: 'media',
-      name: 'Media',
-      blocks: allBlocks.filter((b) => b.category === 'media'),
-    },
-    {
-      id: 'layout',
-      name: 'Layout',
-      blocks: allBlocks.filter((b) => b.category === 'layout'),
-    },
-    {
-      id: 'advanced',
-      name: 'Advanced',
-      blocks: allBlocks.filter((b) => b.category === 'advanced'),
-    },
-    {
-      id: 'post',
-      name: 'Post',
-      blocks: allBlocks.filter((b) => b.category === 'post'),
-    },
-  ].filter((c) => c.blocks.length > 0);
+export function buildBlockLibraryCategories({ mode = 'page' }: { mode?: BlockLibraryMode } = {}): BlockLibraryCategory[] {
+  if (mode === 'docs') {
+    const blocks = blocksInGroup('docs').filter((block) => !DOCS_FRAME_BLOCKS.has(block.id));
+    return blocks.length > 0 ? [{ id: 'docs', name: 'Docs', blocks }] : [];
+  }
+  let cats: BlockLibraryCategory[] = LIBRARY_GROUPS.map(({ id, name }) => ({
+    id,
+    name,
+    blocks: blocksInGroup(id),
+  })).filter((c) => c.blocks.length > 0);
 
   if (cats.length === 0 && allBlocks.length > 0) {
     cats = [{ id: 'all', name: 'All Blocks', blocks: allBlocks }];
@@ -124,14 +137,18 @@ export default function BlockLibrary({
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const isSearching = normalizedQuery.length > 0;
 
-  /** Filter blocks by label/description/category; drop emptied categories. */
+  /**
+   * Filter blocks by label/description/group; drop emptied groups. The group is the one the block
+   * is shown in, so searching "docs" lists the Docs group's blocks there without repeating the
+   * borrowed ones (Code, Image…) in their own groups.
+   */
   const filteredCategories = useMemo(() => {
     if (!normalizedQuery) return categories;
     return categories
       .map((category) => ({
         ...category,
         blocks: category.blocks.filter((block) =>
-          `${block.label} ${block.description ?? ''} ${block.category ?? ''}`
+          `${block.label} ${block.description ?? ''} ${category.id}`
             .toLowerCase()
             .includes(normalizedQuery),
         ),

@@ -7,6 +7,7 @@ import {
 	readTabContent,
 	readTabsContent,
 	tabElementIds,
+	tabSlugs,
 	type TabsContent,
 } from "@shared/blocks/tabs-model";
 import { ContainerChildren } from "../../BlockRenderer";
@@ -44,6 +45,10 @@ function TabsCanvas({ hostBlock, content, isPreview, onNestedBlockChange }: Tabs
 	}, [owningTabId]);
 
 	const tabIds = useMemo(() => tabs.map((tab) => tab.id), [tabs]);
+	const slugs = useMemo(
+		() => (content.linkable ? tabSlugs(tabs.map((tab) => readTabContent(tab.content).title)) : []),
+		[tabs, content.linkable],
+	);
 	const context = useMemo(
 		() => ({ tabsId: hostBlock.id, tabIds, activeTabId }),
 		[hostBlock.id, tabIds, activeTabId],
@@ -74,6 +79,7 @@ function TabsCanvas({ hostBlock, content, isPreview, onNestedBlockChange }: Tabs
 								id={ids.tab}
 								aria-controls={ids.panel}
 								aria-selected={selected}
+								data-np-tab-slug={slugs[index]}
 								tabIndex={selected ? 0 : -1}
 								onClick={(event) => {
 									event.stopPropagation();

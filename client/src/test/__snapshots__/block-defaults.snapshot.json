@@ -548,7 +548,8 @@
         "link": "",
         "linkLabel": "",
         "linkTarget": "_self",
-        "look": "bordered"
+        "look": "bordered",
+        "title": ""
       },
       "kind": "structured"
     },
@@ -628,7 +629,8 @@
           "link": "",
           "linkLabel": "",
           "linkTarget": "_self",
-          "look": "bordered"
+          "look": "bordered",
+          "title": ""
         },
         "kind": "structured"
       },
@@ -988,7 +990,7 @@
       "margin": "0",
       "width": "100%"
     },
-    "description": "Sidebar of pages, breadcrumbs, previous and next links, and an on-this-page list around your content",
+    "description": "Legacy: the older all-in-one docs block. Use Docs shell and Docs page for new pages",
     "handlesOwnChildren": true,
     "hasSettings": true,
     "id": "core/docs-layout",
@@ -1006,7 +1008,7 @@
         "kind": "structured"
       },
       "id": "block-under-test",
-      "label": "Docs layout",
+      "label": "Docs layout (legacy)",
       "name": "core/docs-layout",
       "other": {
         "tokenMap": {},
@@ -1028,7 +1030,7 @@
       "type": "container"
     },
     "isContainer": true,
-    "label": "Docs layout"
+    "label": "Docs layout (legacy)"
   },
   "core/file": {
     "category": "media",
@@ -1334,6 +1336,7 @@
         "columns": 3,
         "minItemWidth": "",
         "phoneColumns": 1,
+        "spans": [],
         "tabletColumns": 2
       },
       "kind": "structured"
@@ -1415,7 +1418,8 @@
               "link": "",
               "linkLabel": "",
               "linkTarget": "_self",
-              "look": "bordered"
+              "look": "bordered",
+              "title": ""
             },
             "kind": "structured"
           },
@@ -1507,7 +1511,8 @@
               "link": "",
               "linkLabel": "",
               "linkTarget": "_self",
-              "look": "bordered"
+              "look": "bordered",
+              "title": ""
             },
             "kind": "structured"
           },
@@ -1599,7 +1604,8 @@
               "link": "",
               "linkLabel": "",
               "linkTarget": "_self",
-              "look": "bordered"
+              "look": "bordered",
+              "title": ""
             },
             "kind": "structured"
           },
@@ -1634,6 +1640,7 @@
           "columns": 3,
           "minItemWidth": "",
           "phoneColumns": 1,
+          "spans": [],
           "tabletColumns": 2
         },
         "kind": "structured"
@@ -3201,6 +3208,13 @@
     "category": "layout",
     "defaultContent": {
       "data": {
+        "icon": {
+          "color": "currentColor",
+          "iconName": "check",
+          "iconSet": "lucide",
+          "size": 24,
+          "strokeWidth": 2
+        },
         "title": "Step title"
       },
       "kind": "structured"
@@ -3247,6 +3261,13 @@
       ],
       "content": {
         "data": {
+          "icon": {
+            "color": "currentColor",
+            "iconName": "check",
+            "iconSet": "lucide",
+            "size": 24,
+            "strokeWidth": 2
+          },
           "title": "Step title"
         },
         "kind": "structured"
@@ -3330,6 +3351,13 @@
           ],
           "content": {
             "data": {
+              "icon": {
+                "color": "currentColor",
+                "iconName": "check",
+                "iconSet": "lucide",
+                "size": 24,
+                "strokeWidth": 2
+              },
               "title": "First step"
             },
             "kind": "structured"
@@ -3388,6 +3416,13 @@
           ],
           "content": {
             "data": {
+              "icon": {
+                "color": "currentColor",
+                "iconName": "check",
+                "iconSet": "lucide",
+                "size": 24,
+                "strokeWidth": 2
+              },
               "title": "Second step"
             },
             "kind": "structured"
@@ -3446,6 +3481,13 @@
           ],
           "content": {
             "data": {
+              "icon": {
+                "color": "currentColor",
+                "iconName": "check",
+                "iconSet": "lucide",
+                "size": 24,
+                "strokeWidth": 2
+              },
               "title": "Third step"
             },
             "kind": "structured"
@@ -3749,6 +3791,7 @@
     "category": "layout",
     "defaultContent": {
       "data": {
+        "linkable": true,
         "look": "underline"
       },
       "kind": "structured"
@@ -3884,6 +3927,7 @@
       ],
       "content": {
         "data": {
+          "linkable": true,
           "look": "underline"
         },
         "kind": "structured"
@@ -4093,6 +4137,1037 @@
     },
     "isContainer": false,
     "label": "Video"
+  },
+  "docs/callout": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "title": "",
+        "type": "note"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "A highlighted note, tip or warning around other blocks",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "docs/callout",
+    "inserted": {
+      "category": "docs",
+      "children": [
+        {
+          "category": "basic",
+          "content": {
+            "kind": "text",
+            "value": "Something the reader should not miss."
+          },
+          "id": "id-1",
+          "label": "Paragraph",
+          "name": "core/paragraph",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "fontSize": "16px",
+            "lineHeight": "1.6",
+            "margin": "0"
+          },
+          "type": "block"
+        }
+      ],
+      "content": {
+        "data": {
+          "title": "",
+          "type": "note"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Callout",
+      "name": "docs/callout",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Callout"
+  },
+  "docs/code-group": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "remember": true
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "Code blocks in tabs, like npm, pnpm and yarn; the reader's choice is remembered",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "docs/code-group",
+    "inserted": {
+      "category": "docs",
+      "children": [
+        {
+          "category": "advanced",
+          "content": {
+            "data": {
+              "className": "",
+              "content": "npm install nextpress",
+              "highlightLines": "",
+              "language": "bash",
+              "showCopyButton": true,
+              "showLineNumbers": false,
+              "title": "npm",
+              "wrapLines": true
+            },
+            "kind": "structured"
+          },
+          "id": "id-1",
+          "label": "Code",
+          "name": "core/code",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "margin": "0"
+          },
+          "type": "block"
+        },
+        {
+          "category": "advanced",
+          "content": {
+            "data": {
+              "className": "",
+              "content": "pnpm add nextpress",
+              "highlightLines": "",
+              "language": "bash",
+              "showCopyButton": true,
+              "showLineNumbers": false,
+              "title": "pnpm",
+              "wrapLines": true
+            },
+            "kind": "structured"
+          },
+          "id": "id-2",
+          "label": "Code",
+          "name": "core/code",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "margin": "0"
+          },
+          "type": "block"
+        },
+        {
+          "category": "advanced",
+          "content": {
+            "data": {
+              "className": "",
+              "content": "yarn add nextpress",
+              "highlightLines": "",
+              "language": "bash",
+              "showCopyButton": true,
+              "showLineNumbers": false,
+              "title": "yarn",
+              "wrapLines": true
+            },
+            "kind": "structured"
+          },
+          "id": "id-3",
+          "label": "Code",
+          "name": "core/code",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "margin": "0"
+          },
+          "type": "block"
+        }
+      ],
+      "content": {
+        "data": {
+          "remember": true
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Code group",
+      "name": "docs/code-group",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Code group"
+  },
+  "docs/diagram": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "caption": "",
+        "code": "flowchart LR\n  Write --> Review\n  Review --> Publish"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "A Mermaid diagram (flowchart, sequence, state) drawn as a picture, with an optional caption",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "docs/diagram",
+    "inserted": {
+      "category": "docs",
+      "content": {
+        "data": {
+          "caption": "",
+          "code": "flowchart LR\n  Write --> Review\n  Review --> Publish"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Diagram",
+      "name": "docs/diagram",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Diagram"
+  },
+  "docs/example": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "layout": "side"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "Code beside what it makes",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "docs/example",
+    "inserted": {
+      "category": "docs",
+      "children": [
+        {
+          "category": "advanced",
+          "content": {
+            "data": {
+              "className": "",
+              "content": "<Callout type=\"tip\">Use pnpm.</Callout>",
+              "highlightLines": "",
+              "language": "mdx",
+              "showCopyButton": true,
+              "showLineNumbers": false,
+              "title": "",
+              "wrapLines": true
+            },
+            "kind": "structured"
+          },
+          "id": "id-1",
+          "label": "Code",
+          "name": "core/code",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "margin": "0"
+          },
+          "type": "block"
+        },
+        {
+          "category": "basic",
+          "content": {
+            "kind": "text",
+            "value": "What the code makes: build the result here from ordinary blocks."
+          },
+          "id": "id-2",
+          "label": "Paragraph",
+          "name": "core/paragraph",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "fontSize": "16px",
+            "lineHeight": "1.6",
+            "margin": "0"
+          },
+          "type": "block"
+        }
+      ],
+      "content": {
+        "data": {
+          "layout": "side"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Code example",
+      "name": "docs/example",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Code example"
+  },
+  "docs/file-tree": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "tree": "src/\n  app.ts *  # the entry point\n  routes/\n    index.ts\npackage.json"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "Folders and files drawn as a tree",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "docs/file-tree",
+    "inserted": {
+      "category": "docs",
+      "content": {
+        "data": {
+          "tree": "src/\n  app.ts *  # the entry point\n  routes/\n    index.ts\npackage.json"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "File tree",
+      "name": "docs/file-tree",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "File tree"
+  },
+  "docs/heading": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "anchor": "",
+        "level": 2,
+        "text": "A new section"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "28px 0 10px",
+      "padding": "0",
+      "width": "100%"
+    },
+    "description": "A section title (level 2 to 4) with a link to itself, listed in On this page",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "docs/heading",
+    "inserted": {
+      "category": "docs",
+      "content": {
+        "data": {
+          "anchor": "",
+          "level": 2,
+          "text": "A new section"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Docs heading",
+      "name": "docs/heading",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "28px 0 10px",
+        "padding": "0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Docs heading"
+  },
+  "docs/list": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "items": [
+          {
+            "checked": false,
+            "children": [],
+            "text": "First point"
+          },
+          {
+            "checked": false,
+            "children": [
+              {
+                "checked": false,
+                "text": "A detail under it"
+              }
+            ],
+            "text": "Second point"
+          },
+          {
+            "checked": false,
+            "children": [],
+            "text": "Third point"
+          }
+        ],
+        "style": "bullet"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0 0 16px",
+      "padding": "0",
+      "width": "100%"
+    },
+    "description": "Bullets, numbers or a checklist, with one level of nesting",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "docs/list",
+    "inserted": {
+      "category": "docs",
+      "content": {
+        "data": {
+          "items": [
+            {
+              "checked": false,
+              "children": [],
+              "text": "First point"
+            },
+            {
+              "checked": false,
+              "children": [
+                {
+                  "checked": false,
+                  "text": "A detail under it"
+                }
+              ],
+              "text": "Second point"
+            },
+            {
+              "checked": false,
+              "children": [],
+              "text": "Third point"
+            }
+          ],
+          "style": "bullet"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Docs list",
+      "name": "docs/list",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0 0 16px",
+        "padding": "0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Docs list"
+  },
+  "docs/page": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "copyPage": true,
+        "showBreadcrumbs": true,
+        "showDescription": true,
+        "showPrevNext": true,
+        "showTitle": true,
+        "showToc": true
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "One docs page: breadcrumbs, title, copy page, on-this-page list and previous and next links around your blocks",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "docs/page",
+    "inserted": {
+      "category": "docs",
+      "children": [],
+      "content": {
+        "data": {
+          "copyPage": true,
+          "showBreadcrumbs": true,
+          "showDescription": true,
+          "showPrevNext": true,
+          "showTitle": true,
+          "showToc": true
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Docs page",
+      "name": "docs/page",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Docs page"
+  },
+  "docs/params": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "items": [
+          {
+            "default": "",
+            "description": "The site to read from.",
+            "name": "siteId",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "default": "20",
+            "description": "How many results to return, up to 100.",
+            "name": "limit",
+            "required": false,
+            "type": "number"
+          }
+        ]
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "Options or API fields with their type, default and what they do",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "docs/params",
+    "inserted": {
+      "category": "docs",
+      "content": {
+        "data": {
+          "items": [
+            {
+              "default": "",
+              "description": "The site to read from.",
+              "name": "siteId",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "default": "20",
+              "description": "How many results to return, up to 100.",
+              "name": "limit",
+              "required": false,
+              "type": "number"
+            }
+          ]
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Parameters",
+      "name": "docs/params",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Parameters"
+  },
+  "docs/shell": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "button": {
+          "label": "",
+          "url": ""
+        },
+        "features": {
+          "copyPage": true,
+          "prevNext": true,
+          "sidebar": true,
+          "toc": true
+        },
+        "inherit": true,
+        "links": [],
+        "logoDarkUrl": "",
+        "logoUrl": "",
+        "rootPageId": "",
+        "search": {
+          "label": "Search",
+          "placeholder": "Search the docs",
+          "show": true
+        },
+        "title": ""
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "The docs frame: a top bar with search and links, and a sidebar of pages. Set it up once on the docs home page",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "docs/shell",
+    "inserted": {
+      "category": "docs",
+      "children": [
+        {
+          "category": "docs",
+          "children": [
+            {
+              "category": "basic",
+              "content": {
+                "kind": "text",
+                "value": "Start writing the page here."
+              },
+              "id": "id-2",
+              "label": "Paragraph",
+              "name": "core/paragraph",
+              "other": {
+                "tokenMap": {},
+                "units": {
+                  "border": "px",
+                  "dimension": "px",
+                  "font": "rem",
+                  "spacing": "px"
+                }
+              },
+              "parentId": "id-1",
+              "settings": {},
+              "styles": {
+                "fontSize": "16px",
+                "lineHeight": "1.6",
+                "margin": "0"
+              },
+              "type": "block"
+            }
+          ],
+          "content": {
+            "data": {
+              "copyPage": true,
+              "showBreadcrumbs": true,
+              "showDescription": true,
+              "showPrevNext": true,
+              "showTitle": true,
+              "showToc": true
+            },
+            "kind": "structured"
+          },
+          "id": "id-1",
+          "label": "Docs page",
+          "name": "docs/page",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "boxSizing": "border-box",
+            "margin": "0",
+            "width": "100%"
+          },
+          "type": "container"
+        }
+      ],
+      "content": {
+        "data": {
+          "button": {
+            "label": "",
+            "url": ""
+          },
+          "features": {
+            "copyPage": true,
+            "prevNext": true,
+            "sidebar": true,
+            "toc": true
+          },
+          "inherit": true,
+          "links": [],
+          "logoDarkUrl": "",
+          "logoUrl": "",
+          "rootPageId": "",
+          "search": {
+            "label": "Search",
+            "placeholder": "Search the docs",
+            "show": true
+          },
+          "title": ""
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Docs shell",
+      "name": "docs/shell",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Docs shell"
+  },
+  "docs/text": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "text": "Write a paragraph. Use **bold**, *italic*, `code` and [links](https://example.com)."
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0 0 16px",
+      "padding": "0",
+      "width": "100%"
+    },
+    "description": "A paragraph with bold, italic, code and links",
+    "handlesOwnChildren": false,
+    "hasSettings": true,
+    "id": "docs/text",
+    "inserted": {
+      "category": "docs",
+      "content": {
+        "data": {
+          "text": "Write a paragraph. Use **bold**, *italic*, `code` and [links](https://example.com)."
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Docs text",
+      "name": "docs/text",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0 0 16px",
+        "padding": "0",
+        "width": "100%"
+      },
+      "type": "block"
+    },
+    "isContainer": false,
+    "label": "Docs text"
+  },
+  "docs/update": {
+    "category": "docs",
+    "defaultContent": {
+      "data": {
+        "description": "",
+        "label": "New entry"
+      },
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "width": "100%"
+    },
+    "description": "One dated or versioned entry in a changelog: its label beside the notes under it",
+    "handlesOwnChildren": true,
+    "hasSettings": true,
+    "id": "docs/update",
+    "inserted": {
+      "category": "docs",
+      "children": [
+        {
+          "category": "docs",
+          "content": {
+            "data": {
+              "text": "What changed in this entry."
+            },
+            "kind": "structured"
+          },
+          "id": "id-1",
+          "label": "Docs text",
+          "name": "docs/text",
+          "other": {
+            "tokenMap": {},
+            "units": {
+              "border": "px",
+              "dimension": "px",
+              "font": "rem",
+              "spacing": "px"
+            }
+          },
+          "parentId": "block-under-test",
+          "settings": {},
+          "styles": {
+            "boxSizing": "border-box",
+            "margin": "0 0 16px",
+            "padding": "0",
+            "width": "100%"
+          },
+          "type": "block"
+        }
+      ],
+      "content": {
+        "data": {
+          "description": "",
+          "label": "New entry"
+        },
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Changelog entry",
+      "name": "docs/update",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "20px 20px 0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Changelog entry"
   },
   "post/author-box": {
     "category": "post",

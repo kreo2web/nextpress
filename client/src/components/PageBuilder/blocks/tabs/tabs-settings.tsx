@@ -3,8 +3,10 @@ import type { BlockConfig } from "@shared/schema-types";
 import { PanelTop, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { Switch } from "@/components/ui/switch";
 import { TAB_BLOCK_NAME, TABS_LOOKS, readTabsContent, type TabsContent } from "@shared/blocks/tabs-model";
 import { SettingsChipGroup } from "../../settings-chip-group";
+import { SettingsLabel } from "../../shared";
 import { useSettingsState } from "../useSettingsState";
 import { buildTab } from "./tabs-factory";
 
@@ -20,7 +22,7 @@ const LOOK_LABELS: Record<TabsContent["look"], string> = {
 };
 const LOOK_OPTIONS = TABS_LOOKS.map((value) => ({ value, label: LOOK_LABELS[value] }));
 
-/** Tabs settings: how the tab bar looks and adding a tab. Titles and content are edited per tab. */
+/** Tabs settings: how the tab bar looks, whether each tab has its own link, and adding a tab. Titles and content are edited per tab. */
 export function TabsSettings({ block, onUpdate }: TabsSettingsProps) {
 	const { content, updateContent } = useSettingsState<TabsContent>({ block, onUpdate, parseContent: readTabsContent });
 	const tabs = (block.children ?? []).filter((child) => child.name === TAB_BLOCK_NAME);
@@ -49,6 +51,19 @@ export function TabsSettings({ block, onUpdate }: TabsSettingsProps) {
 						value={content.look}
 						onChange={(value) => updateContent({ look: readTabsContent({ kind: "structured", data: { look: value } }).look })}
 					/>
+					<div className="flex items-center justify-between gap-3">
+						<div className="min-w-0">
+							<SettingsLabel htmlFor={`tabs-linkable-${block.id}`}>Link to each tab</SettingsLabel>
+							<p className="npb-settings-hint-muted text-xs">
+								Each tab gets its own link, like #pnpm at the end of the page address, so readers can share the tab they are on.
+							</p>
+						</div>
+						<Switch
+							id={`tabs-linkable-${block.id}`}
+							checked={content.linkable}
+							onCheckedChange={(checked) => updateContent({ linkable: checked })}
+						/>
+					</div>
 					<p className="npb-settings-hint-muted text-xs">
 						Click a tab on the canvas to select it, rename it and fill it with blocks.
 					</p>

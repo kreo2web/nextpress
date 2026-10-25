@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatRelativeTime } from '@/components/PageBuilder/blocks/post-info/post-info-model';
-import type { ChatSummary } from './assistant-storage';
+import type { ChatSummary } from './chat-list';
 
 export type AssistantChatHistoryProps = {
   chats: ChatSummary[];
+  /** The list is still being read from the server. */
+  isLoading?: boolean;
   activeChatId: string;
   /** Why the chat buttons are off right now, or null when they work. Shown as a tooltip. */
   lockedReason: string | null;
@@ -36,6 +38,7 @@ function LockedHint({ reason, children }: { reason: string | null; children: Rea
  */
 export function AssistantChatHistory({
   chats,
+  isLoading = false,
   activeChatId,
   lockedReason,
   onNewChat,
@@ -67,8 +70,10 @@ export function AssistantChatHistory({
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72 p-1">
-            {chats.length === 0 ? (
-              <p className="px-2 py-3 text-sm text-npb-text-muted">No saved chats yet. Each chat you start is kept in this browser.</p>
+            {chats.length === 0 && isLoading ? (
+              <p className="px-2 py-3 text-sm text-npb-text-muted" role="status">Loading your chats…</p>
+            ) : chats.length === 0 ? (
+              <p className="px-2 py-3 text-sm text-npb-text-muted">No saved chats yet. Chats you start on this page are saved here, just for you.</p>
             ) : (
               <ul className="max-h-80 space-y-0.5 overflow-y-auto" aria-label="Saved chats">
                 {chats.map((chat) => {

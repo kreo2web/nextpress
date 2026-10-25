@@ -29,6 +29,8 @@ import {
   readColumnsDataFromBlock,
   writeColumnsData,
 } from "@shared/columns-layout";
+import { SettingsChipGroup } from "../../settings-chip-group";
+import { applyRatio, matchRatio, ratiosFor } from "@shared/columns-ratios";
 import { DEFAULT_CONTENT, buildColumnsLayout, removeColumnAndCleanup } from "./columns-model";
 
 export interface ColumnsSettingsProps {
@@ -136,6 +138,8 @@ export function ColumnsSettings({ block, onUpdate }: ColumnsSettingsProps) {
     updateColumnLayout(newColumnLayout);
   };
 
+  const ratioChips = ratiosFor(columnLayout.length).map(({ label }) => ({ value: label, label }));
+
   return (
     <div className="space-y-4">
       <CollapsibleCard title="Content" icon={GridIcon} defaultOpen={true}>
@@ -162,6 +166,22 @@ export function ColumnsSettings({ block, onUpdate }: ColumnsSettingsProps) {
               6 columns
             </Button>
           </div>
+
+          {layoutMode === "flex" && data.direction !== "column" ? (
+            ratioChips.length > 0 ? (
+              <SettingsChipGroup
+                label="Ratio"
+                options={ratioChips}
+                value={matchRatio(columnLayout)?.label ?? ""}
+                onChange={(label) => {
+                  const ratio = ratiosFor(columnLayout.length).find((item) => item.label === label);
+                  if (ratio) updateColumnLayout(applyRatio({ layout: columnLayout, ratio }));
+                }}
+              />
+            ) : (
+              <p className="text-xs text-npb-text-muted">Ratio presets are for 2 or 3 columns.</p>
+            )
+          ) : null}
 
           <div className="divide-y divide-npb-border-default">
             {columnLayout.map((column, index) => (

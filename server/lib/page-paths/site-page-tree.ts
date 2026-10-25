@@ -1,4 +1,5 @@
 import type { DocsPage } from "@shared/blocks/docs-layout-tree";
+import { parsePageOther } from "@shared/page-other";
 import type { Deps } from "../../routes/shared/deps";
 import { SITE_PAGE_LIMIT } from "./page-paths";
 
@@ -36,15 +37,20 @@ export const readSitePagesFingerprint = async ({ models, siteId }: { models: Pag
 
 const loadRows = async ({ models, siteId }: { models: PageModels; siteId: string }): Promise<DocsPage[]> => {
 	const rows = await models.pages.findManyWhere([{ where: "siteId", equals: siteId }], { limit: SITE_PAGE_LIMIT });
-	return rows.map((row) => ({
-		id: row.id,
-		title: row.title,
-		slug: row.slug,
-		parentId: row.parentId,
-		menuOrder: row.menuOrder,
-		status: row.status,
-		password: row.password,
-	}));
+	return rows.map((row) => {
+		const docs = parsePageOther(row.other).docs;
+		return {
+			id: row.id,
+			title: row.title,
+			slug: row.slug,
+			parentId: row.parentId,
+			menuOrder: row.menuOrder,
+			status: row.status,
+			password: row.password,
+			...(docs?.group ? { group: true } : {}),
+			...(docs?.hidden ? { hidden: true } : {}),
+		};
+	});
 };
 
 /**

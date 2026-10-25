@@ -52,6 +52,7 @@ export function BuilderTopBar({
   onCreateNewPage,
   onCreateNewPost,
   pageTransfer,
+  docsView,
 }: {
   data: any;
   isTemplate: boolean;
@@ -81,7 +82,11 @@ export function BuilderTopBar({
   onCreateNewPost?: () => void;
   /** Copy / paste / export for moving blocks between NextPress sites. */
   pageTransfer?: PageTransferActions;
+  /** Set only in the docs editor: it has no Blog, Design or Page menus, and in MDX there is no canvas to size. */
+  docsView?: "visual" | "mdx";
 }) {
+  const inDocs = docsView !== undefined;
+  const showCanvasTools = docsView !== "mdx";
   const { isDark, toggleTheme } = useTheme();
   const deviceHint =
     deviceView === "mobile"
@@ -116,6 +121,7 @@ export function BuilderTopBar({
           )}
           {/* <h3 className="font-medium">{data ? (isTemplate ? data.name : data.title) : 'Untitled'}</h3> */}
           {/* <Separator orientation="vertical" className="h-6" /> */}
+          {showCanvasTools ? (
           <div className="flex items-center gap-2">
             <Button
               variant={deviceView === "desktop" ? "default" : "outline"}
@@ -160,7 +166,7 @@ export function BuilderTopBar({
               </TooltipTrigger>
               <TooltipContent>{deviceHint}</TooltipContent>
             </Tooltip>
-            {blockOptions.length > 0 && !isPreviewMode ? (
+            {blockOptions.length > 0 && !isPreviewMode && !inDocs ? (
               <Select
                 value={shownBlockId}
                 onValueChange={(id) => {
@@ -195,6 +201,7 @@ export function BuilderTopBar({
               </Button>
             ) : null}
           </div>
+          ) : null}
         </div>
         <div className="flex items-center gap-4">
           {inspectorVisible === false && onToggleInspector ? (
@@ -230,6 +237,8 @@ export function BuilderTopBar({
             {pageBlockCount} {pageBlockCount === 1 ? "block" : "blocks"}
           </div>
 
+          {inDocs ? null : (
+            <>
           <BlogMenu
             currentPostId={data?.id}
             blogId={data?.blogId ?? undefined}
@@ -250,6 +259,8 @@ export function BuilderTopBar({
               Design
             </Button>
           </DesignMenu>
+            </>
+          )}
 
           <div className="flex items-center gap-3">
             {onUndo && (
@@ -276,6 +287,7 @@ export function BuilderTopBar({
                 <RotateCw className="w-4 h-4" />
               </Button>
             )}
+            {inDocs ? null : (
             <PagesMenu
               currentPageId={data?.id}
               onPageSettingsClick={onPageSettingsClick}
@@ -293,6 +305,7 @@ export function BuilderTopBar({
                 Page
               </Button>
             </PagesMenu>
+            )}
           </div>
         </div>
       </div>

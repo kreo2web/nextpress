@@ -1,9 +1,7 @@
 import { tokenize } from "@vortexlabs/kirari/core";
 import { renderDecorated } from "@vortexlabs/kirari/decorations";
 import { getCodeLanguage, resolveCodeLanguage } from "./code-languages.js";
-
-/** CSS class on a line the author marked, e.g. with `{2,4-6}` on the fence. */
-export const MARKED_LINE_CLASS = "np-code-line-marked";
+import { KIRARI_RENDER_OPTIONS, MARKED_LINE_CLASS } from "./kirari-options.js";
 
 export type HighlightedCode = {
 	/** Escaped HTML: one `.kirari-line` span per line, tokens as `.kirari-*` spans. Safe to set as inner HTML. */
@@ -13,12 +11,10 @@ export type HighlightedCode = {
 };
 
 /**
- * Colors code for every place NextPress shows it: the editor, published pages (on the server,
- * so the HTML arrives colored) and the AI chat. The one place that knows the highlighter.
- *
- * WHY one adapter: Kirari is young; if it ever has to go, only this file changes. Every line is
- * wrapped so line numbers and marked lines are plain CSS, and an unknown language still shows
- * its code as plain text in the same structure.
+ * Colors the `core/code` block's code with Kirari's core, on the server and in the editor. It is
+ * not markdown, so it has no plugin to run in; fences are colored by Kirari's markdown plugin
+ * instead (see `rehype-plugins.ts`). Both read `kirari-options.ts`, so the same code gives the
+ * same spans either way. An unknown language still shows its code, as plain text in the same lines.
  */
 export const highlightCode = ({
 	code,
@@ -32,7 +28,7 @@ export const highlightCode = ({
 	const resolved = resolveCodeLanguage(language);
 	const marked = highlightLines ?? new Set<number>();
 	const html = renderDecorated(tokenize(code, getCodeLanguage(resolved)), {
-		lines: true,
+		...KIRARI_RENDER_OPTIONS,
 		lineClassName: ({ number }) => (marked.has(number) ? MARKED_LINE_CLASS : undefined),
 	});
 	return { html, language: resolved };

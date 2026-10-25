@@ -11,6 +11,7 @@ import { pageEnterVariants, MOTION_PAGE } from '@/lib/motion-presets';
 import type { BlockConfig } from "@shared/schema-types";
 import { getBlockSiblingFlexItemStyles, PAGE_BLOCK_STACK_GAP } from "@shared/block-container-placement";
 import { blockRegistry } from './blocks';
+import { useDocsFrame } from './docs-mode/docs-frame-context';
 // Applies the saved "Pause motion on the canvas" choice as soon as the canvas loads.
 import '@/lib/canvas-motion-pause';
 
@@ -39,6 +40,8 @@ export function BuilderCanvas({
 }) {
   const actions = useBlockActions();
   const motionEnabled = useMotionEnabled();
+  // In the docs editor the canvas holds the docs frame alone: blocks go inside its docs page, never beside it.
+  const docsFrame = useDocsFrame();
 
   const emptyCanvas = (
     <div
@@ -51,7 +54,7 @@ export function BuilderCanvas({
   );
 
   const renderEditorStack = () => (
-    <Droppable droppableId="canvas">
+    <Droppable droppableId="canvas" isDropDisabled={Boolean(docsFrame)}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
@@ -80,7 +83,7 @@ export function BuilderCanvas({
           {blocks.map((block, index) => (
             <React.Fragment key={block.id}>
               {snapshot.placeholderIndex === index && <DropPlaceholder />}
-              <Draggable draggableId={block.id} index={index}>
+              <Draggable draggableId={block.id} index={index} isDragDisabled={Boolean(docsFrame?.isFrameBlock(block.name))}>
                 {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
@@ -92,11 +95,12 @@ export function BuilderCanvas({
                       ...(block.name === 'core/page-shell' ? { flex: 1 } : {}),
                       ...getBlockSiblingFlexItemStyles(block.styles, 'column'),
                     }}
-                    tabIndex={0}
+                    tabIndex={docsFrame?.isFrameBlock(block.name) ? undefined : 0}
                     role="group"
                     aria-label={`${blockRegistry[block.name]?.label ?? block.name} block`}
                     aria-current={selectedBlockId === block.id ? 'true' : undefined}
                     onClick={(event) => {
+                      if (docsFrame?.isFrameBlock(block.name)) return;
                       event.stopPropagation();
                       actions?.onSelect(block.id);
                     }}

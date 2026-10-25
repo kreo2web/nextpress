@@ -169,6 +169,7 @@ nextpress.on("page-created", async ({ page }) => {
 | `nextpress.createEditorSession()` | `load`, `save`, `publish`, undo/redo, preview links | content |
 | `nextpress.posts` | `list`, `get`, `create`, `update`, `delete` | content |
 | `nextpress.pages` | `list`, `get`, `create`, `update`, `delete`, history/restore | content |
+| `nextpress.docs` | `list`, `create`, `tree`, `addItem`, `updateItem`, `reorder`, `deleteItem`, `readPage`, `writePage`, `exportFile` | content |
 | `nextpress.blogs` | `list`, `get`, `create`, `update`, `delete` | content |
 | `nextpress.comments` | `list`, `get`, `create`, `update`, `approve`, `spam`, `delete` | content |
 | `nextpress.media` | `list`, `get`, `upload`, `update`, `delete` | content |

@@ -290,6 +290,68 @@ describe('page transfer between two sites', () => {
     expect(remote.media.rows.filter((row) => row.originalName === 'hero.png')).toHaveLength(1);
   });
 
+  const nestedPage = ({ id, slug, parentId = null, menuOrder = 0 }: { id: string; slug: string; parentId?: string | null; menuOrder?: number }): PageRow =>
+    ({
+      id,
+      title: slug,
+      slug,
+      siteId: 'site-local',
+      status: 'publish',
+      authorId: 'u1',
+      featuredImage: null,
+      parentId,
+      menuOrder,
+      blocks: shellWith([]),
+      other: {},
+    }) as unknown as PageRow;
+
+  it('keeps nested pages nested, in their order, even when a child comes before its parent in the file', async () => {
+    const docs = nestedPage({ id: 'p-docs', slug: 'docs', parentId: 'outside-the-file' });
+    const install = nestedPage({ id: 'p-install', slug: 'install', parentId: 'p-docs', menuOrder: 2 });
+    const quickstart = nestedPage({ id: 'p-quick', slug: 'quickstart', parentId: 'p-docs', menuOrder: 1 });
+    const docker = nestedPage({ id: 'p-docker', slug: 'docker', parentId: 'p-install', menuOrder: 0 });
+    const pkg = await roundTrip(
+      await builder(local).buildForPage({ page: docs, extraPages: [docker, install, quickstart], includeFiles: false }),
+    );
+
+    // A parent that stays behind is not written, so the top page lands at the top.
+    expect(pkg.page?.parentSlug).toBeUndefined();
+    expect(pkg.extraPages?.map((page) => [page.slug, page.parentSlug, page.menuOrder])).toEqual([
+      ['docker', 'install', 0],
+      ['install', 'docs', 2],
+      ['quickstart', 'docs', 1],
+    ]);
+
+    // "install" is taken on the other site: the child still finds its renamed parent.
+    const result = await importerFor(remote, ['install']).importPage({ pkg, siteId: 'site-remote', authorId: 'u9', includeTheme: false });
+    expect(result.pages.map((page) => page.slug)).toEqual(['docs', 'docker', 'install-2', 'quickstart']);
+    const bySlug = new Map(createdPages.map((page) => [page.slug, page]));
+    expect(bySlug.get('docs')?.parentId).toBeUndefined();
+    expect(bySlug.get('install-2')?.parentId).toBe(bySlug.get('docs')?.id);
+    expect(bySlug.get('quickstart')?.parentId).toBe(bySlug.get('docs')?.id);
+    expect(bySlug.get('docker')?.parentId).toBe(bySlug.get('install-2')?.id);
+    expect([bySlug.get('install-2')?.menuOrder, bySlug.get('quickstart')?.menuOrder]).toEqual([2, 1]);
+    // Parents are written first, so every parent id points at a page that already exists.
+    expect(createdPages.map((page) => page.slug)).toEqual(['docs', 'install-2', 'docker', 'quickstart']);
+  });
+
+  it('imports a hand-edited loop of parents without hanging, cutting the loop at one page', async () => {
+    const pkg = await builder(local).buildForPage({
+      page: nestedPage({ id: 'p-a', slug: 'a' }),
+      extraPages: [nestedPage({ id: 'p-b', slug: 'b' })],
+      includeFiles: false,
+    });
+    const looped: PagePackage = {
+      ...pkg,
+      page: { ...pkg.page!, parentSlug: 'b' },
+      extraPages: [{ ...pkg.extraPages![0]!, parentSlug: 'a' }],
+    };
+    const result = await importerFor(remote).importPage({ pkg: looped, siteId: 'site-remote', authorId: 'u9', includeTheme: false });
+    expect(result.pages).toHaveLength(2);
+    const [a, b] = result.pages;
+    expect([a?.parentId, b?.parentId].filter(Boolean)).toHaveLength(1);
+  });
+
   it('writes nothing when any page in the file cannot be used', async () => {
     const pkg = await builder(local).buildForPage({ page: sourcePage(), extraPages: [contactPage()], includeFiles: true });
     const broken = { ...pkg, extraPages: [{ ...pkg.extraPages![0]!, blocks: [{ id: 'x', name: 'core/not-a-block', type: 'block', parentId: null, content: { kind: 'text', value: '' } }] as BlockConfig[] }] };

@@ -13,6 +13,7 @@ export const CARD_CSS = `
 .wp-block-card .np-card__body a,
 .wp-block-card .np-card__body button { position: relative; z-index: 2; }
 .wp-block-card .np-card__link-note { margin: 0.5rem 0 0; font-size: 0.75rem; color: var(--npb-text-muted, #64748b); overflow-wrap: anywhere; }
+.wp-block-card .np-card__title { margin: 0; font-size: 1.0625rem; font-weight: 600; line-height: 1.35; }
 @media (prefers-reduced-motion: reduce) {
   .wp-block-card.is-linked { transition: none; }
   .wp-block-card.is-linked:hover { transform: none; }

@@ -388,6 +388,15 @@ const SCOPE_RULES: ScopeRule[] = [
 		scopes: ({ method }) => writeOrReadScope({ method, read: "pages:read", write: "pages:write" }),
 	},
 	{
+		// Docs are pages (a home page and the pages under it), so docs work needs the page scopes. Exporting
+		// a docs file also reads its files.
+		matches: ({ path }) => path === "/api/docs" || path.startsWith("/api/docs/"),
+		scopes: ({ method, path }) =>
+			/^\/api\/docs\/[^/]+\/export$/.test(path)
+				? ["pages:read", "media:read"]
+				: writeOrReadScope({ method, read: "pages:read", write: "pages:write" }),
+	},
+	{
 		// Moving pages between sites reads or writes both the page and its files.
 		matches: ({ path }) => path.startsWith("/api/page-transfer"),
 		scopes: ({ method, path }) =>

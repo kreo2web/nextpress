@@ -3,6 +3,7 @@ import { db } from "./db";
 import { createModel, type DatabaseInstance } from "@shared/create-models";
 import { normalizeSiteHostname } from "./utils/validate-domain";
 import { createInviteModel } from "./lib/invites/invite-model";
+import { createAssistantChatModel } from "./lib/assistant-chats/assistant-chat-model";
 import { pickPreferredSite, readSiteAddress, siteAnswersHost } from "./utils/site-address";
 import type { Site } from "@shared/schema-types";
 import {
@@ -591,6 +592,7 @@ export const models = {
 
 	// Specialized models
 	invites: createInviteModel(db),
+	assistantChats: createAssistantChatModel(db),
 	users: createUserModel(),
 	posts: createPostModel(),
 	comments: createCommentModel(),

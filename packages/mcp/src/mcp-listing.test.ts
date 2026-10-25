@@ -145,11 +145,15 @@ describe("what the MCP server offers", () => {
 	});
 
 	describe("prompts", () => {
-		it("lists build_page and edit_block with their arguments", async () => {
+		it("lists build_page, edit_block and write_docs with their arguments", async () => {
 			const { prompts } = await session!.client.listPrompts();
 			const byName = Object.fromEntries(prompts.map((prompt) => [prompt.name, prompt]));
 
-			expect(Object.keys(byName).sort()).toEqual(["build_page", "edit_block"]);
+			expect(Object.keys(byName).sort()).toEqual(["build_page", "edit_block", "write_docs"]);
+				expect(byName.write_docs?.arguments?.map((arg) => [arg.name, arg.required])).toEqual([
+					["topic", true],
+					["audience", false],
+				]);
 			expect(byName.build_page?.arguments?.map((arg) => [arg.name, arg.required])).toEqual([
 				["purpose", false],
 				["audience", false],

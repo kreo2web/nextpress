@@ -1,6 +1,6 @@
 import React from "react";
 import type { BlockConfig } from "@shared/schema-types";
-import { Columns3, X } from "lucide-react";
+import { Columns3, LayoutDashboard, X } from "lucide-react";
 import { readGridContent, type GridAlign, type GridContent } from "@shared/blocks/grid-model";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { SettingsLabel } from "../../shared";
 import { SettingsChipGroup } from "../../settings-chip-group";
 import { useSettingsState } from "../useSettingsState";
 import { CountChips } from "./grid-count-chips";
+import { GridSizeSettings } from "./grid-size-settings";
 
 const ALIGN_OPTIONS = [
 	{ value: "stretch", label: "Stretch" },
@@ -62,6 +63,9 @@ export function GridSettings({ block, onUpdate }: GridSettingsProps) {
 						<p className="npb-settings-hint-muted text-xs">Each item gets at least this width and as many fit as there is room for, at every screen size.</p>
 					</div>
 				</div>
+			</CollapsibleCard>
+			<CollapsibleCard title="Layout" icon={LayoutDashboard} defaultOpen={content.spans.length > 0}>
+				<GridSizeSettings content={content} itemCount={block.children?.length ?? 0} onChange={(spans) => updateContent({ spans })} />
 			</CollapsibleCard>
 			<CollapsibleCard title="Items" icon={Columns3} defaultOpen={false}>
 				<SettingsChipGroup label="Line up" options={ALIGN_OPTIONS} value={content.align} onChange={(value) => updateContent({ align: value as GridAlign })} />

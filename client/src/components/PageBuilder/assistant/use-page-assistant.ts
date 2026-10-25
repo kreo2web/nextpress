@@ -10,15 +10,9 @@ import {
 } from 'ai';
 import type { AiChatContentType, AiChatRequest, AiPageChangeData, AiPageChangeSummary } from '@shared/ai-builder';
 import type { BlockConfig } from '@shared/schema-types';
-import {
-  createChatId,
-  deleteChatFromBrowser,
-  loadChatIndex,
-  loadChatMessages,
-  saveChatToBrowser,
-  STORED_MESSAGE_LIMIT,
-  type ChatSummary,
-} from './assistant-storage';
+import { ASSISTANT_CHAT_LIMITS } from '@shared/assistant-chats';
+import type { ChatSummary } from './chat-list';
+import { useSavedChats, type ChatsStatus } from './use-saved-chats';
 import {
   EMPTY_CHANGE_SUMMARY,
   describePageChanges,
@@ -65,13 +59,21 @@ export type PageAssistant = {
   restoreCheckpoint: (messageId: string) => void;
   /** The checkpoint of the newest reply that changed the page, for the Ask AI popover's Undo. */
   latestCheckpointId: string | null;
-  /** This page's saved chats, newest first. The open chat is listed once its first run finishes. */
+  /** This person's saved chats for the page, newest first. The open chat is listed once its first run finishes. */
   chats: ChatSummary[];
+  /** Whether the chat list has been read from the server yet. */
+  chatsStatus: ChatsStatus;
+  /** Reads the saved chats (and moves any left in this browser). The Assistant tab calls it when it opens. */
+  refreshChats: () => void;
+  /** A plain line when loading, opening or deleting a chat went wrong, or null. */
+  chatsNotice: string | null;
+  /** The quiet line shown while the latest reply is not saved on the server yet, or null. */
+  saveNotice: string | null;
   /** The open chat. A chat that has no saved run yet has an id too, it just isn't in `chats`. */
   activeChatId: string;
   /** Opens an empty chat. The chat being left stays in the list. No-op while the assistant works. */
   newChat: () => void;
-  /** Shows a saved chat's messages. Checkpoints from the chat being left are dropped. No-op while locked. */
+  /** Shows a saved chat's messages once they arrive. Checkpoints from the chat being left are dropped. No-op while locked. */
   openChat: (chatId: string) => void;
   /** Removes a saved chat. Deleting the open chat starts an empty one. No-op while locked. */
   deleteChat: (chatId: string) => void;
@@ -81,8 +83,6 @@ type OpenRun = { before: BlockConfig[]; started: boolean; summary: AiPageChangeS
 
 /** Chat messages with the one data part the server streams: `data-page-change`. */
 type AssistantMessage = UIMessage<undefined, { 'page-change': AiPageChangeData }>;
-
-type StartChat = { chats: ChatSummary[]; activeChatId: string; messages: AssistantMessage[] };
 
 const changedIds = (summary: AiPageChangeSummary): string[] => [...summary.inserted, ...summary.updated, ...summary.replaced, ...summary.moved];
 
@@ -102,23 +102,11 @@ const readLiveStep = (messages: UIMessage[]): string | null => {
   });
 };
 
-/** Opens the newest saved chat, or an empty one when the page has none yet. */
-const readStartChat = (pageId: string): StartChat => {
-  const chats = loadChatIndex(pageId);
-  const newest = chats[0];
-  if (!newest) return { chats, activeChatId: createChatId(), messages: [] };
-  return {
-    chats,
-    activeChatId: newest.id,
-    messages: loadChatMessages({ pageId, chatId: newest.id }) as AssistantMessage[],
-  };
-};
-
 /**
  * The in-editor assistant for one page. Each request is one undo step: the first change it streams
  * opens a history step and every later change of the same run replaces it, so one Undo goes back to
  * the page as it was. Saving stays the person's; nothing here writes to the server's page.
- * Chats are kept in this browser; switching chats swaps the messages in the one chat instance.
+ * Chats are saved on the server per person; switching chats swaps the messages in the one chat instance.
  */
 export function usePageAssistant({ siteId, pageId, contentType, getBlocks, applyBlocks }: UsePageAssistantParams): PageAssistant {
   const runRef = useRef<OpenRun | null>(null);
@@ -127,12 +115,10 @@ export function usePageAssistant({ siteId, pageId, contentType, getBlocks, apply
   const [checkpoints, setCheckpoints] = useState<Record<string, AssistantCheckpoint>>({});
   const [latestCheckpointId, setLatestCheckpointId] = useState<string | null>(null);
 
-  const [startChat] = useState(() => readStartChat(pageId));
-  const [chats, setChats] = useState<ChatSummary[]>(startChat.chats);
-  const [activeChatId, setActiveChatId] = useState<string>(startChat.activeChatId);
-  // Refs mirror the state so the chat callbacks (which the library may hold on to) read the current values.
-  const chatsRef = useRef<ChatSummary[]>(startChat.chats);
-  const activeChatRef = useRef<string>(startChat.activeChatId);
+  const saved = useSavedChats({ document: { siteId, documentKind: contentType, documentId: pageId } });
+  const hasStartedRef = useRef(false);
+  const isLockedRef = useRef(false);
+  const openingRef = useRef(0);
 
   const requestRef = useRef({ siteId, pageId, contentType, getBlocks, applyBlocks });
   requestRef.current = { siteId, pageId, contentType, getBlocks, applyBlocks };
@@ -150,7 +136,7 @@ export function usePageAssistant({ siteId, pageId, contentType, getBlocks, apply
             contentType: current.contentType,
             blocks: current.getBlocks(),
             ...(focusRef.current ? { focusBlockId: focusRef.current } : {}),
-            messages: messages.slice(-STORED_MESSAGE_LIMIT) as AiChatRequest['messages'],
+            messages: messages.slice(-ASSISTANT_CHAT_LIMITS.messagesPerChat) as AiChatRequest['messages'],
           };
           return { body };
         },
@@ -164,14 +150,9 @@ export function usePageAssistant({ siteId, pageId, contentType, getBlocks, apply
     return run;
   }, []);
 
-  const commitChats = useCallback((next: ChatSummary[]): void => {
-    chatsRef.current = next;
-    setChats(next);
-  }, []);
-
   const chat = useChat<AssistantMessage>({
     id: `page-assistant:${pageId}`,
-    messages: startChat.messages,
+    messages: [],
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     onData: (part) => {
@@ -183,14 +164,7 @@ export function usePageAssistant({ siteId, pageId, contentType, getBlocks, apply
       flashChangedBlocks(changedIds(part.data.summary));
     },
     onFinish: ({ message, messages, isAbort }) => {
-      commitChats(
-        saveChatToBrowser({
-          pageId: requestRef.current.pageId,
-          chatId: activeChatRef.current,
-          messages,
-          chats: chatsRef.current,
-        }),
-      );
+      saved.saveReply(messages);
       if (!isAbort && isAwaitingApproval(message)) return;
       const run = runRef.current;
       runRef.current = null;
@@ -210,11 +184,13 @@ export function usePageAssistant({ siteId, pageId, contentType, getBlocks, apply
   const isWorking = chat.status === 'submitted' || chat.status === 'streaming';
   const isWaitingForAnswer = !isWorking && isAwaitingApproval(chat.messages.at(-1));
   const isLocked = isWorking || isWaitingForAnswer;
+  isLockedRef.current = isLocked;
 
   const send = useCallback<PageAssistant['send']>(
     ({ text, focusBlockId: focus = null }) => {
       const trimmed = text.trim();
       if (trimmed === '' || isLocked) return;
+      hasStartedRef.current = true;
       focusRef.current = focus;
       setFocusBlockId(focus);
       openRun();
@@ -234,42 +210,71 @@ export function usePageAssistant({ siteId, pageId, contentType, getBlocks, apply
   );
 
   /** Points the hook at another chat id. Checkpoints belong to the chat they were made in, so they go too. */
-  const showChatId = useCallback((chatId: string): void => {
-    activeChatRef.current = chatId;
-    setActiveChatId(chatId);
-    setCheckpoints({});
-    setLatestCheckpointId(null);
-  }, []);
-
-  const startEmptyChat = useCallback((): void => {
-    showChatId(createChatId());
-    chat.setMessages([]);
-    chat.clearError();
-  }, [chat, showChatId]);
+  const showChatId = useCallback(
+    (chatId: string): void => {
+      openingRef.current += 1;
+      saved.activate(chatId);
+      setCheckpoints({});
+      setLatestCheckpointId(null);
+    },
+    [saved.activate],
+  );
 
   const newChat = useCallback(() => {
     if (isLocked) return;
-    startEmptyChat();
-  }, [isLocked, startEmptyChat]);
+    saved.startNew();
+    openingRef.current += 1;
+    hasStartedRef.current = true;
+    setCheckpoints({});
+    setLatestCheckpointId(null);
+    chat.setMessages([]);
+    chat.clearError();
+  }, [chat, isLocked, saved.startNew]);
+
+  /** Fetches a chat and shows it, unless the person did something else while it was on its way. */
+  const showSavedChat = useCallback(
+    async (chatId: string): Promise<void> => {
+      showChatId(chatId);
+      const opening = openingRef.current;
+      const messages = await saved.readMessages(chatId);
+      if (!messages || openingRef.current !== opening || isLockedRef.current) return;
+      chat.setMessages(messages as AssistantMessage[]);
+      chat.clearError();
+    },
+    [chat, saved.readMessages, showChatId],
+  );
 
   const openChat = useCallback(
     (chatId: string) => {
-      if (isLocked || chatId === activeChatRef.current) return;
-      showChatId(chatId);
-      chat.setMessages(loadChatMessages({ pageId: requestRef.current.pageId, chatId }) as AssistantMessage[]);
-      chat.clearError();
+      if (isLocked || chatId === saved.readActiveChatId()) return;
+      hasStartedRef.current = true;
+      void showSavedChat(chatId);
     },
-    [chat, isLocked, showChatId],
+    [isLocked, saved.readActiveChatId, showSavedChat],
   );
 
   const deleteChat = useCallback(
     (chatId: string) => {
       if (isLocked) return;
-      commitChats(deleteChatFromBrowser({ pageId: requestRef.current.pageId, chatId, chats: chatsRef.current }));
-      if (chatId === activeChatRef.current) startEmptyChat();
+      if (chatId === saved.readActiveChatId()) newChat();
+      void saved.forget(chatId);
     },
-    [commitChats, isLocked, startEmptyChat],
+    [isLocked, newChat, saved.forget, saved.readActiveChatId],
   );
+
+  // The tab reads the chats from an effect, so this callback must keep one identity across renders.
+  const showSavedChatRef = useRef(showSavedChat);
+  showSavedChatRef.current = showSavedChat;
+
+  const refreshChats = useCallback((): void => {
+    void saved.refresh().then((list) => {
+      const newest = list?.[0];
+      // Pick up where the person left off, but never over a chat they have already started or opened.
+      if (!newest || hasStartedRef.current || isLockedRef.current) return;
+      hasStartedRef.current = true;
+      void showSavedChatRef.current(newest.id);
+    });
+  }, [saved.refresh]);
 
   return {
     messages: chat.messages,
@@ -286,8 +291,12 @@ export function usePageAssistant({ siteId, pageId, contentType, getBlocks, apply
     checkpointFor: (messageId) => checkpoints[messageId] ?? null,
     restoreCheckpoint,
     latestCheckpointId,
-    chats,
-    activeChatId,
+    chats: saved.chats,
+    chatsStatus: saved.status,
+    refreshChats,
+    chatsNotice: saved.notice,
+    saveNotice: saved.saveNotice,
+    activeChatId: saved.activeChatId,
     newChat,
     openChat,
     deleteChat,

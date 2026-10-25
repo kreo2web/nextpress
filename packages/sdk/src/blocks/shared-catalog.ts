@@ -46,6 +46,8 @@ export type BlockCatalogEntry = {
 	label: string;
 	description: string;
 	category: NonNullable<BlockConfig["category"]>;
+	/** Other groups that list this block too (the Docs group shows `core/code` and more). */
+	alsoIn?: NonNullable<BlockConfig["category"]>[];
 	/** Containers hold child blocks; other blocks never do. */
 	kind: "block" | "container";
 	/** What a new block saves as content. A fresh object every call. */

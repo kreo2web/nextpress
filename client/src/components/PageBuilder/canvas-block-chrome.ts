@@ -21,6 +21,19 @@ const SPAN_CHROME_BLOCKS = new Set([
   "core/tab",
   "core/logo-cloud",
   "core/docs-layout",
+  "docs/shell",
+  "docs/page",
+  // Docs blocks are boxes that fill the reading column.
+  "docs/heading",
+  "docs/text",
+  "docs/list",
+  "docs/callout",
+  "docs/code-group",
+  "docs/file-tree",
+  "docs/params",
+  "docs/example",
+  "docs/diagram",
+  "docs/update",
 ]);
 
 /** Headers and layout blocks fill the slot; text and media start hugged. */

@@ -1,3 +1,7 @@
+import { docsHeadingAnchor, docsHeadingId } from "./blocks/docs-heading-id";
+import { DOCS_HEADING_BLOCK_NAME, readDocsHeadingContent } from "./blocks/docs-heading-model";
+import { readUpdateContent, UPDATE_BLOCK_NAME } from "./blocks/update-model";
+import { inlineMarkdownToText } from "./markdown/inline-text";
 import type { BlockConfig } from "./schema-types";
 import { headingLevelFromTag, readBlockContentData } from "./read-block-content";
 
@@ -38,6 +42,16 @@ export function headingAnchorId({
 }
 
 function headingFromBlock(block: BlockConfig): PageHeading | null {
+	if (block.name === UPDATE_BLOCK_NAME) {
+		// A changelog entry is listed under its label, with the same id its view gives the label (`docsHeadingId`).
+		const { label } = readUpdateContent(block.content);
+		return label.trim() ? { id: docsHeadingId(label), text: label.trim(), level: 2 } : null;
+	}
+	if (block.name === DOCS_HEADING_BLOCK_NAME) {
+		const { level, text, anchor } = readDocsHeadingContent(block.content);
+		const plain = inlineMarkdownToText(text);
+		return plain ? { id: docsHeadingAnchor({ text, anchor }), text: plain, level } : null;
+	}
 	const data = readBlockContentData(block.content);
 	if (block.name === "core/heading") {
 		const text = stripHeadingText(

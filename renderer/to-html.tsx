@@ -8,8 +8,9 @@ import {
 	registerSsrBlockComponents,
 } from "./react/render-helpers";
 import { MarkdownSsrBlock } from "./react/advanced/MarkdownSsrBlock";
+import { DiagramSsrBlock } from "./react/docs/diagram-ssr";
 
-registerSsrBlockComponents({ "core/markdown": MarkdownSsrBlock });
+registerSsrBlockComponents({ "core/markdown": MarkdownSsrBlock, "docs/diagram": DiagramSsrBlock });
 
 const HYDRATION_CONTAINER_ID = "react-island-";
 

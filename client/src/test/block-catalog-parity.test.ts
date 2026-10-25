@@ -24,6 +24,7 @@ describe('block catalog parity', () => {
     expect(def.label).toBe(entry.label);
     expect(def.description).toBe(entry.description);
     expect(def.category).toBe(entry.category);
+    expect(def.alsoIn).toEqual(entry.alsoIn);
     expect(Boolean(def.isContainer)).toBe(entry.kind === 'container');
     expect(def.defaultStyles).toEqual(entry.defaultStyles);
     expect(def.defaultContent).toEqual(entry.defaultContent());

@@ -4,7 +4,8 @@ import { CodeView } from "./code-view.js";
 import { parseCodeFenceMeta, parseLineList } from "./code-meta.js";
 import { DOC_COMPONENT_PROPS } from "./doc-components.js";
 import { createSlugger, readMarkdownHeadings } from "./headings.js";
-import { highlightCode, MARKED_LINE_CLASS } from "./highlight.js";
+import { highlightCode } from "./highlight.js";
+import { MARKED_LINE_CLASS } from "./kirari-options.js";
 import { MarkdownView } from "./markdown-view.js";
 import { escapeMdxBraces } from "./mdx-text.js";
 import { parseMarkdown } from "./parse-markdown.js";
@@ -19,11 +20,11 @@ describe("code fence options", () => {
 		expect(parseLineList(undefined).size).toBe(0);
 	});
 
-	it("reads the title, marked lines and line numbers from the info line", () => {
+	it("reads the title and line numbers from the info line (the {1,3} lines are Kirari's plugin's job)", () => {
 		const meta = parseCodeFenceMeta('{1,3} title="src/app.ts" showLineNumbers');
-		expect(meta).toEqual({ title: "src/app.ts", highlightLines: new Set([1, 3]), showLineNumbers: true });
+		expect(meta).toEqual({ title: "src/app.ts", showLineNumbers: true, wrap: false, fold: true });
 		expect(parseCodeFenceMeta("filename=index.js").title).toBe("index.js");
-		expect(parseCodeFenceMeta(null)).toEqual({ title: null, highlightLines: new Set(), showLineNumbers: false });
+		expect(parseCodeFenceMeta(null)).toEqual({ title: null, showLineNumbers: false, wrap: false, fold: true });
 	});
 });
 
@@ -126,7 +127,9 @@ describe("MarkdownView on the server", () => {
 				throw new Error("Unknown diagram type");
 			},
 		});
-		expect(broken).toContain("This diagram couldn&#x27;t be drawn: Unknown diagram type");
+		expect(broken).toContain("This diagram couldn&#x27;t be drawn. Check the text below for a typo or a missing arrow.");
+		expect(broken).not.toContain("Unknown diagram type");
+		expect(broken).toContain("<pre>nope</pre>");
 	});
 
 	it("renders allowed MDX components with markdown inside, and falls back to plain markdown when MDX is broken", () => {
@@ -156,5 +159,47 @@ describe("CodeView", () => {
 		expect(full).toContain("data-wrap");
 		const bare = renderToString(<CodeView code="x" showCopyButton={false} />);
 		expect(bare).not.toContain("np-code-header");
+	});
+});
+
+describe("MDX props that are literal expressions", () => {
+	const propsOf = (tag: string): Record<string, string> => {
+		const parsed = parseMarkdown({ text: tag, mdx: true, components: DOC_COMPONENT_PROPS });
+		if (!parsed.ok) throw new Error(parsed.message);
+		const match = /"hProperties":(\{[^}]*\})/.exec(JSON.stringify(parsed.tree));
+		return match ? (JSON.parse(match[1]) as Record<string, string>) : {};
+	};
+
+	it("keeps a single number, true or string literal as text", () => {
+		expect(propsOf("<Cards cols={2}>x</Cards>")).toEqual({ cols: "2" });
+		expect(propsOf('<Param name={"id"} required={true}>x</Param>')).toEqual({ name: "id", required: "true" });
+		expect(propsOf("<Callout title={'Hi there'}>x</Callout>")).toEqual({ title: "Hi there" });
+		expect(propsOf("<Param name='a' required>x</Param>")).toEqual({ name: "a", required: "true" });
+	});
+
+	it("drops {false} and every expression that isn't one literal", () => {
+		expect(propsOf("<Param name='a' required={false}>x</Param>")).toEqual({ name: "a" });
+		expect(propsOf("<Callout title={name}>x</Callout>")).toEqual({});
+		expect(propsOf("<Callout title={`Hi ${name}`}>x</Callout>")).toEqual({});
+		expect(propsOf("<Callout title={run()}>x</Callout>")).toEqual({});
+		expect(propsOf("<Callout title={{ a: 1 }}>x</Callout>")).toEqual({});
+		expect(propsOf("<Cards cols={1 + 1}>x</Cards>")).toEqual({});
+		expect(propsOf("<Cards cols={null}>x</Cards>")).toEqual({});
+		expect(propsOf("<Callout title={'a'} title2={'b'}>x</Callout>")).toEqual({ title: "a" });
+	});
+
+	it("still drops event handlers and props the component doesn't list, even with literal values", () => {
+		expect(propsOf('<Callout onClick={"alert(1)"} style={"color:red"} dangerouslySetInnerHTML={"x"} type="tip">x</Callout>')).toEqual({ type: "tip" });
+	});
+
+	it("shows a literal prop on the page", () => {
+		const html = render("<Callout type={'danger'} title={\"Heads up\"}>Body</Callout>", { mdx: true });
+		expect(html).toContain('data-type="danger"');
+		expect(html).toContain("Heads up");
+	});
+
+	it("never runs an expression", () => {
+		const html = render("<Callout title={globalThis.leak = 1}>Body</Callout>", { mdx: true });
+		expect(html).not.toContain("np-callout-title");
 	});
 });

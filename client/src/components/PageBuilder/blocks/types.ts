@@ -2,7 +2,7 @@
 import type { BlockConfig, BlockContent } from "@shared/schema-types";
 import type React from "react";
 
-export type BlockCategory = 'basic' | 'form' | 'media' | 'layout' | 'advanced' | 'post';
+export type BlockCategory = 'basic' | 'form' | 'media' | 'layout' | 'docs' | 'advanced' | 'post';
 
 /**
  * Props for block components using the new component pattern.
@@ -24,6 +24,8 @@ export interface BlockDefinition {
   icon: any;
   description: string;
   category: BlockCategory;
+  /** Other library groups that list this block too (the Docs group also shows Code, Image and more). */
+  alsoIn?: BlockCategory[];
   defaultContent: any;
   defaultStyles: Record<string, any>;
   isContainer?: boolean; // identifies blocks that can contain children

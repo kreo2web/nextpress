@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { UIMessage } from 'ai';
 import type { AiChatRequest, AiPageChangeData } from '@shared/ai-builder';
 import type { BlockConfig, Page } from '@shared/schema-types';
 import { makeBlock } from '@shared/page-tools/test-support/memory-context';
@@ -9,6 +10,7 @@ import PageBuilder from '@/components/PageBuilder/PageBuilder';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { setPendingDescription } from '@/components/PageBuilder/assistant';
+import { createFakeChatServer, type FakeChatServer } from './fixtures/fake-chat-server';
 
 const SITE_ID = '3f2b8a40-6c1d-4a57-9e0b-5d7c1a2b9e11';
 const PAGE_ID = '9a1c2b3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d';
@@ -101,9 +103,10 @@ const installServer = ({
   keepOpen?: boolean;
 } = {}) => {
   const chatCalls: ChatCall[] = [];
+  const chats: FakeChatServer = createFakeChatServer();
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    chats.fetchWith(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(typeof input === 'string' ? input : input.toString(), 'http://localhost');
       if (url.pathname === '/api/ai-builder/status') return json(status);
       if (url.pathname === '/api/ai-builder/chat') {
@@ -113,7 +116,7 @@ const installServer = ({
       return json([]);
     }),
   );
-  return { chatCalls };
+  return { chatCalls, chats };
 };
 
 const PAGE = { id: PAGE_ID, siteId: SITE_ID, title: 'Home', slug: 'home', blocks: [INTRO] } as unknown as Page;
@@ -250,7 +253,7 @@ describe('the assistant in the editor', () => {
   });
 
   it('deleting a chat asks first, and the page keeps its changes', async () => {
-    installServer();
+    const { chats } = installServer();
     renderEditor();
 
     const user = await openAssistantAndAsk('Add a pricing section');
@@ -267,7 +270,8 @@ describe('the assistant in the editor', () => {
     expect(reportedIds()).toEqual(['intro', 'pricing', 'plans']);
 
     await user.click(screen.getByRole('button', { name: 'Chats' }));
-    expect(await screen.findByText('No saved chats yet. Each chat you start is kept in this browser.')).toBeTruthy();
+    expect(await screen.findByText(/^No saved chats yet\./)).toBeTruthy();
+    expect(chats.chats.size).toBe(0);
   });
 });
 
@@ -289,4 +293,91 @@ describe('when the assistant is not set up', () => {
     expect(await screen.findByText('Ask a site admin to turn on the assistant.')).toBeTruthy();
     expect(screen.queryByRole('textbox', { name: 'Message to the assistant' })).toBeNull();
   });
+});
+
+describe('chats saved on the server, seen from the editor', () => {
+  const savedChat = (text: string): UIMessage[] => [
+    { id: 'u1', role: 'user', parts: [{ type: 'text', text }] },
+    { id: 'a1', role: 'assistant', parts: [{ type: 'text', text: 'All done.' }] },
+  ];
+
+  it('opening the Assistant tab lists the server\'s chats for this page and opens the newest', async () => {
+    const { chats } = installServer();
+    chats.seed({ id: 'old', documentId: PAGE_ID, messages: savedChat('Older request'), updatedAt: '2026-10-20T10:00:00.000Z' });
+    chats.seed({ id: 'new', documentId: PAGE_ID, messages: savedChat('Newer request'), updatedAt: '2026-10-22T10:00:00.000Z' });
+    chats.seed({ id: 'other-page', documentId: 'someone-elses-page', messages: savedChat('Not this page') });
+    renderEditor();
+    expect(chats.calls).toHaveLength(0);
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('tab', { name: /assistant/i }));
+    expect(await screen.findByText('All done.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Chats' }));
+    const list = await screen.findByRole('list', { name: 'Saved chats' });
+    expect(within(list).getAllByRole('button', { name: /^(Newer|Older) request/ }).map((button) => button.textContent)).toEqual([
+      expect.stringContaining('Newer request'),
+      expect.stringContaining('Older request'),
+    ]);
+    expect(within(list).queryByText('Not this page')).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(chats.calls.filter((call) => call.method === 'GET' && call.chatId === null)).toHaveLength(1);
+  });
+
+  it('saves a finished reply exactly once, with the whole conversation, for this page', async () => {
+    const { chats } = installServer();
+    renderEditor();
+
+    await openAssistantAndAsk('Add a pricing section');
+    await waitFor(() => expect(reportedIds()).toEqual(['intro', 'pricing', 'plans']));
+    await screen.findByText('Added 2 blocks.');
+    await waitFor(() => expect(chats.saves()).toHaveLength(1));
+
+    const [save] = chats.saves();
+    expect(save?.body).toMatchObject({ siteId: SITE_ID, documentKind: 'page', documentId: PAGE_ID });
+    expect(JSON.stringify(save?.body?.messages)).toContain('Add a pricing section');
+    expect(JSON.stringify(save?.body?.messages)).toContain('I added a pricing heading');
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(chats.saves()).toHaveLength(1);
+  });
+
+  it('saves nothing while the reply is still streaming', async () => {
+    const { chats } = installServer({
+      keepOpen: true,
+      chat: () => [
+        { type: 'start', messageId: 'reply-1' },
+        ...toolStep('call-1', [change({ blocks: [INTRO, PRICING], inserted: ['pricing'] })]),
+        { type: 'start-step' },
+        { type: 'text-start', id: 't1' },
+        ...['I ', 'am ', 'still ', 'writing ', 'this ', 'reply'].map((delta): Chunk => ({ type: 'text-delta', id: 't1', delta })),
+      ],
+    });
+    renderEditor();
+
+    const user = await openAssistantAndAsk('Add a pricing section');
+    await screen.findByText(/still writing this reply/);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(chats.saves()).toHaveLength(0);
+
+    const frame = document.querySelector('.npb-editor-main') as HTMLElement;
+    await user.click(within(frame).getByRole('button', { name: 'Stop' }));
+    await waitFor(() => expect(chats.saves()).toHaveLength(1));
+  });
+
+  it('keeps the chat on screen when saving fails, says so quietly, and saves it when the server is back', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { chats } = installServer();
+    chats.failNextSaves({ count: 2, status: 503 });
+    renderEditor();
+
+    await openAssistantAndAsk('Add a pricing section');
+    expect(await screen.findByText('Added 2 blocks.')).toBeTruthy();
+    expect(await screen.findByText("Couldn't save this chat yet. It will try again.", undefined, { timeout: 6000 })).toBeTruthy();
+    expect(screen.getByText('Added 2 blocks.')).toBeTruthy();
+
+    await waitFor(() => expect(chats.chats.size).toBe(1), { timeout: 10_000 });
+    expect(chats.saves().length).toBeGreaterThanOrEqual(3);
+    await waitFor(() => expect(screen.queryByText("Couldn't save this chat yet. It will try again.")).toBeNull());
+  }, 25_000);
 });

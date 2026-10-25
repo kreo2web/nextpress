@@ -1,3 +1,8 @@
+import { readDocsListContent, shownListItems } from "../blocks/docs-list-model.js";
+import { UPDATE_BLOCK_NAME } from "../blocks/update-model.js";
+import { readDocsTextContent } from "../blocks/docs-text-model.js";
+import { readParamsContent, shownParams } from "../blocks/params-model.js";
+import { inlineMarkdownToText } from "../markdown/inline-text.js";
 import { collectHeadingsFromBlocks } from "../page-headings.js";
 import { readBlockContentData } from "../read-block-content.js";
 import { readMarkdownHeadings } from "../markdown/headings.js";
@@ -19,7 +24,7 @@ export type PageText = {
 	sections: PageSection[];
 };
 
-const HEADING_BLOCKS = new Set(["core/heading", "post/title"]);
+const HEADING_BLOCKS = new Set(["core/heading", "post/title", "docs/heading"]);
 /** Blocks that carry nothing a reader reads as page text (code that runs, forms, menus, hidden popups). */
 const SILENT_BLOCKS = new Set(["core/html", "core/spacer", "core/separator", "core/divider", "core/icon", "core/header", "core/popup", "core/form", "core/template-part", "core/search"]);
 
@@ -79,11 +84,16 @@ const tableLines = (data: BlockData): string[] =>
 const ownLines = ({ block, data }: { block: BlockConfig; data: BlockData }): string[] => {
 	const name = block.name;
 	if (name === "core/list") return listItemsFromHtml(readString(data.values));
+	if (name === "docs/text") return [inlineMarkdownToText(readDocsTextContent(block.content).text)];
+	if (name === "docs/list") return shownListItems(readDocsListContent(block.content).items).flatMap((item) => [item, ...item.children]).map((item) => inlineMarkdownToText(item.text));
 	if (name === "core/table") return [stripHtml(readString(data.caption)), ...tableLines(data)];
 	if (name === "core/code" || name === "core/preformatted") return [readString(data.content), stripHtml(readString(data.title))];
 	if (name === "core/quote" || name === "core/pullquote") return [stripHtml(readString(data.value)), stripHtml(readString(data.citation))];
 	if (name === "core/image") return [stripHtml(readString(data.alt)), stripHtml(readString(data.caption))];
 	if (name === "core/button") return [stripHtml(readString(data.value))];
+	if (name === "docs/file-tree") return [readString(data.tree).replace(/[/*]|#/g, " ")];
+	if (name === "docs/diagram") return [readString(data.code), stripHtml(readString(data.caption))];
+	if (name === "docs/params") return shownParams(readParamsContent(block.content).items).flatMap((item) => [item.name, item.type, item.description]);
 	const titled = readString(data.title);
 	return [stripHtml(readString(data.value)), stripHtml(readString(data.content)), stripHtml(readString(data.text)), stripHtml(titled)];
 };
@@ -92,6 +102,17 @@ const walk = ({ blocks, collector }: { blocks: BlockConfig[]; collector: Collect
 	blocks.forEach((block) => {
 		if (SILENT_BLOCKS.has(block.name)) return;
 		const data = readBlockContentData(block.content) as BlockData;
+		if (block.name === UPDATE_BLOCK_NAME) {
+			// An entry is a section under its label (the link the contents list gives), and its blocks follow it.
+			const entry = collectHeadingsFromBlocks([{ ...block, children: [] }])[0];
+			if (entry) {
+				collector.headings.push({ text: entry.text, id: entry.id, depth: entry.level });
+				startSection({ collector, id: entry.id, heading: entry.text });
+			}
+			addLines({ collector, lines: [stripHtml(readString(data.description))] });
+			walk({ blocks: block.children ?? [], collector });
+			return;
+		}
 		if (HEADING_BLOCKS.has(block.name)) {
 			const heading = collectHeadingsFromBlocks([{ ...block, children: [] }])[0];
 			if (heading) {

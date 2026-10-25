@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { blockConfigSchema } from "../schemas/index.js";
 import type { BlockConfig } from "../types/domain.js";
 import { BLOCK_DEFINITIONS, BLOCK_NAMES, isBlockName } from "./block-definitions.js";
 import { createBlocksBuilder } from "./build-block.js";
@@ -65,6 +66,21 @@ describe("the SDK reads the shared block list", () => {
 		expect(def.defaultStyles).toEqual(entry.defaultStyles);
 		expect(def.defaultContent()).toEqual(entry.defaultContent());
 		expect(entry.description.trim()).not.toBe("");
+	});
+
+	it("defines the docs blocks in the docs category, and says which core blocks the docs group also shows", () => {
+		for (const name of ["docs/callout", "docs/code-group", "docs/file-tree", "docs/params", "docs/example"] as const) {
+			expect(BLOCK_DEFINITIONS[name].category, name).toBe("docs");
+		}
+		expect(BLOCK_DEFINITIONS["core/code"]).toMatchObject({ category: "advanced", alsoIn: ["docs"] });
+		expect(BLOCK_DEFINITIONS["core/heading"]).not.toHaveProperty("alsoIn");
+		expect(getBlockEntry("core/image").alsoIn).toEqual(["docs"]);
+	});
+
+	it("accepts a docs block in the page input check, where the category is named", () => {
+		const callout = blocks.fromName("docs/callout");
+		expect(callout.category).toBe("docs");
+		expect(blockConfigSchema.safeParse(callout).success).toBe(true);
 	});
 
 	it("keeps every default style a string, as the SDK's public type says", () => {

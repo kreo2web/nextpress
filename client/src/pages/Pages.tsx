@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, Eye, Pencil, Home, ListTree, Copy, Download, FileUp } from "lucide-react";
+import { Trash2, Eye, Pencil, Home, ListTree, Copy, Download, FileUp } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { ConfirmBulkDeleteDialog } from "@/components/admin/confirm-bulk-delete-dialog";
 import {
@@ -19,6 +19,7 @@ import {
 } from "@/components/admin/content-list";
 import { ContentStatusSelect } from "@/components/admin/content-status-select";
 import { CreatePageModal } from "@/components/Pages/CreatePageModal";
+import { NewContentButton } from "@/components/new-content";
 import { DuplicatePageDialog } from "@/components/Pages/DuplicatePageDialog";
 import { ExportPageDialog } from "@/components/PageTransfer/ExportPageDialog";
 import { ImportPageDialog } from "@/components/PageTransfer/ImportPageDialog";
@@ -350,10 +351,7 @@ function PagesList({
             <FileUp className="mr-2 h-4 w-4" />
             Import page
           </Button>
-          <Button className="npb-btn-accent" onClick={handleNewPage}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Page
-          </Button>
+          <NewContentButton variant="header" />
         </>
       }
     >

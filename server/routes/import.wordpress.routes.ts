@@ -18,6 +18,7 @@ import { getSiteBlogIds } from "./shared/site-content";
 import { assertSiteContentAccess, ContentAccessError } from "../lib/content-access";
 import { getRequestAuthSiteId } from "../auth";
 import { contentVersionAfterRewrite } from "../lib/content-version-after-rewrite";
+import { scheduleSearchIndexRebuild } from "../lib/site-search";
 
 // Every request to the WordPress site goes through this: public addresses only, each redirect re-checked.
 const publicFetch = createSafePublicFetch();
@@ -550,6 +551,8 @@ export function createWordPressImportRoutes(deps: Deps): Router {
 				}),
 			);
 
+			// Pages may have been written even if a later one failed, so search is told either way.
+			scheduleSearchIndexRebuild({ models, siteId });
 			if (err || !result) {
 				console.error("WordPress page import error:", err);
 				return res.status(500).json({ message: "Import failed" });

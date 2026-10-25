@@ -247,6 +247,7 @@ export const LAYOUT_BLOCKS: readonly WrittenBlockEntry[] = [
 		label: "Accordion",
 		description: "Questions or sections that open and close",
 		category: "layout",
+		alsoIn: ["docs"],
 		kind: "container",
 		defaultContent: () => structured(DEFAULT_ACCORDION_CONTENT),
 		defaultStyles: { width: "100%", boxSizing: "border-box", padding: "0" },

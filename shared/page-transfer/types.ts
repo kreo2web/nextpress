@@ -35,6 +35,13 @@ export type PackagePage = {
 	slug: string;
 	featuredImage: string | null;
 	other: Record<string, unknown>;
+	/**
+	 * The address part of this page's parent, when the parent travels in the same file. Lets a set
+	 * of nested pages (a docs section) land with the same tree. Files made before it import flat.
+	 */
+	parentSlug?: string;
+	/** Place among its sibling pages (lower comes first), as on the source site. */
+	menuOrder?: number;
 };
 
 /** A linked page that travels with the main page (its own title, address and blocks). */

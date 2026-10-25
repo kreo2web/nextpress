@@ -22,6 +22,8 @@ export const BLOCK_EXTRA_CONTENT_FIELDS: Partial<Record<BlockName, readonly stri
 	"core/video": ["objectFit"],
 	"core/cover": ["overlayColor"],
 	"core/icon": ["icon.svg", "icon.url", "icon.label", "icon.tint", "icon.sizeUnit", "icon.strokeWidthUnit"],
+	"core/step": ["icon.svg", "icon.url", "icon.label", "icon.tint", "icon.iconSet", "icon.iconName", "icon.size", "icon.color", "icon.strokeWidth"],
+	"core/tabs": ["linkable"],
 	"core/group": ["layoutPreset"],
 	"core/page-shell": ["paddingInline", "paddingBlock", "contentAlign", "scrollbar", "backgroundFill", "backgroundColor", "textColor"],
 	"core/header": [

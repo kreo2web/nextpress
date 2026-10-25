@@ -162,3 +162,28 @@ describe("pickTocHeadings and readers", () => {
 		expect(readDocsBound({ kind: "structured", data: { docs: { tree: "bad", headings: [{ id: "x", level: 5 }] } } })).toMatchObject({ tree: [], headings: [] });
 	});
 });
+
+describe("buildDocsBound groups and hidden pages", () => {
+	const group = page({ id: "start", title: "Getting started", parentId: "docs", menuOrder: 1, group: true });
+	const pages = [docs, group, install, config, guides];
+
+	it("shows a group as a label even when it's published, with its pages as links", () => {
+		const { tree, breadcrumbs } = buildDocsBound({ pages, currentPageId: "install" });
+		expect(tree[1]).toMatchObject({ title: "Getting started", path: null });
+		expect((tree[1].children[0] as { path: string }).path).toBe("/docs/start/install");
+		expect(breadcrumbs.map((crumb) => crumb.path)).toEqual(["/docs", null, "/docs/start/install"]);
+	});
+
+	it("leaves a hidden page and everything under it out of the sidebar, and previous/next skip them", () => {
+		const hiddenGroup = { ...group, group: false, hidden: true };
+		const { tree, prev, next } = buildDocsBound({ pages: [docs, hiddenGroup, install, config, guides], currentPageId: "docs" });
+		expect(titles(tree)).toEqual(["Docs", "Guides"]);
+		expect(next?.title).toBe("Guides");
+		expect(prev).toBeNull();
+	});
+
+	it("skips a group label in previous/next", () => {
+		const { prev } = buildDocsBound({ pages, currentPageId: "install" });
+		expect(prev?.title).toBe("Docs");
+	});
+});

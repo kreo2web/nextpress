@@ -1,7 +1,7 @@
 import * as React from "react";
 import { docsElementIds, type DocsBound, type DocsCrumb, type DocsLayoutContent, type DocsLink, type DocsNavItem } from "./docs-layout-model.js";
 
-const NavList = ({ items }: { items: DocsNavItem[] }) => (
+export const NavList = ({ items }: { items: DocsNavItem[] }) => (
 	<ul className="np-docs__list">
 		{items.map((item) => (
 			<li key={item.id}>
@@ -18,7 +18,7 @@ const NavList = ({ items }: { items: DocsNavItem[] }) => (
 	</ul>
 );
 
-const Breadcrumbs = ({ crumbs }: { crumbs: DocsCrumb[] }) => (
+export const Breadcrumbs = ({ crumbs }: { crumbs: DocsCrumb[] }) => (
 	<nav className="np-docs__crumbs" aria-label="Breadcrumb">
 		<ol>
 			{crumbs.map((crumb, index) => {
@@ -39,7 +39,7 @@ const Breadcrumbs = ({ crumbs }: { crumbs: DocsCrumb[] }) => (
 	</nav>
 );
 
-const Pager = ({ prev, next }: { prev: DocsLink | null; next: DocsLink | null }) => (
+export const Pager = ({ prev, next }: { prev: DocsLink | null; next: DocsLink | null }) => (
 	<nav className="np-docs__pager" aria-label="Previous and next pages">
 		{prev ? (
 			<a className="np-docs__pager-link np-docs__pager-link--prev" href={prev.path} rel="prev">
@@ -56,7 +56,7 @@ const Pager = ({ prev, next }: { prev: DocsLink | null; next: DocsLink | null })
 	</nav>
 );
 
-const TocLinks = ({ headings }: { headings: DocsBound["headings"] }) => (
+export const TocLinks = ({ headings }: { headings: DocsBound["headings"] }) => (
 	<ul className="np-docs__toc-list">
 		{headings.map((heading, index) => (
 			<li key={`${heading.id}-${index}`} className={`np-docs__toc-item np-docs__toc-item--h${heading.level}`}>
@@ -66,7 +66,7 @@ const TocLinks = ({ headings }: { headings: DocsBound["headings"] }) => (
 	</ul>
 );
 
-const MenuIcon = () => (
+export const MenuIcon = () => (
 	<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
 		<path d="M4 7h16M4 12h16M4 17h16" />
 	</svg>

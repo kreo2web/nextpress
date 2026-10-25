@@ -29,6 +29,7 @@ export type CreateBlockDefinitionConfig<TContent> = {
   icon: BlockDefinition["icon"];
   description: string;
   category: BlockCategory;
+  alsoIn?: BlockCategory[];
   defaultContent: TContent;
   defaultStyles?: Record<string, unknown>;
   isContainer?: boolean;

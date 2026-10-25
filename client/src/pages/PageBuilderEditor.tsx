@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useReducer } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useReducer } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,12 @@ import {
   writeEditorEntityCache,
 } from '@/lib/editor-entity-cache';
 import { livePreviewHref, writePreviewSession } from '@shared/preview-session';
+import { isDocsPageBlocks, readDocsPageContent } from '@shared/docs/docs-page-frame';
+import { blocksToMdx } from '@shared/mdx-blocks';
+import { DocsPageSwitcher } from '@/components/PageBuilder/docs-mode/DocsPageSwitcher';
+import { DocsViewSwitch } from '@/components/PageBuilder/docs-mode/DocsViewSwitch';
+import { describeMdxBlock, useDocsEditorState } from '@/components/PageBuilder/docs-mode/docs-editor-state';
+import { mergeDocsPageOther } from '@/components/PageBuilder/docs-mode/docs-page-draft';
 
 type PageState = {
   blocks: BlockConfig[];
@@ -231,6 +237,8 @@ export default function PageBuilderEditor({
   const writeDraftRef = useRef<((next: PageState) => void) | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  /** The docs editor's view, MDX problem and page settings; unused (and untouched) on any other page. */
+  const docsState = useDocsEditorState();
 
   /**
    * Inline post editing state.
@@ -286,6 +294,12 @@ export default function PageBuilderEditor({
     isTemplate && rawData && isTemplatePart((rawData as Template).other)
       ? '/admin/templates'
       : '/admin/pre-designed-blocks';
+
+  // A page whose page shell holds a docs shell is a docs page: it opens in the docs editor.
+  const isDocs = !isPost && !isTemplate && pageState.isInitialized && isDocsPageBlocks(pageState.blocks);
+  const docsContent = isDocs ? readDocsPageContent(pageState.blocks) : null;
+  // Blocks MDX has no form for would be dropped by a round trip, so MDX stays off while the page has any.
+  const mdxBlockedBy = useMemo(() => (docsContent ? blocksToMdx(docsContent).skipped : []), [docsContent]);
 
   // Keep refs fresh every render for stable useMountEffect handlers
   dataRef.current = data;
@@ -366,6 +380,7 @@ export default function PageBuilderEditor({
     });
     latestPageStateRef.current = next;
     hasUnsavedServerChangesRef.current = false;
+    docsState.loadPage((source as { other?: PageOther }).other);
     return next;
   }
 
@@ -498,12 +513,14 @@ export default function PageBuilderEditor({
             status: next.status,
             blocks: next.blocks,
             version: data.version ?? 0,
+            // The docs editor's description and sidebar flag are part of the page, so they wait in the draft with it.
+            ...(isDocs ? { other: mergeDocsPageOther({ existing: data.other as PageOther | undefined, draft: docsState.draft }) } : {}),
           }),
           3,
         );
       }
     },
-    [data, inlinePostId, inlinePostData, isPost, isTemplate],
+    [data, inlinePostId, inlinePostData, isPost, isTemplate, isDocs, docsState.draft],
   );
 
   writeDraftRef.current = writeDraft;
@@ -804,6 +821,36 @@ latestPageStateRef.current = {
     [clearPersistedDraft, handleRemoteEntityUpdate],
   );
 
+  /**
+   * The docs navigation can change this page's own row on the server (a rename, a move, hiding it),
+   * which gives the page a new version. Taking that version keeps the next Save from being refused
+   * as out of date. WHY only the version: the title, address and status in the editor may hold
+   * edits that aren't saved yet, and those must stay.
+   */
+  const handleDocsServerChange = useCallback(async () => {
+    const pageId = data?.id;
+    if (!pageId) return;
+    try {
+      const response = await apiRequest('GET', `/api/pages/${pageId}`);
+      const fresh = (await response.json()) as Page;
+      writeEditorEntityCache({
+        queryClient,
+        keys: listEditorEntityQueryKeys({ apiBase, id: pageId, slug: fresh.slug, address: currentId }),
+        entity: fresh,
+      });
+      const version = readExpectedVersion(fresh);
+      const { title, slug, status } = latestPageStateRef.current;
+      dispatchPageState({ type: 'UPDATE_METADATA', payload: { title, slug, status, version } });
+      latestPageStateRef.current = { ...latestPageStateRef.current, version };
+    } catch (error) {
+      console.error({
+        atFunction: 'PageBuilderEditor.handleDocsServerChange',
+        data: { pageId, error },
+        message: 'The docs page could not be read again after the docs changed it',
+      });
+    }
+  }, [apiBase, currentId, data?.id, queryClient]);
+
   if (isLoading || waitingForSite || (data && !pageState.isInitialized)) {
     return (
       <div className="flex h-screen bg-npb-canvas-bg">
@@ -940,7 +987,9 @@ latestPageStateRef.current = {
                 categories: postDoc.categories,
                 tags: postDoc.tags,
               }
-            : undefined,
+            : isDocs
+              ? mergeDocsPageOther({ existing: data.other as PageOther | undefined, draft: docsState.draft })
+              : undefined,
       });
 
       handleRemoteEntityUpdate(updated);
@@ -1106,6 +1155,9 @@ latestPageStateRef.current = {
               <ArrowLeft className="w-4 h-4" />
               {isInlineEditing ? 'Back to Blog Page' : 'Back'}
             </Button>
+            {isDocs ? (
+              <DocsPageSwitcher pageId={data.id} pageTitle={pageState.title} />
+            ) : (
             <div className="flex items-center gap-2 flex-1 max-w-md">
               {isInlineEditing && (
                 <FileText className="w-4 h-4 npb-chrome-accent flex-shrink-0" aria-hidden />
@@ -1130,9 +1182,15 @@ latestPageStateRef.current = {
                 }
               />
             </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
+          {isDocs ? (
+            <DocsViewSwitch view={docsState.view} onChange={docsState.setView} issue={docsState.mdxIssue} mdxBlockedBy={mdxBlockedBy} />
+          ) : null}
+
+          <div className={isDocs ? 'flex flex-1 items-center justify-end gap-2' : 'flex items-center gap-2'}>
+            {isDocs ? null : (
             <SiteMenu>
               <Button
                 variant="outline"
@@ -1143,6 +1201,7 @@ latestPageStateRef.current = {
                 Site settings
               </Button>
             </SiteMenu>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -1176,7 +1235,13 @@ latestPageStateRef.current = {
                 post={isInlineEditing ? inlinePostData ?? undefined : data}
                 blocks={pageState.blocks}
                 onPublished={handlePublished}
-                disabled={isSaving}
+                disabled={isSaving || (isDocs && docsState.mdxIssue !== null)}
+                disabledReason={isDocs && docsState.mdxIssue ? describeMdxBlock(docsState.mdxIssue) : undefined}
+                extraPayload={
+                  isDocs
+                    ? { title: pageState.title, other: mergeDocsPageOther({ existing: data.other as PageOther | undefined, draft: docsState.draft }) }
+                    : undefined
+                }
                 contentType={isInlineEditing || isPost ? 'post' : 'page'}
               />
             )}
@@ -1209,6 +1274,8 @@ latestPageStateRef.current = {
             currentPostId={inlinePostId || data?.id}
             contentType={isTemplate ? 'template' : type}
             isTemplateEditor={isTemplate}
+            mode={isDocs ? 'docs' : 'page'}
+            docs={isDocs ? { state: docsState, onServerChange: handleDocsServerChange } : undefined}
           />
         </div>
       </div>

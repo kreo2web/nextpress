@@ -48,6 +48,7 @@ import {
 import { headerFloatWrapperStyles, headerOverlayPaintStyles } from '@shared/header-model';
 import { usePageColumnInset } from '@shared/page-column-context';
 import { useCanvasBlockToolbar } from './use-canvas-block-toolbar';
+import { useDocsFrame } from './docs-mode/docs-frame-context';
 import { AskAiButton } from './assistant/ask-ai-button';
 import { findBlockEntry } from '@shared/block-catalog';
 import {
@@ -90,7 +91,10 @@ export function ContainerChildren({
   const children = Array.isArray(block.children) ? block.children : [];
   const isContainer = !!blockRegistry[block.name]?.isContainer;
   const actions = useBlockActions();
+  const frame = useDocsFrame();
   if (!isContainer) return null;
+  // In the docs editor the page shell and the docs shell hold only the frame's own blocks, so nothing is dropped into them.
+  const holdsFrameOnly = Boolean(frame?.isFrameBlock(block.name)) && !frame?.takesBlocks(block.name);
 
   const layout = readContainerLayoutFromBlock({ styles: block.styles, content: block.content as Record<string, unknown> });
   const siblingStackDirection = getContainerSiblingStackDirection(layout);
@@ -176,10 +180,10 @@ export function ContainerChildren({
     );
   }
   return (
-    <Droppable droppableId={block.id} direction={dropDirection as any}>
+    <Droppable droppableId={block.id} direction={dropDirection as any} isDropDisabled={holdsFrameOnly}>
       {(provided, snapshot) => {
         const showDropChrome =
-          children.length === 0 || snapshot.isDraggingOver;
+          !holdsFrameOnly && (children.length === 0 || snapshot.isDraggingOver);
         return (
         <div
           ref={provided.innerRef}
@@ -208,7 +212,8 @@ export function ContainerChildren({
               {snapshot.placeholderIndex === childIndex && <DropPlaceholder />}
               <Draggable
                 draggableId={child.id}
-                index={childIndex}>
+                index={childIndex}
+                isDragDisabled={Boolean(frame?.isFrameBlock(child.name))}>
                 {(dragProvided, dragSnapshot) => (
                   <div
                     ref={dragProvided.innerRef}
@@ -479,8 +484,11 @@ export default function BlockRenderer({
 }: BlockRendererProps) {
   const actions = useBlockActions();
   const inPageColumn = usePageColumnInset() != null;
-  const effectiveSelected = isSelected || actions?.selectedBlockId === block.id;
-  const isEditing = !isPreview && actions?.editingBlockId === block.id;
+  const docsFrame = useDocsFrame();
+  // The docs frame is drawn as visitors see it: no toolbar, pick, ring or drag on its blocks.
+  const isFrameBlock = Boolean(docsFrame?.isFrameBlock(block.name));
+  const effectiveSelected = !isFrameBlock && (isSelected || actions?.selectedBlockId === block.id);
+  const isEditing = !isPreview && !isFrameBlock && actions?.editingBlockId === block.id;
   const [editorChromeMode, setEditorChromeMode] = useState<CanvasChromeMode>(() =>
     inPageColumn && block.name === "core/paragraph" ? "span" : defaultCanvasChromeMode(block.name),
   );
@@ -500,7 +508,7 @@ export default function BlockRenderer({
     toolbarEngageHandlers,
     onBlockInteract,
   } = useCanvasBlockToolbar({
-    enabled: !isPreview,
+    enabled: !isPreview && !isFrameBlock,
     isSelected: effectiveSelected,
   });
 
@@ -675,7 +683,7 @@ export default function BlockRenderer({
   const showEditingChrome = !isPreview && isEditing;
   const showSelectedChrome = !isPreview && effectiveSelected && !showEditingChrome;
 
-  const isPageShellGuide = !isPreview && block.name === "core/page-shell";
+  const isPageShellGuide = !isPreview && !isFrameBlock && block.name === "core/page-shell";
   const pageShellStretch = isPageShellGuide ? "flex min-h-full flex-1 flex-col" : "";
   const blockChromeClasses = [
     `block-${block.id}`,
@@ -690,13 +698,13 @@ export default function BlockRenderer({
     .join(' ');
 
   const selectThisBlock = (event: React.MouseEvent) => {
-    if (isPreview) return;
+    if (isPreview || isFrameBlock) return;
     event.stopPropagation();
     onBlockInteract();
     actions?.onSelect(block.id);
   };
   const editThisBlock = (event: React.MouseEvent) => {
-    if (isPreview) return;
+    if (isPreview || isFrameBlock) return;
     event.stopPropagation();
     actions?.onStartEditing?.(block.id);
   };
@@ -756,7 +764,7 @@ export default function BlockRenderer({
             </div>
           )}
 
-          <div className={`${!isPreview ? "cursor-pointer" : ""} ${pageShellStretch}`}>
+          <div className={`${!isPreview && !isFrameBlock ? "cursor-pointer" : ""} ${pageShellStretch}`}>
             <div
               data-block-id={block.id}
               data-chrome={!isPreview && showSelectedChrome && toolbarOpen ? 'true' : 'false'}

@@ -9,14 +9,13 @@ import { assertAuthenticatedSiteAccess, ContentAccessError } from '../lib/conten
 import { readErrorStatus, resolveRequestSite } from './shared/resolve-request-site';
 import { readRequestSiteId } from './shared/read-request-site-id';
 import { resolvePageTemplateParts } from '../lib/template-parts';
+import { scheduleSearchIndexRebuild } from '../lib/site-search';
 import type { BlockConfig } from '@shared/schema-types';
-import { resolveSiteThemeSettings } from './shared/resolve-site-theme-settings';
 import { enrichPageForApi } from '@shared/page-other';
 import { PAGE_PACKAGE_MAX_BYTES, readPagePackage, type PagePackage } from '@shared/page-transfer';
-import { NEXTPRESS_CONFIG } from '../../config';
 import {
   createPackageFileStore,
-  createPagePackageBuilder,
+  createPagePackageBuilderFromDeps,
   createPageImporter,
   createLinkedPagesFinder,
   isPageImportRefusal,
@@ -64,26 +63,7 @@ export function createPageTransferRoutes(deps: Deps): Router {
     onFileStored: (item) => hooks.doAction('wp_handle_upload', item),
   });
 
-  const builder = createPagePackageBuilder({
-    listSiteMedia: (siteId) => models.media.findManyWhere([{ where: 'siteId', equals: siteId }]),
-    readActiveTheme: async (siteId) => {
-      const resolved = await resolveSiteThemeSettings({ models, siteId });
-      if (!resolved.themeId) return null;
-      const theme = await models.themes.findById(resolved.themeId);
-      if (!theme) return null;
-      return {
-        name: theme.name,
-        description: theme.description ?? null,
-        settings: resolved.settings as unknown as Record<string, unknown>,
-      };
-    },
-    // A page file stands on its own: linked template parts are swapped for the template's current blocks.
-    resolvePageParts: async ({ siteId, pageId, blocks }) =>
-      (await resolvePageTemplateParts({ models, siteId, pageId, blocks })).blocks,
-    uploadDir,
-    uploadLimit: CONFIG.UPLOAD.LIMIT,
-    appVersion: NEXTPRESS_CONFIG.version,
-  });
+  const builder = createPagePackageBuilderFromDeps({ models, uploadDir, CONFIG });
 
   const linkedPages = createLinkedPagesFinder({
     findBySiteAndSlug: (siteId, slug) => models.pages.findBySiteAndSlug(siteId, slug),
@@ -266,6 +246,7 @@ export function createPageTransferRoutes(deps: Deps): Router {
           includeTheme: req.body?.includeTheme === 'true',
         });
         imported.pages.forEach((created) => hooks.doAction('save_post', created));
+        scheduleSearchIndexRebuild({ models, siteId: String(site.id) });
         return imported;
       });
 

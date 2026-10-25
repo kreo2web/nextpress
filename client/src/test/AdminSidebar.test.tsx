@@ -71,6 +71,24 @@ describe('AdminSidebar', () => {
     expect(visibleLinks()).not.toContain('Themes');
   });
 
+  it('lists Docs under Content right after Pages, and links it to the Docs screen', () => {
+    render(<AdminSidebar />);
+
+    const links = visibleLinks();
+    expect(links.indexOf('Docs')).toBe(links.indexOf('Pages') + 1);
+    expect(screen.getByRole('link', { name: 'Docs' })).toHaveAttribute('href', '/admin/docs');
+    expect(screen.getByRole('group', { name: 'Content' })).toContainElement(screen.getByRole('link', { name: 'Docs' }));
+    expect(screen.getByRole('link', { name: 'Docs' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('shows Docs to exactly the people who see Pages', () => {
+    accessState.standing = 'subscriber';
+    render(<AdminSidebar />);
+
+    expect(visibleLinks()).not.toContain('Pages');
+    expect(visibleLinks()).not.toContain('Docs');
+  });
+
   it("shows a site admin their site's settings and people, but plugins only to main-site admins", () => {
     accessState.standing = 'admin';
     const { unmount } = render(<AdminSidebar />);

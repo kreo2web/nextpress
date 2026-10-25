@@ -1,4 +1,5 @@
 import type { Deps } from "../routes/shared/deps";
+import { forgetDocumentChats } from "./assistant-chats";
 
 export class PageDeleteError extends Error {
 	statusCode: number;
@@ -64,4 +65,5 @@ export async function deletePageWithDependencies(
 
 	await models.pages.delete(pageId);
 	hooks.doAction("delete_post", pageId);
+	await forgetDocumentChats({ models, documentKind: "page", documentId: pageId });
 }

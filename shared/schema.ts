@@ -414,6 +414,39 @@ export const invites = pgTable(
 	(table) => [index("invites_site_idx").on(table.siteId)],
 );
 
+/**
+ * What a person said to the page assistant, kept per person and per page or post so they can pick a
+ * chat up again from any browser. Only the person who had the chat ever reads it.
+ * `id` is chosen by the editor, so saving the same chat twice (a retry) is harmless.
+ * `documentId` can't point at a table (it is a page or a post), so a deleted page leaves its chats behind unseen.
+ */
+export const assistantChats = pgTable(
+	"assistant_chats",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		siteId: uuid("site_id")
+			.references(() => sites.id, { onDelete: "cascade" })
+			.notNull(),
+		userId: uuid("user_id")
+			.references(() => users.id, { onDelete: "cascade" })
+			.notNull(),
+		documentKind: varchar("document_kind").notNull(), // page, post
+		documentId: uuid("document_id").notNull(),
+		title: varchar("title").notNull(),
+		messages: jsonb("messages").notNull().default([]),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").defaultNow().notNull(),
+	},
+	(table) => [
+		index("assistant_chats_user_document_idx").on(
+			table.userId,
+			table.documentKind,
+			table.documentId,
+			table.updatedAt.desc(),
+		),
+	],
+);
+
 // Todo: add relations and set them with drizzle relations
 export const usersRelations = relations(users, ({ many }) => ({
 	posts: many(posts),

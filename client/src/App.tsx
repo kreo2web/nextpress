@@ -18,6 +18,7 @@ const NotFound = lazy(() => import('@/pages/not-found'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Posts = lazy(() => import('@/pages/Posts'));
 const Pages = lazy(() => import('@/pages/Pages'));
+const Docs = lazy(() => import('@/pages/Docs'));
 const Media = lazy(() => import('@/pages/Media'));
 const Comments = lazy(() => import('@/pages/Comments'));
 const FormSubmissions = lazy(() => import('@/pages/FormSubmissions'));
@@ -129,6 +130,7 @@ function Router() {
             <Route path="/admin/dashboard" component={Dashboard} />
             <Route path="/admin/posts" component={Posts} />
             <Route path="/admin/pages" component={Pages} />
+            <Route path="/admin/docs" component={Docs} />
             <Route path="/admin/media" component={Media} />
             <Route path="/admin/comments" component={Comments} />
             <Route path="/admin/forms" component={FormSubmissions} />

@@ -38,6 +38,9 @@ importers:
       '@vortexlabs/kirari':
         specifier: ^1.1.1
         version: 1.1.1
+      '@vortexlabs/kirari-rehype':
+        specifier: ^1.0.2
+        version: 1.0.2(@vortexlabs/kirari@1.1.1)
       ai:
         specifier: 7.0.143
         version: 7.0.143(zod@3.25.76)
@@ -3573,6 +3576,9 @@ packages:
   '@types/hast@3.0.4':
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
 
+  '@types/hast@3.0.5':
+    resolution: {integrity: sha512-rp/ezSWaD1m44dPKICGhiskI13nVr7qTloFwDa/IYkhhf5nzwP+zIQcIJh3WIFSBOy/H1PzB40jPjMDksN4F+g==}
+
   '@types/http-errors@2.0.5':
     resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
 
@@ -3734,6 +3740,11 @@ packages:
 
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
+
+  '@vortexlabs/kirari-rehype@1.0.2':
+    resolution: {integrity: sha512-S5KFgm+pElVpDT7766jBd8S4jSgCZFWsVKsQB0JzVFcbdau9riAFUg+qeSkyh+Y3NaIGJKujVRmkMIBtpvjp+w==}
+    peerDependencies:
+      '@vortexlabs/kirari': ^1.0.0
 
   '@vortexlabs/kirari@1.1.1':
     resolution: {integrity: sha512-ddZKczMigy/Awjun/uQ4hn+IjGtP5uoCVlCbtZJi+jj5Zczg0vUoj+xIMA7OfG8RihstFG5rdMoOob2omZJfcg==}
@@ -9617,6 +9628,10 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
 
+  '@types/hast@3.0.5':
+    dependencies:
+      '@types/unist': 3.0.3
+
   '@types/http-errors@2.0.5': {}
 
   '@types/istanbul-lib-coverage@2.0.6': {}
@@ -9839,6 +9854,11 @@ snapshots:
       '@vitest/pretty-format': 3.2.4
       loupe: 3.2.1
       tinyrainbow: 2.0.0
+
+  '@vortexlabs/kirari-rehype@1.0.2(@vortexlabs/kirari@1.1.1)':
+    dependencies:
+      '@types/hast': 3.0.5
+      '@vortexlabs/kirari': 1.1.1
 
   '@vortexlabs/kirari@1.1.1': {}
 

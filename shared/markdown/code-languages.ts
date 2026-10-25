@@ -1,45 +1,22 @@
 import type { Language } from "@vortexlabs/kirari/core";
-import * as kirariLanguages from "@vortexlabs/kirari/languages";
+import { plaintext } from "@vortexlabs/kirari/languages";
+import { createRegistry } from "@vortexlabs/kirari/registry";
+import { KIRARI_LANGUAGES } from "./kirari-options.js";
 
 /** A language people can pick for a code block, with the name shown on the block. */
 export type CodeLanguageOption = { value: string; label: string };
 
-/** Every language Kirari highlights, by its own name. */
-const LANGUAGES: Record<string, Language> = { ...kirariLanguages };
+/**
+ * Kirari's own name matching (`ts`, `sh`, `yml`, file names like `app.py`): the very rule the
+ * markdown plugin applies to fences, so a code block and a fence resolve a name the same way.
+ */
+const registry = createRegistry(KIRARI_LANGUAGES);
 
-/** Names people and fences commonly use for a language Kirari knows by another name. */
-const ALIASES: Record<string, string> = {
-	js: "javascript",
-	mjs: "javascript",
-	cjs: "javascript",
-	ts: "typescript",
-	mts: "typescript",
-	cts: "typescript",
-	py: "python",
-	rb: "ruby",
-	rs: "rust",
-	cs: "csharp",
-	"c#": "csharp",
-	"c++": "cpp",
-	kt: "kotlin",
-	bash: "shell",
-	sh: "shell",
-	zsh: "shell",
-	console: "shell",
-	ps1: "powershell",
-	yml: "yaml",
-	md: "markdown",
-	mdx: "markdown",
-	htm: "html",
-	svg: "xml",
-	env: "dotenv",
-	tf: "hcl",
-	proto: "protobuf",
-	gql: "graphql",
-	text: "plaintext",
-	txt: "plaintext",
-	plain: "plaintext",
-};
+/** Names writers use that Kirari's matching doesn't know. */
+const EXTRA_NAMES = new Map([
+	["console", "shell"],
+	["mdx", "markdown"],
+]);
 
 /** Labels for the block's language picker and the code header. Anything missing shows its own name. */
 const LABELS: Record<string, string> = {
@@ -76,17 +53,17 @@ const capitalize = (name: string): string => `${name.charAt(0).toUpperCase()}${n
 export const resolveCodeLanguage = (typed: string | null | undefined): string | null => {
 	const name = (typed ?? "").trim().toLowerCase();
 	if (!name) return null;
-	const resolved = ALIASES[name] ?? name;
-	return resolved in LANGUAGES ? resolved : null;
+	return registry.resolve(EXTRA_NAMES.get(name) ?? name)?.name ?? null;
 };
 
 /** The definition Kirari needs. Unknown names get plain text, so code always shows. */
-export const getCodeLanguage = (name: string | null): Language => LANGUAGES[name ?? "plaintext"] ?? LANGUAGES.plaintext;
+export const getCodeLanguage = (name: string | null): Language => registry.resolve(name ?? "plaintext") ?? plaintext;
 
 /** The label shown for a language name. */
 export const codeLanguageLabel = (name: string): string => LABELS[name] ?? capitalize(name);
 
 /** Every language, sorted by label, for pickers. */
-export const CODE_LANGUAGE_OPTIONS: readonly CodeLanguageOption[] = Object.keys(LANGUAGES)
-	.map((value) => ({ value, label: codeLanguageLabel(value) }))
-	.sort((a, b) => a.label.localeCompare(b.label));
+export const CODE_LANGUAGE_OPTIONS: readonly CodeLanguageOption[] = KIRARI_LANGUAGES.map(({ name }) => ({
+	value: name,
+	label: codeLanguageLabel(name),
+})).sort((a, b) => a.label.localeCompare(b.label));

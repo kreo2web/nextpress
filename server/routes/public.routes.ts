@@ -22,16 +22,12 @@ import { sanitizeHtml } from '@shared/sanitize-html';
 import type { BlockConfig, Site } from '@shared/schema-types';
 import { publicSiteDescription, publicSiteName } from '@shared/published-document-meta';
 import { resolvePageTemplateParts } from '../lib/template-parts';
-import { createSiteSearch } from '../lib/site-search/site-search';
+import { siteSearchIndexOf } from '../lib/site-search';
 import { findPageByPath } from '../lib/page-paths/page-paths';
-import { createRateLimiter } from '../utils/rate-limit';
-import { clientAddress } from '../utils/client-address';
+import { matchesIfNoneMatch } from './shared/if-none-match';
 
-const SEARCH_MAX_QUERY_LENGTH = 100;
-const SEARCH_MAX_RESULTS = 20;
-const SEARCH_DEFAULT_RESULTS = 8;
-/** A person typing sends a search every few keystrokes; this is far above that and far below a script. */
-const SEARCH_REQUESTS_PER_MINUTE = 60;
+/** A browser may reuse its copy of the search index for a minute, then asks again (a cheap 304 when nothing changed). */
+const DOCS_INDEX_CACHE_CONTROL = 'public, max-age=60, must-revalidate';
 
 /**
  * Public API routes — resolve site from Host header or ?siteId= hint.
@@ -39,8 +35,7 @@ const SEARCH_REQUESTS_PER_MINUTE = 60;
 export function createPublicRoutes(deps: Deps): Router {
   const router = Router();
   const { models } = deps;
-  const siteSearch = createSiteSearch({ models });
-  const checkSearchRate = createRateLimiter();
+  const searchIndex = siteSearchIndexOf({ models });
 
   const siteIdentity = async (site: Site) => {
     const stored = await models.sites.getSettings(site.id);
@@ -269,33 +264,44 @@ export function createPublicRoutes(deps: Deps): Router {
   );
 
   /**
-   * GET /api/public/search?q=&limit= — search the published pages of the site this address belongs
-   * to. Answers `{ results: [{ title, path, snippet }] }`; a path ends in `#section` when the words
-   * were found under a heading. Open to visitors, so it is limited per address.
+   * GET /api/public/docs-index — the prebuilt search index of the site this address belongs to:
+   * `{ version, builtAt, options, index }`. A reader's browser downloads it once, the first time
+   * they open search, and answers every keystroke itself. Only pages visitors may read are in it.
+   * The server builds it a moment after pages change and keeps it ready. The ETag follows the
+   * site's pages, so a site that has not changed costs two small queries and a 304.
    */
   router.get(
-    '/search',
+    '/docs-index',
     asyncHandler(async (req, res) => {
-      const address = clientAddress(req);
-      if (!checkSearchRate({ key: `search:${address}`, limit: SEARCH_REQUESTS_PER_MINUTE, windowMs: 60_000 })) {
-        res.setHeader('Retry-After', '60');
-        return res.status(429).json({ message: 'Too many searches in a row. Wait a moment and try again.' });
-      }
-      const query = (typeof req.query.q === 'string' ? req.query.q : '').trim().slice(0, SEARCH_MAX_QUERY_LENGTH);
-      if (!query) return res.json({ results: [] });
-      const requested = Number(req.query.limit);
-      const limit = Number.isFinite(requested) && requested >= 1 ? Math.min(SEARCH_MAX_RESULTS, Math.floor(requested)) : SEARCH_DEFAULT_RESULTS;
-
-      const { err, result } = await safeTryAsync(async () => {
+      let siteId: string | null = null;
+      const { err } = await safeTryAsync(async () => {
         const site = await resolvePublicSite({ models, req, siteIdHint: readPublicSiteIdHint(req) });
-        return site ? { siteId: site.id, results: await siteSearch.search({ siteId: site.id, query, limit }) } : null;
+        if (!site) {
+          res.status(404).json({ message: 'Site not found' });
+          return;
+        }
+        siteId = site.id;
+
+        const stamp = await searchIndex.readStamp({ siteId: site.id });
+        res.setHeader('Cache-Control', DOCS_INDEX_CACHE_CONTROL);
+        res.setHeader('ETag', stamp.etag);
+        if (matchesIfNoneMatch({ header: req.get('if-none-match'), etag: stamp.etag })) {
+          res.status(304).end();
+          return;
+        }
+        const built = await searchIndex.read({ siteId: site.id, fingerprint: stamp.fingerprint });
+        res.setHeader('ETag', built.etag);
+        res.type('application/json').send(built.body);
       });
+
       if (err) {
-        console.error({ atFunction: 'public.search', data: { query, host: req.get('host') ?? null, error: err }, message: 'Site search failed' });
-        return res.status(500).json({ message: "Search isn't working right now. Try again in a moment." });
+        console.error({ atFunction: 'public.docsIndex', data: { siteId, host: req.get('host') ?? null, error: err }, message: 'Could not serve the search index' });
+        if (res.headersSent) return;
+        // An error must not be kept by a browser or a cache the way the index is.
+        res.removeHeader('ETag');
+        res.setHeader('Cache-Control', 'no-store');
+        res.status(500).json({ message: "Search isn't available right now. Try again in a moment." });
       }
-      if (!result) return res.json({ results: [] });
-      res.json({ results: result.results });
     }),
   );
 

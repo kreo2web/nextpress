@@ -20,7 +20,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VERSION_STALE } from "@shared/content-version";
 import type { Post, Page, BlockConfig } from "@shared/schema-types";
-import { buildPublishPayload } from "@/lib/publish-payload";
+import { buildPublishPayload, type PublishExtra } from "@/lib/publish-payload";
 import { useOptionalActiveSite } from "@/hooks/useActiveSite";
 import { buildPublicContentUrl } from "@/lib/site-api";
 
@@ -29,7 +29,11 @@ interface PublishDialogProps {
   blocks: BlockConfig[];
   onPublished?: (updatedData: Post | Page) => void;
   disabled?: boolean;
+  /** Plain words for why the button is off, shown to everyone who can't press it. */
+  disabledReason?: string;
   contentType?: 'post' | 'page';
+  /** Edits the editor holds beside the blocks (the docs editor's title and page settings), sent with the publish. */
+  extraPayload?: PublishExtra;
 }
 
 export default function PublishDialog({
@@ -37,7 +41,9 @@ export default function PublishDialog({
   blocks,
   onPublished,
   disabled,
+  disabledReason,
   contentType = 'page',
+  extraPayload,
 }: PublishDialogProps) {
   const [open, setOpen] = useState(false);
   const [slug, setSlug] = useState(post?.slug || "");
@@ -68,6 +74,7 @@ export default function PublishDialog({
         slug,
         contentType,
         action: 'publish',
+        extra: extraPayload,
       });
 
       const response = await apiRequest('PUT', endpoint, publishData);
@@ -121,6 +128,7 @@ export default function PublishDialog({
         slug: post.slug,
         contentType,
         action: 'unpublish',
+        extra: extraPayload,
       });
 
       const response = await apiRequest('PUT', endpoint, unpublishData);
@@ -202,6 +210,7 @@ export default function PublishDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
+      <span title={disabled ? disabledReason : undefined} className="inline-flex">
       <DialogTrigger asChild>
         <Button
           size="sm"
@@ -225,8 +234,10 @@ export default function PublishDialog({
               Publish
             </>
           )}
+          {disabled && disabledReason ? <span className="sr-only">. {disabledReason}</span> : null}
         </Button>
       </DialogTrigger>
+      </span>
       
       <DialogContent className="sm:max-w-md" data-testid="dialog-publish">
         <DialogHeader>

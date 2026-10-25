@@ -19,7 +19,7 @@ export function MarkdownSsrBlock(block: BlockConfig) {
 
 	return (
 		<div className={blockClass} style={{ color: "var(--npb-text-primary)", ...style }}>
-			<MarkdownView text={content} mdx={mdx} renderDiagram={renderDiagram} />
+			<MarkdownView text={content} mdx={mdx} renderDiagram={renderDiagram} idPrefix={block.id} />
 		</div>
 	);
 }

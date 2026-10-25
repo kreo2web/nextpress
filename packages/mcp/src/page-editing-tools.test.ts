@@ -356,6 +356,18 @@ describe("page editing tools over MCP", () => {
 			expect(result.text).toContain("core/page-shell | ");
 		});
 
+		it("list_block_types puts the docs blocks in the docs category, and a bare docs name is refused with the full one", async () => {
+			await open(createFakeApi());
+
+			const list = await call("list_block_types", {});
+			const bare = await call("get_block_type", { name: "callout" });
+
+			expect(list.text).toMatch(/^docs\/callout \| Callout \| container \| docs \| .{20,}/m);
+			expect(list.text).toMatch(/^core\/code \| Code \| block \| advanced \(also docs\) \| .{20,}/m);
+			expect(bare.isError).toBe(true);
+			expect(bare.text).toContain("Did you mean docs/callout?");
+		});
+
 		it("get_block_type shows an example, and suggests names for a half-typed one", async () => {
 			await open(createFakeApi());
 

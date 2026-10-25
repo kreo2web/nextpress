@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useEffect, type ReactElement } from 'react';
 import { Link } from 'wouter';
 import { MessageSquareIcon } from 'lucide-react';
 import { Conversation, ConversationContent, ConversationEmptyState, ConversationScrollButton } from '@/components/ai-elements/conversation';
@@ -9,7 +9,7 @@ import { AiWorkingStatus } from './ai-working-indicator';
 import { AssistantChatHistory } from './assistant-chat-history';
 import { AssistantComposer } from './assistant-composer';
 import { AssistantMessageView } from './assistant-message-view';
-import { NEW_CHAT_TITLE } from './assistant-storage';
+import { NEW_CHAT_TITLE } from '@shared/assistant-chats';
 import { usePageAssistantContext, type AssistantAvailability } from './page-assistant-context';
 
 const STARTERS = [
@@ -67,6 +67,14 @@ function AssistantPanelSkeleton(): ReactElement {
  */
 export function AssistantPanel(): ReactElement | null {
   const context = usePageAssistantContext();
+  const refreshChats = context?.assistant.refreshChats;
+  const isReady = context?.availability === 'ready';
+
+  // Opening the tab reads the saved chats; the tab closes its content when you leave it, so this runs each visit.
+  useEffect(() => {
+    if (isReady) refreshChats?.();
+  }, [isReady, refreshChats]);
+
   if (!context) return null;
   const { assistant, availability } = context;
 
@@ -86,6 +94,7 @@ export function AssistantPanel(): ReactElement | null {
         </h3>
         <AssistantChatHistory
           chats={assistant.chats}
+          isLoading={assistant.chatsStatus === 'loading'}
           activeChatId={assistant.activeChatId}
           lockedReason={lockedReason}
           onNewChat={assistant.newChat}
@@ -137,6 +146,17 @@ export function AssistantPanel(): ReactElement | null {
       {assistant.errorText ? (
         <p className="text-sm text-npb-status-error" role="alert">
           {assistant.errorText}
+        </p>
+      ) : null}
+
+      {assistant.chatsNotice ? (
+        <p className="text-xs text-npb-text-muted" role="status">
+          {assistant.chatsNotice}
+        </p>
+      ) : null}
+      {assistant.saveNotice ? (
+        <p className="text-xs text-npb-text-muted" role="status">
+          {assistant.saveNotice}
         </p>
       ) : null}
 

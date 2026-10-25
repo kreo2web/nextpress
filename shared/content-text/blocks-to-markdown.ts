@@ -1,3 +1,10 @@
+import { readCalloutType } from "../blocks/callout-model.js";
+import { readDiagramContent } from "../blocks/diagram-model.js";
+import { readUpdateContent, UPDATE_BLOCK_NAME } from "../blocks/update-model.js";
+import { readDocsListContent } from "../blocks/docs-list-model.js";
+import { readDocsTextContent } from "../blocks/docs-text-model.js";
+import { readParamsContent, shownParams } from "../blocks/params-model.js";
+import { docsListToMdx } from "../mdx-blocks/docs-list-mdx.js";
 import { collectHeadingsFromBlocks } from "../page-headings.js";
 import { readBlockContentData } from "../read-block-content.js";
 import type { BlockConfig } from "../schema-types.js";
@@ -7,7 +14,7 @@ import { type BlockData, inlineMarkdown, listItemsAsMarkdown, readList, readStri
 const SKIPPED_BLOCKS = new Set(["core/html", "core/spacer", "core/icon", "core/header", "core/popup", "core/form", "core/template-part", "core/search", "core/video", "core/audio"]);
 const RULE_BLOCKS = new Set(["core/separator", "core/divider"]);
 /** Containers whose children each have a title worth printing above their content. */
-const TITLED_CHILDREN = new Set(["core/accordion-item", "core/tab", "core/step"]);
+const TITLED_CHILDREN = new Set(["core/accordion-item", "core/tab", "core/step", "core/card"]);
 
 const fenceAround = ({ code, language, title }: { code: string; language: string; title: string }): string => {
 	const longestRun = Math.max(0, ...(code.match(/`+/g) ?? []).map((run) => run.length));
@@ -60,6 +67,29 @@ const plainFallback = (data: BlockData): string =>
 		.filter(Boolean)
 		.join("\n\n");
 
+/** A parameter list as plain markdown: one line per field, with its type, default and use. */
+const paramsAsMarkdown = (block: BlockConfig): string =>
+	shownParams(readParamsContent(block.content).items)
+		.map((item) => {
+			const type = item.type ? ` (${item.type})` : "";
+			const status = item.required ? ", required" : item.default ? `, default \`${item.default}\`` : "";
+			const description = item.description.replace(/\s*\n\s*/g, " ");
+			return `- \`${item.name}\`${type}${status}${description ? `: ${description}` : ""}`;
+		})
+		.join("\n");
+
+/** A diagram as a ```` ```mermaid ```` fence, so the copy carries the Mermaid text itself. */
+const diagramAsMarkdown = (block: BlockConfig): string => {
+	const { code, caption } = readDiagramContent(block.content);
+	return fenceAround({ code, language: "mermaid", title: caption.trim() });
+};
+
+/** A changelog entry as its heading (the label, as "On this page" lists it), its description, then its blocks. */
+const updateAsMarkdown = ({ block }: { block: BlockConfig }): string[] =>
+	[headingAsMarkdown(block), readUpdateContent(block.content).description.trim(), ...render({ blocks: block.children ?? [] })].filter(Boolean);
+
+const CALLOUT_LABELS: Record<string, string> = { note: "Note", tip: "Tip", warning: "Warning", danger: "Danger", success: "Success" };
+
 const headingAsMarkdown = (block: BlockConfig): string => {
 	const heading = collectHeadingsFromBlocks([{ ...block, children: [] }])[0];
 	return heading ? `${"#".repeat(heading.level)} ${heading.text}` : "";
@@ -69,6 +99,8 @@ const ownMarkdown = ({ block, data }: { block: BlockConfig; data: BlockData }): 
 	const handlers: Record<string, () => string> = {
 		"core/heading": () => headingAsMarkdown(block),
 		"post/title": () => headingAsMarkdown(block),
+		"docs/heading": () => headingAsMarkdown(block),
+		"docs/diagram": () => diagramAsMarkdown(block),
 		"core/paragraph": () => inlineMarkdown(readString(data.value)),
 		"core/list": () => listAsMarkdown(data),
 		"core/quote": () => quoteAsMarkdown(data),
@@ -79,8 +111,23 @@ const ownMarkdown = ({ block, data }: { block: BlockConfig; data: BlockData }): 
 		"core/markdown": () => (readString(data.content) || readString(data.value)).trim(),
 		"core/code": () => fenceAround({ code: readString(data.content), language: readString(data.language), title: readString(data.title) }),
 		"core/preformatted": () => fenceAround({ code: readString(data.content), language: "", title: "" }),
+		"docs/file-tree": () => fenceAround({ code: readString(data.tree), language: "", title: "" }),
+		"docs/params": () => paramsAsMarkdown(block),
+		"docs/text": () => readDocsTextContent(block.content).text.trim(),
+		"docs/list": () => docsListToMdx(readDocsListContent(block.content)),
 	};
 	return (handlers[block.name] ?? (() => plainFallback(data)))();
+};
+
+/** A callout as a quote that starts with its kind ("**Tip:** …"), so it reads the same in plain markdown. */
+const calloutAsMarkdown = ({ data, children }: { data: BlockData; children: BlockConfig[] }): string => {
+	const title = stripHtml(readString(data.title));
+	const lead = `**${CALLOUT_LABELS[readCalloutType(data.type)]}:**${title ? ` ${title}` : ""}`;
+	return [lead, ...render({ blocks: children })]
+		.join("\n\n")
+		.split("\n")
+		.map((line) => (line ? `> ${line}` : ">"))
+		.join("\n");
 };
 
 const render = ({ blocks }: { blocks: BlockConfig[] }): string[] =>
@@ -88,6 +135,8 @@ const render = ({ blocks }: { blocks: BlockConfig[] }): string[] =>
 		if (SKIPPED_BLOCKS.has(block.name)) return [];
 		if (RULE_BLOCKS.has(block.name)) return ["---"];
 		const data = readBlockContentData(block.content) as BlockData;
+		if (block.name === "docs/callout") return [calloutAsMarkdown({ data, children: block.children ?? [] })];
+		if (block.name === UPDATE_BLOCK_NAME) return updateAsMarkdown({ block });
 		const title = TITLED_CHILDREN.has(block.name) ? stripHtml(readString(data.title)) : "";
 		const label = title && block.name === "core/step" ? `**${index + 1}. ${title}**` : title ? `**${title}**` : "";
 		const own = TITLED_CHILDREN.has(block.name) ? "" : ownMarkdown({ block, data });

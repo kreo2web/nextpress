@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { PAGE_DESIGN_GUIDE } from "@nextpress-org/sdk";
 import { z } from "zod";
 import { toMcpText } from "../tools/mcp-tool-text.js";
+import { writeDocsPrompt } from "./write-docs-prompt.js";
 
 type PromptResult = {
 	description: string;
@@ -94,6 +95,24 @@ export function registerContentPrompts({ server }: { server: McpServer }): void 
 			asPrompt({
 				description: "Change one block on a page",
 				text: editBlockPrompt({ id, blockId: block_id, request }),
+			}),
+	);
+
+	server.registerPrompt(
+		"write_docs",
+		{
+			title: "Write docs",
+			description:
+				"Instructions and the docs writing guide for writing docs pages: find the docs, plan the pages, write them in MDX, check them, and leave them as drafts for the owner.",
+			argsSchema: {
+				topic: z.string().min(1).describe("What the docs pages are about, e.g. installing NextPress"),
+				audience: z.string().optional().describe("Who reads them, e.g. site owners who have never used a CMS"),
+			},
+		},
+		({ topic, audience }) =>
+			asPrompt({
+				description: "Write docs pages on this NextPress site",
+				text: writeDocsPrompt({ topic, audience }),
 			}),
 	);
 }

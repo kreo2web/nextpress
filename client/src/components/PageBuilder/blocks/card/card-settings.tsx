@@ -1,6 +1,6 @@
 import React from "react";
 import type { BlockConfig } from "@shared/schema-types";
-import { Link2, Palette } from "lucide-react";
+import { Heading, Link2, Palette } from "lucide-react";
 import { CARD_LOOKS, readCardContent, type CardContent, type CardLook } from "@shared/blocks/card-model";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -25,6 +25,18 @@ export function CardSettings({ block, onUpdate }: CardSettingsProps) {
 
 	return (
 		<div className="space-y-4">
+			<CollapsibleCard title="Heading" icon={Heading} defaultOpen={content.title !== ""}>
+				<div>
+					<SettingsLabel htmlFor={`card-title-${block.id}`}>Heading</SettingsLabel>
+					<Input
+						id={`card-title-${block.id}`}
+						className="mt-1 h-9"
+						value={content.title}
+						placeholder="Optional, shown at the top of the card"
+						onChange={(event) => updateContent({ title: event.target.value })}
+					/>
+				</div>
+			</CollapsibleCard>
 			<CollapsibleCard title="Look" icon={Palette} defaultOpen>
 				<SettingsChipGroup label="Look" options={LOOK_OPTIONS} value={content.look} onChange={(value) => updateContent({ look: value as CardLook })} />
 			</CollapsibleCard>

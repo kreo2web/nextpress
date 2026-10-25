@@ -14,7 +14,7 @@ export function MarkdownBlock(block: BlockConfig) {
 
 	return (
 		<div className={blockClass} style={{ color: "var(--npb-text-primary)", ...style }}>
-			<MarkdownView text={content} mdx={mdx} />
+			<MarkdownView text={content} mdx={mdx} idPrefix={block.id} />
 		</div>
 	);
 }

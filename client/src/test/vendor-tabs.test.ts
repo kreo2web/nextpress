@@ -96,3 +96,115 @@ describe("/vendor/tabs.js on a published page", () => {
 		expect(event.defaultPrevented).toBe(false);
 	});
 });
+
+describe("/vendor/tabs.js code groups", () => {
+	const group = (id: string, sync: string, remember: boolean): string => `
+		<div data-np-tabs="">
+			<div role="tablist" data-np-sync="${sync}" data-np-remember="${remember}">
+				${sync
+					.split("|")
+					.map(
+						(name, index) =>
+							`<button type="button" role="tab" id="${id}-t${index}" aria-controls="${id}-p${index}" aria-selected="${index === 0}" tabindex="${index === 0 ? 0 : -1}">${name}</button>`,
+					)
+					.join("")}
+			</div>
+			<div>${sync
+				.split("|")
+				.map((_, index) => `<div role="tabpanel" id="${id}-p${index}" ${index === 0 ? "" : "hidden"}></div>`)
+				.join("")}</div>
+		</div>`;
+
+	const tabNamed = (id: string, index: number): HTMLElement => document.getElementById(`${id}-t${index}`) as HTMLElement;
+	const selectedIn = (id: string): string | null =>
+		document.querySelector(`[id^="${id}-t"][aria-selected="true"]`)?.textContent ?? null;
+	const KEY = "np-tabs-choice";
+
+	const makeStorage = (initial: Record<string, string> = {}) => {
+		const store = new Map(Object.entries(initial));
+		return {
+			getItem: (name: string) => store.get(name) ?? null,
+			setItem: (name: string, value: string) => void store.set(name, value),
+			store,
+		};
+	};
+	const useStorage = (storage: object): void => {
+		Object.defineProperty(window, "localStorage", { value: storage, configurable: true });
+	};
+	const load = (): void => {
+		delete (window as unknown as { __npTabsInstalled?: boolean }).__npTabsInstalled;
+		new Function(SCRIPT)();
+	};
+
+	afterEach(() => {
+		document.body.innerHTML = "";
+	});
+
+	it("picks the same tab name in every group with the same names", () => {
+		useStorage(makeStorage());
+		document.body.innerHTML = group("a", "npm|pnpm|yarn", true) + group("b", "npm|pnpm|yarn", true) + group("c", "npm|bun", true);
+		load();
+		tabNamed("a", 1).click();
+		expect(selectedIn("a")).toBe("pnpm");
+		expect(selectedIn("b")).toBe("pnpm");
+		expect(selectedIn("c")).toBe("npm"); // different names: left alone
+		const panel = document.getElementById("b-p1") as HTMLElement;
+		expect(panel.hidden).toBe(false);
+		expect((document.getElementById("b-p0") as HTMLElement).hidden).toBe(true);
+	});
+
+	it("remembers the choice in localStorage and applies it on the next page", () => {
+		const storage = makeStorage();
+		useStorage(storage);
+		document.body.innerHTML = group("a", "npm|pnpm", true);
+		load();
+		tabNamed("a", 1).click();
+		expect(JSON.parse(storage.store.get(KEY) ?? "{}")).toEqual({ "npm|pnpm": "pnpm" });
+
+		document.body.innerHTML = group("n", "npm|pnpm", true);
+		load();
+		expect(selectedIn("n")).toBe("pnpm");
+		expect((document.getElementById("n-p1") as HTMLElement).hidden).toBe(false);
+	});
+
+	it("does not remember when the group says not to, but still syncs", () => {
+		const storage = makeStorage();
+		useStorage(storage);
+		document.body.innerHTML = group("a", "npm|pnpm", false) + group("b", "npm|pnpm", false);
+		load();
+		tabNamed("a", 1).click();
+		expect(selectedIn("b")).toBe("pnpm");
+		expect(storage.store.has(KEY)).toBe(false);
+	});
+
+	it("ignores a saved name the group no longer has", () => {
+		useStorage(makeStorage({ [KEY]: JSON.stringify({ "npm|pnpm": "deno" }) }));
+		document.body.innerHTML = group("a", "npm|pnpm", true);
+		load();
+		expect(selectedIn("a")).toBe("npm");
+	});
+
+	it("keeps switching when storage throws on read and write", () => {
+		useStorage({
+			getItem: () => {
+				throw new Error("blocked");
+			},
+			setItem: () => {
+				throw new Error("blocked");
+			},
+		});
+		document.body.innerHTML = group("a", "npm|pnpm", true) + group("b", "npm|pnpm", true);
+		expect(() => load()).not.toThrow();
+		expect(() => tabNamed("a", 1).click()).not.toThrow();
+		expect(selectedIn("a")).toBe("pnpm");
+		expect(selectedIn("b")).toBe("pnpm");
+	});
+
+	it("keeps groups in step from the keyboard too", () => {
+		useStorage(makeStorage());
+		document.body.innerHTML = group("a", "npm|pnpm", true) + group("b", "npm|pnpm", true);
+		load();
+		key(tabNamed("a", 0), "ArrowRight");
+		expect(selectedIn("b")).toBe("pnpm");
+	});
+});

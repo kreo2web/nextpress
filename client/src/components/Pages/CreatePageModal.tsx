@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -11,29 +11,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ImageDropzone } from "@/components/ui/image-dropzone";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { useLocation } from "wouter";
 import {
-  showErrorToast,
   showSuccessToast,
   resolveCreatePageError,
 } from "@/lib/sonner-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useActiveSite } from "@/hooks/useActiveSite";
-import { appendSiteIdToUrl } from "@/lib/site-api";
 import { mergePageOtherWithDefaults } from "@shared/page-other";
-import { buildPagePaths } from "@shared/page-paths";
 import { reIdTemplateBlocks } from "@/lib/re-id-template-blocks";
 import { useContentLists } from "@/hooks/useContentLists";
-import { FilePlus, PenLine } from "lucide-react";
+import { FilePlus, Loader2, PenLine } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useAiStatus } from "@/hooks/use-ai-settings";
 import { setPendingDescription } from "@/components/PageBuilder/assistant/assistant-storage";
@@ -45,19 +34,20 @@ interface CreatePageModalProps {
   initialTitle?: string;
 }
 
+/**
+ * What the new page asks for. The address comes from the title; the featured image, comments,
+ * password, parent page and menu order are set in Page settings in the editor.
+ */
 interface PageFormData {
   title: string;
-  slug: string;
-  featuredImage?: string;
-  featuredImageFile?: File; // File to upload on submit
-  allowComments: boolean;
-  password?: string;
-  parentId?: string;
-  menuOrder: number;
   templateId?: string;
   /** "Describe your page": handed to the editor, whose assistant builds a first draft on open. */
   description?: string;
 }
+
+type FormError = { field: "title" | "form"; message: string };
+
+type ApiFailure = Error & { status?: number; code?: string };
 
 /**
  * Generates a URL-friendly slug from the title
@@ -72,93 +62,50 @@ function generateSlug(title: string): string {
 }
 
 /**
- * Modal component for creating new pages.
- * Only handles page creation with page-specific fields from schema.
+ * With no address field any more, a title that matches an existing page's address can only be
+ * fixed by changing the title, so that is what the message says.
+ */
+function readCreateError(error: Error): FormError {
+  const failure = error as ApiFailure;
+  if (failure.status === 409 || failure.code === "PAGE_SLUG_EXISTS") {
+    return { field: "title", message: "A page with this title already exists. Try a slightly different title." };
+  }
+  return { field: "form", message: resolveCreatePageError(error) };
+}
+
+/**
+ * The step after "Page" in the New chooser: a title, an optional description for the assistant,
+ * and what to start from. Everything else about a page (address, featured image, comments,
+ * password, parent, menu order) is set in Page settings in the editor.
  */
 export function CreatePageModal({
   open,
   onOpenChange,
   initialTitle = "",
 }: CreatePageModalProps) {
-  const [formData, setFormData] = useState<PageFormData>({
-    title: initialTitle,
-    slug: "",
-    allowComments: true,
-    menuOrder: 0,
-  });
-  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  const [formData, setFormData] = useState<PageFormData>({ title: initialTitle });
+  const [error, setError] = useState<FormError | null>(null);
 
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { activeSiteId } = useActiveSite();
-  const { pages, templates } = useContentLists();
-  // The page's address starts with its parents' slugs, so show where the new page will live.
-  const parentPath = formData.parentId ? buildPagePaths(pages).get(formData.parentId) : undefined;
-  const addressPrefix = parentPath ? `/${parentPath}/` : "/";
+  const { templates } = useContentLists();
   const assistantEnabled = useAiStatus({ siteId: activeSiteId }).data?.enabled === true;
+  const address = generateSlug(formData.title);
 
   // Update title when initialTitle changes
   useEffect(() => {
     if (initialTitle && !formData.title) {
-      setFormData((prev) => {
-        const newTitle = initialTitle;
-        return {
-          ...prev,
-          title: newTitle,
-          slug: slugManuallyEdited ? prev.slug : generateSlug(newTitle),
-        };
-      });
+      setFormData((prev) => ({ ...prev, title: initialTitle }));
     }
-  }, [initialTitle, formData.title, slugManuallyEdited]);
+  }, [initialTitle, formData.title]);
 
   /**
-   * Updates form field and auto-generates slug from title if slug hasn't been manually edited
+   * Updates one form field. A new title clears a title complaint, since it may now be fine.
    */
-  const handleFieldChange = (
-    field: keyof PageFormData,
-    value: string | boolean | number | undefined
-  ) => {
-    setFormData((prev) => {
-      const updated = { ...prev, [field]: value };
-
-      // Auto-generate slug from title if slug hasn't been manually edited
-      if (field === "title" && !slugManuallyEdited) {
-        updated.slug = generateSlug(value as string);
-      }
-
-      return updated;
-    });
-  };
-
-  /**
-   * Handles slug field change and marks it as manually edited
-   */
-  const handleSlugChange = (value: string) => {
-    setSlugManuallyEdited(true);
-    handleFieldChange("slug", value);
-  };
-
-  /**
-   * Uploads image file and returns the URL
-   */
-  const uploadImage = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    // The image belongs to the same site as the new page, not the default site.
-    const response = await fetch(appendSiteIdToUrl("/api/media", activeSiteId), {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || "Failed to upload image");
-    }
-
-    const mediaItem = await response.json();
-    return mediaItem.url;
+  const handleFieldChange = (field: keyof PageFormData, value: string | undefined) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "title") setError((current) => (current?.field === "title" ? null : current));
   };
 
   /**
@@ -166,19 +113,6 @@ export function CreatePageModal({
    */
   const createMutation = useMutation({
     mutationFn: async (data: PageFormData) => {
-      // Upload featured image first if a file is selected
-      let featuredImageUrl = data.featuredImage;
-
-      if (data.featuredImageFile) {
-        try {
-          featuredImageUrl = await uploadImage(data.featuredImageFile);
-        } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
-          throw new Error(`Failed to upload featured image: ${errorMessage}`);
-        }
-      }
-
       const selectedTemplate = data.templateId
         ? templates.find((template) => template.id === data.templateId)
         : undefined;
@@ -188,17 +122,14 @@ export function CreatePageModal({
 
       const payload = {
         title: data.title || "Untitled",
-        slug: data.slug || generateSlug(data.title) || `untitled-${Date.now()}`,
+        slug: generateSlug(data.title) || `untitled-${Date.now()}`,
         status: "draft", // Always draft on creation
         siteId: activeSiteId,
         blocks: starterBlocks,
         other: mergePageOtherWithDefaults(),
-        allowComments: data.allowComments,
-        password: data.password || undefined,
-        parentId: data.parentId || undefined,
-        menuOrder: data.menuOrder || 0,
+        allowComments: true,
+        menuOrder: 0,
         templateId: data.templateId || undefined,
-        featuredImage: featuredImageUrl || undefined,
       };
 
       const response = await apiRequest("POST", "/api/pages", payload);
@@ -222,314 +153,161 @@ export function CreatePageModal({
       resetForm();
       onOpenChange(false);
     },
-    onError: (error: unknown) => {
-      showErrorToast(resolveCreatePageError(error));
+    onError: (failure: Error) => {
+      console.error({
+        atFunction: "CreatePageModal.createPage",
+        data: { siteId: activeSiteId, title: formData.title, templateId: formData.templateId, error: failure },
+        message: "Creating a page failed",
+      });
+      setError(readCreateError(failure));
     },
   });
 
   /**
    * Handles form submission with validation
    */
-  const handleSubmit = () => {
-    // Validation
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    if (createMutation.isPending) return;
     if (!formData.title.trim()) {
-      showErrorToast("Please enter a title");
+      setError({ field: "title", message: "Give the page a title." });
       return;
     }
-
-    // Validate slug format if provided
-    const slugToValidate = formData.slug || generateSlug(formData.title);
-    if (slugToValidate && !/^[a-z0-9-]+$/.test(slugToValidate)) {
-      showErrorToast("Slug can only contain lowercase letters, numbers, and hyphens");
-      return;
-    }
-
+    setError(null);
     createMutation.mutate(formData);
-  };
-
-  /**
-   * Handles Enter key press in form fields
-   */
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && formData.title.trim()) {
-      e.preventDefault();
-      handleSubmit();
-    }
   };
 
   /**
    * Resets form to initial state
    */
   const resetForm = () => {
-    setFormData({
-      title: "",
-      slug: "",
-      allowComments: true,
-      menuOrder: 0,
-    });
-    setSlugManuallyEdited(false);
-  };
-
-  /**
-   * Handles image file selection (stores file, doesn't upload yet)
-   */
-  const handleImageSelect = (file: File) => {
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      showErrorToast("Please select an image file");
-      return;
-    }
-
-    // Validate file size (10MB max)
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      showErrorToast(`File size must be less than ${Math.round(maxSize / 1024 / 1024)}MB`);
-      return;
-    }
-
-    // Create preview URL for display
-    const previewUrl = URL.createObjectURL(file);
-
-    setFormData((prev) => ({
-      ...prev,
-      featuredImage: previewUrl,
-      featuredImageFile: file,
-    }));
-  };
-
-  /**
-   * Removes selected image
-   */
-  const handleImageRemove = (url?: string) => {
-    // If url is provided and it's a blob URL, revoke it
-    const imageUrl = url || formData.featuredImage;
-    if (imageUrl?.startsWith("blob:")) {
-      URL.revokeObjectURL(imageUrl);
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      featuredImage: undefined,
-      featuredImageFile: undefined,
-    }));
+    setFormData({ title: "" });
+    setError(null);
   };
 
   /**
    * Handles dialog close with form reset
    */
   const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      // Clean up object URL if it exists
-      if (formData.featuredImage?.startsWith("blob:")) {
-        URL.revokeObjectURL(formData.featuredImage);
-      }
-      resetForm();
-    }
+    if (!isOpen) resetForm();
     onOpenChange(isOpen);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl sm:text-2xl">
-            <FilePlus className="w-5 h-5 sm:w-6 sm:h-6" />
-            Create New Page
-          </DialogTitle>
-          <DialogDescription className="text-sm sm:text-base">
-            Create a new page with the page builder. You can start adding
-            content immediately after creation.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent
+        className="flex max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg flex-col gap-0 p-0"
+        showCloseButton={!createMutation.isPending}
+      >
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-h-0 flex-1 flex-col"
+          aria-busy={createMutation.isPending || undefined}
+        >
+          <DialogHeader className="flex-row items-center gap-3 border-b border-npb-divider px-5 py-4 text-left">
+            <span
+              aria-hidden
+              className="flex size-8 shrink-0 items-center justify-center rounded-md bg-npb-surface-inset text-npb-text-primary"
+            >
+              <FilePlus className="size-4" />
+            </span>
+            <DialogTitle className="text-base">New page</DialogTitle>
+            <DialogDescription className="sr-only">
+              Give the page a title. You design it in the page builder right after.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="grid gap-4 py-4 sm:gap-6">
-          <div className="grid gap-2">
-            <Label htmlFor="title">
-              Title <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="title"
-              placeholder="Enter page title..."
-              value={formData.title}
-              onChange={(e) => handleFieldChange("title", e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoFocus
-            />
-          </div>
-
-          {assistantEnabled ? (
+          <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto px-5 py-5">
             <div className="grid gap-2">
-              <Label htmlFor="description" className="flex items-center gap-1.5">
-                <PenLine className="h-4 w-4 text-npb-text-muted" aria-hidden />
-                Describe your page (optional)
-              </Label>
-              <Textarea
-                id="description"
-                placeholder="A landing page for a yoga studio: a hero with a booking button, class times, prices and a contact form"
-                value={formData.description ?? ""}
-                onChange={(e) => handleFieldChange("description", e.target.value)}
-                rows={3}
-              />
-              <p className="text-xs text-npb-text-muted">
-                The assistant builds a first draft when the editor opens. Nothing is published.
-              </p>
-            </div>
-          ) : null}
-
-          <div className="grid gap-2">
-            <Label htmlFor="slug">URL Slug</Label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-npb-text-muted">{addressPrefix}</span>
+              <Label htmlFor="new-page-title">Title</Label>
               <Input
-                id="slug"
-                placeholder={generateSlug(formData.title) || "auto-generated"}
-                value={formData.slug}
-                onChange={(e) => handleSlugChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1"
+                id="new-page-title"
+                placeholder="About us"
+                autoComplete="off"
+                value={formData.title}
+                disabled={createMutation.isPending}
+                aria-invalid={error?.field === "title" ? true : undefined}
+                aria-describedby={error?.field === "title" ? "new-page-title-error" : "new-page-title-hint"}
+                onChange={(e) => handleFieldChange("title", e.target.value)}
+                autoFocus
               />
+              {error?.field === "title" ? (
+                <p id="new-page-title-error" role="alert" className="text-sm text-npb-status-error">
+                  {error.message}
+                </p>
+              ) : (
+                <p id="new-page-title-hint" className="text-xs text-npb-text-muted">
+                  {address ? `Its address will be /${address}. ` : "Its address comes from the title. "}
+                  You can change it later in Page settings.
+                </p>
+              )}
             </div>
-            <p className="text-xs text-npb-text-muted">
-              Leave empty to auto-generate from title
-            </p>
-          </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="featuredImage">Featured Image</Label>
-            <ImageDropzone
-              value={formData.featuredImage}
-              onChange={(url) => {
-                // When image is removed via dropzone (url is undefined)
-                if (!url) {
-                  handleImageRemove(formData.featuredImage);
-                }
-              }}
-              onFileSelect={handleImageSelect}
-              disabled={createMutation.isPending}
-            />
-            <p className="text-xs text-npb-text-muted">
-              Optional: Select an image to use as the featured image (will be
-              uploaded when you create the page)
-            </p>
-          </div>
+            {assistantEnabled ? (
+              <div className="grid gap-2">
+                <Label htmlFor="description" className="flex items-center gap-1.5">
+                  <PenLine className="h-4 w-4 text-npb-text-muted" aria-hidden />
+                  Describe your page (optional)
+                </Label>
+                <Textarea
+                  id="description"
+                  placeholder="A landing page for a yoga studio: a hero with a booking button, class times, prices and a contact form"
+                  value={formData.description ?? ""}
+                  disabled={createMutation.isPending}
+                  onChange={(e) => handleFieldChange("description", e.target.value)}
+                  rows={3}
+                />
+                <p className="text-xs text-npb-text-muted">
+                  The assistant builds a first draft when the editor opens. Nothing is published.
+                </p>
+              </div>
+            ) : null}
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="allowComments"
-              checked={formData.allowComments}
-              onCheckedChange={(checked) =>
-                handleFieldChange("allowComments", checked === true)
-              }
-            />
-            <Label htmlFor="allowComments" className="cursor-pointer">
-              Allow Comments
-            </Label>
-          </div>
+            <div className="grid gap-2 [&_[data-slot=native-select-wrapper]]:w-full">
+              <Label htmlFor="new-page-start">Start from</Label>
+              {templates.length > 0 ? (
+                <NativeSelect
+                  id="new-page-start"
+                  value={formData.templateId ?? ""}
+                  disabled={createMutation.isPending}
+                  onChange={(e) => handleFieldChange("templateId", e.target.value || undefined)}
+                >
+                  <NativeSelectOption value="">Blank</NativeSelectOption>
+                  {templates.map((template) => (
+                    <NativeSelectOption key={template.id} value={template.id}>
+                      {template.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              ) : (
+                <p className="text-sm text-npb-text-muted">
+                  No templates yet. The page will start blank.
+                </p>
+              )}
+            </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password (Optional)</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter password to protect page"
-              value={formData.password || ""}
-              onChange={(e) => handleFieldChange("password", e.target.value)}
-            />
-            <p className="text-xs text-npb-text-muted">
-              Optional: Password protect this page
-            </p>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="parentId">Parent Page</Label>
-            <Select
-              value={formData.parentId || "__none__"}
-              onValueChange={(value) =>
-                handleFieldChange(
-                  "parentId",
-                  value === "__none__" ? undefined : value
-                )
-              }
-            >
-              <SelectTrigger id="parentId">
-                <SelectValue placeholder="None (Top Level)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">None (Top Level)</SelectItem>
-                {pages.map((page) => (
-                  <SelectItem key={page.id} value={page.id}>
-                    {page.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="menuOrder">Menu Order</Label>
-            <Input
-              id="menuOrder"
-              type="number"
-              placeholder="0"
-              value={formData.menuOrder}
-              onChange={(e) =>
-                handleFieldChange("menuOrder", parseInt(e.target.value) || 0)
-              }
-            />
-            <p className="text-xs text-npb-text-muted">
-              Lower numbers appear first in menus
-            </p>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="templateId">Template</Label>
-            {templates.length > 0 ? (
-            <Select
-              value={formData.templateId || "__none__"}
-              onValueChange={(value) =>
-                handleFieldChange(
-                  "templateId",
-                  value === "__none__" ? undefined : value
-                )
-              }
-            >
-              <SelectTrigger id="templateId">
-                <SelectValue placeholder="None" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">None</SelectItem>
-                {templates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            ) : (
-              <p className="text-sm text-npb-text-muted">
-                No templates yet. The page will start empty.
+            {error?.field === "form" ? (
+              <p role="alert" className="text-sm text-npb-status-error">
+                {error.message}
               </p>
-            )}
+            ) : null}
           </div>
-        </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-          <Button
-            variant="outline"
-            onClick={() => handleOpenChange(false)}
-            disabled={createMutation.isPending}
-            className="w-full sm:w-auto"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!formData.title.trim() || createMutation.isPending}
-            className="w-full sm:w-auto"
-          >
-            {createMutation.isPending ? "Creating..." : "Create Page"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter className="border-t border-npb-divider bg-npb-surface-raised px-5 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              disabled={createMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? <Loader2 aria-hidden className="animate-spin" /> : null}
+              {createMutation.isPending ? "Creating…" : "Create page"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

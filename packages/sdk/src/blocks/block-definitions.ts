@@ -1,4 +1,4 @@
-import type { BlockContent } from "../types/domain.js";
+import type { BlockConfig, BlockContent } from "../types/domain.js";
 import {
 	BLOCK_NAMES,
 	type BlockCatalogEntry,
@@ -17,7 +17,9 @@ export type BlockDefinitionMeta = {
 	/** Shown to people in the block library. */
 	description: string;
 	type: "block" | "container";
-	category: "basic" | "form" | "layout" | "media" | "advanced" | "post";
+	category: NonNullable<BlockConfig["category"]>;
+	/** Other groups that list this block too (the Docs group shows `core/code` and more). */
+	alsoIn?: NonNullable<BlockConfig["category"]>[];
 	defaultContent: () => BlockContent;
 	defaultStyles?: Record<string, string>;
 };
@@ -28,6 +30,7 @@ const toDefinition = (entry: BlockCatalogEntry): BlockDefinitionMeta => ({
 	description: entry.description,
 	type: entry.kind,
 	category: entry.category,
+	...(entry.alsoIn ? { alsoIn: [...entry.alsoIn] } : {}),
 	defaultContent: entry.defaultContent,
 	defaultStyles: entry.defaultStyles,
 });

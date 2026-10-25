@@ -1,6 +1,6 @@
 import React from "react";
 import { LayoutGrid } from "lucide-react";
-import { DEFAULT_GRID_CONTENT, GRID_ITEMS_CLASS, gridStyleVars, readGridContent, type GridContent } from "@shared/blocks/grid-model";
+import { DEFAULT_GRID_CONTENT, GRID_ITEMS_CLASS, gridClassNames, gridStyleVars, readGridContent, type GridContent } from "@shared/blocks/grid-model";
 import { ContainerChildren } from "../../BlockRenderer";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { catalogMeta } from "../catalog-meta";
@@ -19,10 +19,7 @@ const GridBlock = createBlockDefinition<GridContent>({
 	settings: GridSettings,
 	hasSettings: true,
 	render: ({ value, content, isPreview, onNestedBlockChange }) => (
-		<div
-			className={["wp-block-grid", content.minItemWidth ? "has-min-width" : ""].filter(Boolean).join(" ")}
-			style={gridStyleVars(content) as React.CSSProperties}
-		>
+		<div className={gridClassNames(content).join(" ")} style={gridStyleVars(content) as React.CSSProperties}>
 			<ContainerChildren block={value} isPreview={isPreview ?? false} stackClassName={GRID_ITEMS_CLASS} onBlockChange={onNestedBlockChange} />
 		</div>
 	),

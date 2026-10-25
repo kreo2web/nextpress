@@ -131,6 +131,12 @@ export const parsePageOther = (other: unknown): PageOther => {
 
 	if (isRecord(other.import)) parsed.import = other.import;
 
+	// Only true flags are kept, so a page that never was in a docs carries nothing.
+	if (isRecord(other.docs)) {
+		const docs = { ...(other.docs.group === true ? { group: true } : {}), ...(other.docs.hidden === true ? { hidden: true } : {}) };
+		if (Object.keys(docs).length > 0) parsed.docs = docs;
+	}
+
 	return parsed;
 };
 
