@@ -37,7 +37,7 @@ export function createInstrumentedHttpClient({
 			for (const { event, payload } of events) {
 				const syncedPayload = syncPayloadWithResult(payload, result);
 				const finalPayload = emit(event, syncedPayload);
-				result = pickMutatedEntityResult(result, finalPayload) as TResponse;
+				result = pickMutatedEntityResult(result, finalPayload) as Awaited<TResponse>;
 			}
 		}
 

@@ -115,7 +115,7 @@ function DividerSettings({ block, onUpdate }: DividerSettingsProps) {
                 },
               ]}
               onChange={pickLineColor}
-              onTheme={() => updateContent({ color: null } as Partial<DividerContent>)}
+              onTheme={() => updateContent({ color: undefined })}
             />
           </div>
         </div>

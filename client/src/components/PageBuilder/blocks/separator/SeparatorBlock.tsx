@@ -123,7 +123,7 @@ function SeparatorSettings({ block, onUpdate }: SeparatorSettingsProps) {
             },
           ]}
           onChange={pickLineColor}
-          onTheme={() => updateStyles({ color: null } as Partial<React.CSSProperties>)}
+          onTheme={() => updateStyles({ color: undefined })}
         />
       </div>
       <DimensionPresetField

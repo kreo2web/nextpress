@@ -6,12 +6,12 @@ import type {
 	Page,
 	Post,
 	PreviewShareToken,
+	Settings,
 	Site,
 	SiteInfo,
 	Template,
 	Theme,
 	User,
-	Settings,
 } from "../types/domain.js";
 import type { NextpressEventMap, SavedAction } from "./nextpress-events.js";
 
@@ -37,27 +37,25 @@ const extractId = (path: string): string | undefined => {
 	return segments.at(-1);
 };
 
-const publishEvents = <T extends { status?: string }>(
-	prefix: "post" | "page",
-	entity: T,
-	body: unknown,
-): ResolvedEvent[] => {
+type PublishTarget = { prefix: "post"; entity: Post } | { prefix: "page"; entity: Page };
+
+const publishEvents = (target: PublishTarget, body: unknown): ResolvedEvent[] => {
 	const events: ResolvedEvent[] = [];
 	const status = bodyStatus(body);
 
 	if (status === "publish") {
-		if (prefix === "post") {
-			events.push({ event: "post-published", payload: { post: entity as Post } });
+		if (target.prefix === "post") {
+			events.push({ event: "post-published", payload: { post: target.entity } });
 		} else {
-			events.push({ event: "page-published", payload: { page: entity as Page } });
+			events.push({ event: "page-published", payload: { page: target.entity } });
 		}
 	}
 
 	if (status === "draft") {
-		if (prefix === "post") {
-			events.push({ event: "post-unpublished", payload: { post: entity as Post } });
+		if (target.prefix === "post") {
+			events.push({ event: "post-unpublished", payload: { post: target.entity } });
 		} else {
-			events.push({ event: "page-unpublished", payload: { page: entity as Page } });
+			events.push({ event: "page-unpublished", payload: { page: target.entity } });
 		}
 	}
 
@@ -79,7 +77,7 @@ const savedEvents = (
 			event: action === "created" ? "post-created" : "post-updated",
 			payload: { post },
 		});
-		events.push(...publishEvents("post", post, body));
+		events.push(...publishEvents({ prefix: "post", entity: post }, body));
 		return events;
 	}
 
@@ -90,7 +88,7 @@ const savedEvents = (
 			event: action === "created" ? "page-created" : "page-updated",
 			payload: { page },
 		});
-		events.push(...publishEvents("page", page, body));
+		events.push(...publishEvents({ prefix: "page", entity: page }, body));
 		return events;
 	}
 

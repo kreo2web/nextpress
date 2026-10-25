@@ -313,7 +313,7 @@ export function CoverSettings({ block, onUpdate }: CoverSettingsProps) {
                 },
               ]}
               onChange={pickOverlayColor}
-              onTheme={() => updateContent({ customOverlayColor: null } as Partial<CoverData>)}
+              onTheme={() => updateContent({ customOverlayColor: undefined })}
             />
           </div>
         </div>

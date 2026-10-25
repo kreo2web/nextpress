@@ -44,5 +44,5 @@ export const docsTree: DocsTree = {
 };
 
 /** A route handler that answers with the server's `{ message }` shape and the given status. */
-export const refusal = (message: string, status: number) => () =>
+export const refusal = (message: string, status: number) => (): Response =>
 	Response.json({ message }, { status });

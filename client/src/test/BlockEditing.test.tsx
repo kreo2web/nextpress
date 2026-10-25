@@ -271,6 +271,7 @@ describe('Block Editing', () => {
 
     it('sets canvas aria-label on icon-only from title, else button text, for link and submit', () => {
       const Canvas = ButtonBlock.component;
+      if (!Canvas) throw new Error('The button block has no canvas component');
       const icon = { iconSet: 'lucide', iconName: 'arrow-right' };
 
       const { rerender } = render(

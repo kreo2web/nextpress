@@ -78,7 +78,7 @@ export function postHasCategory(
 	const names =
 		Array.isArray(post.categories) && post.categories.length > 0
 			? post.categories
-			: parsePostOther(post.other).categories;
+			: (parsePostOther(post.other).categories ?? []);
 	return names.some((name) => name.trim().toLowerCase() === wanted);
 }
 

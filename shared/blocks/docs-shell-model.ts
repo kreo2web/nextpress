@@ -1,5 +1,5 @@
 import type { BlockConfig, BlockContent } from "../schema-types.js";
-import { isJsonObject, readJsonData, type JsonObject, type JsonValue } from "./docs-types.js";
+import { isJsonObject, readJsonData, type JsonValue } from "./docs-types.js";
 import { readText } from "./read-structured.js";
 import type { DocsNavItem } from "./docs-layout-model.js";
 

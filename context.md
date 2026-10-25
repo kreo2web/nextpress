@@ -583,3 +583,11 @@ Per AGENTS.md: never commit new/changed operator scripts (`scripts/*` money-touc
 - Fix: `data-[state=inactive]:hidden` added to the base `TabsContent` in `ui/tabs.tsx` — author display classes can no longer resurrect hidden tabs anywhere in the app (specificity: `[data-state=inactive][class]` beats `.flex`). Verified live at 1222×659: tab content 205→434px, viewport scrollable (4606px content), wide rail unaffected.
 - Gotcha for future UI: never rely on the `hidden` attribute alone when adding `display:*` classes to Radix primitives that keep content mounted (Tabs Content, Accordion Content with forceMount, Dialog non-modal siblings).
 - Debug workflow that cracked it: agent-browser `set viewport 1222 659` → live `getBoundingClientRect` walk of the chain → compare both `TabsContent` computed displays. Dev server was on :5000 (SPA fallback returns HTML 200 for unknown /api paths — check response BODY content-type when probing, status alone lies).
+
+## Type checks are clean everywhere (2026-10-26)
+
+- Owner rule: no type errors allowed. Four checks must stay at zero: `npx tsc --noEmit -p tsconfig.json` (app), `pnpm check` (server, `tsconfig.server.json`), and `tsc --noEmit` in `packages/sdk` and `packages/mcp`. The SDK check also catches unused imports in `shared/` (it has `noUnusedLocals`; the app check does not).
+- `tsconfig.server.json` now uses `"moduleResolution": "bundler"`, like `tsconfig.json`. The old `"node"` mode ignores package `exports` maps, so it couldn't find Kirari or pele types and `pnpm check` failed. tsup reads this file too, but esbuild ignores that setting: the server bundles built with the old and new setting were byte-for-byte identical.
+- Clearing a colour back to the theme: pass `undefined` to `updateContent` (it turns `undefined` into `null` so the saved key is cleared) and to `updateStyles`. Don't cast `null` past the type.
+- Buttons block reads `layout` as plain text on purpose: blocks saved by older versions may still hold `'right'`.
+- Not fixed, owner's call: `packages/sdk` has about 45 old lint findings (mostly formatting and import order). `npx biome check --write .` in `packages/sdk` fixes most of them, but it touches many files.

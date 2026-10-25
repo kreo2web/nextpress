@@ -31,7 +31,8 @@ interface ButtonsRendererProps {
 function ButtonsRenderer({ content, styles }: ButtonsRendererProps) {
   const buttonsData = readStructuredBlockData(content, DEFAULT_DATA);
   const buttons: ButtonItem[] = Array.isArray(buttonsData?.buttons) ? buttonsData.buttons : [];
-  const layout = buttonsData?.layout || 'flex-start';
+  // Read as text: blocks saved by older versions (and imports) may still hold 'right'.
+  const layout: string = buttonsData?.layout || 'flex-start';
   const orientation = buttonsData?.orientation || 'horizontal';
   const extraClassName = [
     orientation === 'vertical' ? 'is-vertical' : '',

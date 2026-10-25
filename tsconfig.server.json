@@ -8,7 +8,7 @@
     "noEmit": false,
     "declaration": false,
     "sourceMap": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "allowImportingTsExtensions": false,
     "baseUrl": ".",

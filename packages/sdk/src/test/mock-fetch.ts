@@ -41,7 +41,8 @@ export function parseMockRequest(url: string, init?: RequestInit): MockRequest {
 		}
 	} else if (rawHeaders) {
 		for (const [key, value] of Object.entries(rawHeaders)) {
-			headers[key.toLowerCase()] = value;
+			// A header given more than once arrives as a list; fetch sends it joined.
+			headers[key.toLowerCase()] = typeof value === "string" ? value : value.join(", ");
 		}
 	}
 

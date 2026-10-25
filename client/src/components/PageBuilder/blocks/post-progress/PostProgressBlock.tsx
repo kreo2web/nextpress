@@ -38,7 +38,7 @@ const DEFAULT_BACKGROUND_COLOR = POST_PROGRESS_BACKGROUND_COLOR;
 const SAMPLE_HINT =
   'On the live page this follows reading. The canvas shows a sample.';
 
-const DEFAULT_CONTENT: PostProgressContent = POST_PROGRESS_DEFAULT_CONTENT;
+const DEFAULT_CONTENT = POST_PROGRESS_DEFAULT_CONTENT satisfies PostProgressContent;
 
 const EDITOR_PREVIEW_FILL = 40;
 
