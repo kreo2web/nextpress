@@ -6,7 +6,19 @@ import { describe, expect, it } from "vitest";
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "../../migrations");
 
 type Journal = {
-	entries: Array<{ idx: number; tag: string }>;
+	entries: Array<{ idx: number; tag: string; when: number }>;
+};
+
+type ReleaseConfig = { schemaVersion: string; previousSchemaVersion: string; hasSchemaChanges: boolean };
+
+const releaseConfig = JSON.parse(
+	readFileSync(join(migrationsDir, "../nextpress.config.json"), "utf8"),
+) as ReleaseConfig;
+
+/** `2026.10.25.001` → the end of that day in UTC, as a timestamp. */
+const endOfSchemaDay = (version: string): number => {
+	const [year, month, day] = version.split(".").map(Number);
+	return Date.UTC(year!, month! - 1, day!, 23, 59, 59, 999);
 };
 
 /**
@@ -53,5 +65,17 @@ describe("migration journal", () => {
 				).toBe(1);
 			}
 		}
+	});
+
+	// `nextpress upgrade` runs migrations only when the release's schemaVersion differs from the
+	// installed one. Migrations 0006–0011 shipped without a bump, so upgraded installs skipped them.
+	it("bumps the release schema version whenever a newer migration is added", () => {
+		const newest = Math.max(...journal.entries.map((entry) => entry.when));
+		expect(
+			newest,
+			"A migration is newer than nextpress.config.json's schemaVersion: bump schemaVersion (and previousSchemaVersion to the old one)",
+		).toBeLessThanOrEqual(endOfSchemaDay(releaseConfig.schemaVersion));
+		expect(releaseConfig.hasSchemaChanges).toBe(true);
+		expect(releaseConfig.previousSchemaVersion).not.toBe(releaseConfig.schemaVersion);
 	});
 });
