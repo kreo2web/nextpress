@@ -56,7 +56,8 @@ task.md
 task-*.md
 working-*.md
 .zcode/
-docs/
+# The top-level docs folder only: code folders named docs (shared/docs, server/lib/docs, …) are part of the app.
+/docs/
 opencode.json
 .opencode/
 .claude/
