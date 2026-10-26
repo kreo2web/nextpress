@@ -181,6 +181,8 @@ export function buildDocsSetupPlan({
 			...(logoUrl ? { logoUrl } : {}),
 			search: values.search,
 			features: { sidebar: values.sidebar, toc: values.toc, prevNext: values.prevNext, copyPage: values.copyPage },
+			// On an address of its own the docs is the site's homepage, so its pages start at the site root.
+			...(values.place === "own-address" ? { ownAddress: true } : {}),
 		},
 	};
 }

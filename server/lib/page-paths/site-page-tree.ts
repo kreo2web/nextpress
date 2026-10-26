@@ -49,6 +49,7 @@ const loadRows = async ({ models, siteId }: { models: PageModels; siteId: string
 			password: row.password,
 			...(docs?.group ? { group: true } : {}),
 			...(docs?.hidden ? { hidden: true } : {}),
+			...(docs?.ownAddress ? { addressRoot: true } : {}),
 		};
 	});
 };

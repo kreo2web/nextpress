@@ -214,6 +214,11 @@ export interface PageIconSettings {
 export interface PageDocsFlags {
   group?: boolean;
   hidden?: boolean;
+  /**
+   * On a docs home that is the homepage of a site with its own address: the pages under it are
+   * addressed from the site root (`docs.example.com/install`, not `/docs/install`).
+   */
+  ownAddress?: boolean;
 }
 
 /** Structure for page.other jsonb field */

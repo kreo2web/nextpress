@@ -149,4 +149,5 @@ export const previewPagesFromTree = (home: DocsTreeItem): DocsPage[] =>
 		status: "publish",
 		...(item.kind === "group" ? { group: true } : {}),
 		...(item.hidden ? { hidden: true } : {}),
+		...(item.ownAddress ? { addressRoot: true } : {}),
 	}));

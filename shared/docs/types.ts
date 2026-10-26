@@ -63,6 +63,8 @@ export type DocsTreeItem = {
 	status: string;
 	kind: DocsItemKind;
 	hidden: boolean;
+	/** On the home only, when the docs has an address of its own: its pages' addresses start at the site root. */
+	ownAddress?: boolean;
 	children: DocsTreeItem[];
 };
 
@@ -76,6 +78,11 @@ export type CreateDocsInput = {
 	logoUrl?: string;
 	search?: boolean;
 	features?: Partial<DocsFeatures>;
+	/**
+	 * The docs is the homepage of a site with an address of its own (`docs.example.com`): its pages
+	 * are addressed from the site root (`/install`, not `/docs/install`). Older addresses still open.
+	 */
+	ownAddress?: boolean;
 };
 
 export type CreateDocsResult = { docs: DocsSummary; homeId: string };

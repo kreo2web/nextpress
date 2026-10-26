@@ -99,6 +99,9 @@ describe('the plan the last step hands over', () => {
     expect(plan.place).toBe('own-address');
     expect(plan.host).toBe('docs.acme.com');
     expect(plan.docs.slug).toBe('docs');
+    // The docs is that site's homepage, so its pages are addressed from the site root.
+    expect(plan.docs.ownAddress).toBe(true);
+    expect(buildDocsSetupPlan({ values: values(), context, activeSiteId: 'site-a' }).docs).not.toHaveProperty('ownAddress');
   });
 });
 

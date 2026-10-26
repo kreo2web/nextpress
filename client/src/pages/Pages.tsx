@@ -36,7 +36,7 @@ import { DEFAULT_PAGE_LIST_SORT } from "@shared/content-list-query";
 import { useBulkSelection } from "@/hooks/use-bulk-selection";
 import { useToast } from "@/hooks/use-toast";
 import type { Page } from "@shared/schema-types";
-import { buildPagePaths } from "@shared/page-paths";
+import { buildPagePaths, pagePathInputOf } from "@shared/page-paths";
 
 type PagesApiResponse = {
   pages: Page[];
@@ -275,7 +275,7 @@ function PagesList({
     // Published pages open on their own site's address; drafts (or a site with no public link) open the preview.
     const href =
       page.status === 'publish' && page.slug && page.siteId === activeSite?.id
-        ? buildPublicContentUrl({ site: activeSite, slug: page.slug, kind: 'page', pagePath: buildPagePaths(pages).get(page.id) })
+        ? buildPublicContentUrl({ site: activeSite, slug: page.slug, kind: 'page', pagePath: buildPagePaths(pages.map(pagePathInputOf)).get(page.id) })
         : null;
     window.open(href ?? `/preview/page/${page.id}`, '_blank');
   };

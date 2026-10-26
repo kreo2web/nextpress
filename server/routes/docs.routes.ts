@@ -25,6 +25,7 @@ const createSchema = z.object({
   logoUrl: z.string().max(2048).optional(),
   search: z.boolean().optional(),
   features: featuresSchema.optional(),
+  ownAddress: z.boolean().optional(),
 });
 
 const settingsSchema = z

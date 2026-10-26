@@ -15,6 +15,7 @@ export function toDocsTreeItem({ site, row, isHome = false }: { site: DocsSitePa
 		status: row.status ?? "draft",
 		kind: flags.group ? "group" : "page",
 		hidden: flags.hidden === true,
+		...(isHome && flags.ownAddress ? { ownAddress: true } : {}),
 		children: (site.childrenOf.get(row.id) ?? []).map((child) => toDocsTreeItem({ site, row: child })),
 	};
 }

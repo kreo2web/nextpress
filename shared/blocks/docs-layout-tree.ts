@@ -14,6 +14,8 @@ export type DocsPage = {
 	group?: boolean;
 	/** Left out of the sidebar with everything under it; still opens from its address (`page.other.docs.hidden`). */
 	hidden?: boolean;
+	/** Pages under it leave its slug out of their addresses: a docs on its own address (`page.other.docs.ownAddress`). */
+	addressRoot?: boolean;
 };
 
 const MAX_DEPTH = 12;

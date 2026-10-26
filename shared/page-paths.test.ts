@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPagePaths, normalizePagePath, resolvePagePath } from "./page-paths";
+import { buildPagePaths, normalizePagePath, pagePathInputOf, resolvePagePath } from "./page-paths";
 
 const page = (id: string, slug: string, parentId: string | null = null) => ({ id, slug, parentId });
 
@@ -62,6 +62,35 @@ describe("resolvePagePath", () => {
 	it("keeps a looping page reachable by its slug", () => {
 		const looped = [page("a", "a", "b"), page("b", "b", "a")];
 		expect(resolvePagePath({ pages: looped, path: "a" })?.id).toBe("a");
+	});
+});
+
+describe("docs on an address of their own", () => {
+	// docs.example.com: the docs home is the site's homepage, so its pages start at the site root.
+	const own = [{ ...page("h", "docs"), addressRoot: true }, page("gs", "getting-started", "h"), page("in", "install", "gs"), page("faq", "faq", "h")];
+
+	it("leaves the home's part out of the addresses under it, and keeps the home's own", () => {
+		const paths = buildPagePaths(own);
+		expect(paths.get("in")).toBe("getting-started/install");
+		expect(paths.get("faq")).toBe("faq");
+		expect(paths.get("h")).toBe("docs");
+	});
+
+	it("finds pages by the new address, by the address they had before, and by their own slug", () => {
+		expect(resolvePagePath({ pages: own, path: "getting-started/install" })?.id).toBe("in");
+		expect(resolvePagePath({ pages: own, path: "/docs/getting-started/install" })?.id).toBe("in");
+		expect(resolvePagePath({ pages: own, path: "install" })?.id).toBe("in");
+		expect(resolvePagePath({ pages: own, path: "docs/install" })).toBeNull();
+	});
+
+	it("changes nothing for a site without such a docs", () => {
+		expect(buildPagePaths(pages)).toEqual(buildPagePaths(pages, { withRoots: false }));
+	});
+
+	it("reads the flag from the page's extras", () => {
+		expect(pagePathInputOf({ id: "h", slug: "docs", parentId: null, other: { docs: { ownAddress: true } } })).toEqual({ id: "h", slug: "docs", parentId: null, addressRoot: true });
+		expect(pagePathInputOf({ id: "p", slug: "page", parentId: null, other: { docs: { hidden: true } } })).toEqual({ id: "p", slug: "page", parentId: null });
+		expect(pagePathInputOf({ id: "q", slug: "page", other: null })).not.toHaveProperty("addressRoot");
 	});
 });
 

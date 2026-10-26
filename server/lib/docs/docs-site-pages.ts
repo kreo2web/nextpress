@@ -1,4 +1,4 @@
-import { buildPagePaths } from "@shared/page-paths";
+import { buildPagePaths, pagePathInputOf } from "@shared/page-paths";
 import { parsePageOther } from "@shared/page-other";
 import type { PageDocsFlags } from "@shared/schema-types";
 import { isDocsHomeBlocks } from "@shared/docs/docs-page-frame";
@@ -37,7 +37,7 @@ export async function loadDocsSitePages({ models, siteId }: { models: Deps["mode
 		childrenOf.set(row.parentId, [...(childrenOf.get(row.parentId) ?? []), row]);
 	});
 	childrenOf.forEach((list) => list.sort(byMenuOrder));
-	const paths = buildPagePaths(rows.map((row) => ({ id: row.id, slug: row.slug, parentId: row.parentId })));
+	const paths = buildPagePaths(rows.map(pagePathInputOf));
 	return { rows, byId, childrenOf, paths };
 }
 

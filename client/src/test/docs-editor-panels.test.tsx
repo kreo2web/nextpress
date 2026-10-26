@@ -1,7 +1,8 @@
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DocsTree } from '@shared/docs';
-import { findNavItemByHref } from '@/components/PageBuilder/docs-mode/docs-nav-model';
+import { findNavItemByHref, previewPagesFromTree } from '@/components/PageBuilder/docs-mode/docs-nav-model';
+import { buildPagePaths } from '@shared/page-paths';
 import { docsPageBlocks, docsSummary, docsTree, makePage, renderEditor, SITE_ID, treeItem } from './docs-editor-harness';
 
 vi.setConfig({ testTimeout: 30_000 });
@@ -185,6 +186,14 @@ describe('the MDX view', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     // While blocked, the button's name carries the reason: "Visual. …".
     await waitFor(() => expect(screen.getByRole('button', { name: /^Visual/ })).toBeDisabled());
+  });
+});
+
+describe('the canvas sidebar of docs on an address of their own', () => {
+  it('links pages from the site root, as the published page does', () => {
+    const home = { ...treeWithQuickstart().home, ownAddress: true };
+    const pages = previewPagesFromTree(home);
+    expect(buildPagePaths(pages).get('p-docs')).toBe('getting-started/quickstart');
   });
 });
 

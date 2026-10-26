@@ -14,6 +14,7 @@ import { authService, requireAuth } from "../auth";
 import { CONFIG, getSiteSettings, parsePaginationParams, parseStatusParam } from "../config";
 import type { Deps } from "../routes/shared/deps";
 import { createDocsRoutes } from "../routes/docs.routes";
+import { findPageByPath } from "../lib/page-paths/page-paths";
 import { createPageTransferRoutes } from "../routes/page-transfer.routes";
 import { ID, callAs, models, seedAccessFixture } from "./fixtures/access-fixture";
 
@@ -87,6 +88,32 @@ const tree = async (homeId: string): Promise<DocsTree> => {
 };
 
 const titles = (items: DocsTreeItem[]): string[] => items.map((item) => item.title);
+
+describe("docs on an address of their own", () => {
+	it("addresses its pages from the site root, and still opens them at the addresses they would have had", async () => {
+		const created = await call({ userId: admin, method: "POST", path: "/api/docs", body: { siteId: ID.siteA, name: "Acme Docs", slug: "docs", ownAddress: true } });
+		expect(created.status).toBe(201);
+		const homeId = String(created.body.homeId);
+		const group = await addItem({ homeId, parentId: homeId, title: "Getting started", kind: "group" });
+		const install = await addItem({ homeId, parentId: group.id, title: "Install" });
+
+		expect(install.path).toBe("/getting-started/install");
+		const read = await tree(homeId);
+		expect(read.home).toMatchObject({ ownAddress: true, path: "/docs" });
+
+		for (const path of ["getting-started/install", "docs/getting-started/install", "install"]) {
+			expect((await findPageByPath({ models, siteId: ID.siteA, path }))?.page.id, path).toBe(install.id);
+		}
+		expect((await findPageByPath({ models, siteId: ID.siteA, path: "getting-started/install" }))?.path).toBe("getting-started/install");
+	});
+
+	it("keeps the home's part in addresses for docs on a site's own pages", async () => {
+		const homeId = await createDocs();
+		const install = await addItem({ homeId, parentId: homeId, title: "Install" });
+		expect(install.path).toBe("/docs/install");
+		expect((await tree(homeId)).home).not.toHaveProperty("ownAddress");
+	});
+});
 
 describe("docs: create, list and the navigation tree", () => {
 	it("creates a docs home and lists it", async () => {

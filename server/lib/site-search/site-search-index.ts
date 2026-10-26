@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { buildPagePaths } from "@shared/page-paths";
+import { buildPagePaths, pagePathInputOf } from "@shared/page-paths";
 import type { BlockConfig } from "@shared/schema-types";
 import type { Deps } from "../../routes/shared/deps";
 import { isPubliclyReadable } from "../is-publicly-readable";
@@ -52,7 +52,7 @@ const etagOf = (fingerprint: string): string =>
  */
 const loadReadablePages = async ({ models, siteId }: { models: PageModels; siteId: string }): Promise<SearchablePage[]> => {
 	const rows = await models.pages.findManyWhere([{ where: "siteId", equals: siteId }], { limit: SITE_PAGE_LIMIT });
-	const paths = buildPagePaths(rows.map((row) => ({ id: row.id, slug: row.slug, parentId: row.parentId })));
+	const paths = buildPagePaths(rows.map(pagePathInputOf));
 	return rows
 		.filter((row) => isPubliclyReadable(row))
 		.map((row) => ({

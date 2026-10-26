@@ -72,6 +72,7 @@ export function createDocsService({ models, hooks, newId, builder }: DocsService
 			authorId,
 			title: name,
 			slug: input.slug,
+			...(input.ownAddress ? { flags: { ownAddress: true } } : {}),
 			parentId: null,
 			menuOrder: 0,
 			home: true,

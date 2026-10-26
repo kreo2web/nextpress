@@ -1,4 +1,4 @@
-import { buildPagePaths, normalizePagePath, resolvePagePath, type PagePathInput } from "@shared/page-paths";
+import { buildPagePaths, normalizePagePath, pagePathInputOf, resolvePagePath, type PagePathInput } from "@shared/page-paths";
 import type { Deps } from "../../routes/shared/deps";
 
 type PageModels = Pick<Deps["models"], "pages">;
@@ -13,7 +13,7 @@ const MAX_CHAIN = 12;
  */
 export const loadSitePagePaths = async ({ models, siteId }: { models: PageModels; siteId: string }): Promise<Map<string, string>> => {
 	const rows = await models.pages.findManyWhere([{ where: "siteId", equals: siteId }], { limit: SITE_PAGE_LIMIT });
-	return buildPagePaths(rows.map((row) => ({ id: row.id, slug: row.slug, parentId: row.parentId })));
+	return buildPagePaths(rows.map(pagePathInputOf));
 };
 
 /** The page, then its parent, then that parent's parent... Stops at a missing page, another site or a loop. */
@@ -25,7 +25,7 @@ const loadPageChain = async <T extends PagePathInput & { siteId?: string | null 
 		const parent = await models.pages.findById(parentId);
 		if (!parent || (page.siteId && parent.siteId !== page.siteId)) break;
 		seen.add(parent.id);
-		chain.push({ id: parent.id, slug: parent.slug, parentId: parent.parentId });
+		chain.push(pagePathInputOf(parent));
 		parentId = parent.parentId ?? null;
 	}
 	return chain;

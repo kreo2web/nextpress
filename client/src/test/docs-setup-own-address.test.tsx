@@ -178,6 +178,8 @@ describe('Set up your docs: on their own address', () => {
         slug: 'docs',
         search: true,
         features: { sidebar: true, toc: true, prevNext: true, copyPage: true },
+        // The docs is the new site's homepage, so its pages are addressed from the site root.
+        ownAddress: true,
       });
       expect(callsTo({ method: 'POST', prefix: '/api/options' })[0]?.body).toEqual({ name: 'homepage_page_slug', value: 'docs' });
       expect(callsTo({ method: 'PATCH', prefix: '/api/sites/site-new' })[0]?.body).toEqual({ siteUrl: 'docs.acme.com' });
