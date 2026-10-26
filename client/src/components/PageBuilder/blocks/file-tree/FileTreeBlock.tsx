@@ -14,8 +14,8 @@ const FileTreeBlock = createBlockDefinition<FileTreeContent>({
 	parseContent: (raw) => readFileTreeContent(raw),
 	settings: FileTreeSettings,
 	hasSettings: true,
-	render: ({ content }) => (
-		<div className="wp-block-file-tree">
+	render: ({ content, styles }) => (
+		<div className="wp-block-file-tree" style={styles}>
 			<FileTreeView tree={content.tree} />
 		</div>
 	),

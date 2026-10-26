@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Copy, Trash2, GripVertical, Pencil, Check, UnfoldHorizontal, FoldHorizontal } from 'lucide-react';
 import type { BlockConfig } from '@shared/schema-types';
 import { blockRegistry } from './blocks';
-import { Droppable, Draggable, DropPlaceholder } from '@/lib/dnd';
+import { Droppable, Draggable, DropLine, DropPlaceholder } from '@/lib/dnd';
 import { useBlockActions } from './BlockActionsContext';
 import { resolveTokenMap, generateBlockModifierCSS } from '@/lib/tailwind-tokens';
 import { generateBlockAnimationCSS, getEntryAnimationAttributes } from '@/lib/animation-presets';
@@ -49,6 +49,7 @@ import { headerFloatWrapperStyles, headerOverlayPaintStyles } from '@shared/head
 import { usePageColumnInset } from '@shared/page-column-context';
 import { useCanvasBlockToolbar } from './use-canvas-block-toolbar';
 import { useDocsFrame } from './docs-mode/docs-frame-context';
+import { docsBlockLabel } from './docs-mode/docs-block-labels';
 import { AskAiButton } from './assistant/ask-ai-button';
 import { findBlockEntry } from '@shared/block-catalog';
 import {
@@ -77,6 +78,7 @@ export function ContainerChildren({
   stackClassName,
   overlay = false,
   itemStyle,
+  stackLayout = 'container',
 }: {
   block: BlockConfig;
   isPreview: boolean;
@@ -87,6 +89,13 @@ export function ContainerChildren({
   overlay?: boolean;
   /** Extra wrapper style per child (page shell bleed vs content column). */
   itemStyle?: (child: BlockConfig) => React.CSSProperties;
+  /**
+   * Who lays the children out. `container` (the default): the block's own layout settings, written
+   * inline. `document`: plain document flow, full width, spacing collapsing as text does (the
+   * published docs column). `class`: the stack's class alone (Grid), as on the published page,
+   * where an inline layout would override the block's own CSS (its "stretch", for one).
+   */
+  stackLayout?: 'container' | 'document' | 'class';
 }) {
   const children = Array.isArray(block.children) ? block.children : [];
   const isContainer = !!blockRegistry[block.name]?.isContainer;
@@ -98,10 +107,15 @@ export function ContainerChildren({
 
   const layout = readContainerLayoutFromBlock({ styles: block.styles, content: block.content as Record<string, unknown> });
   const siblingStackDirection = getContainerSiblingStackDirection(layout);
-  const isHorizontal = !overlay && siblingStackDirection === 'row';
+  const ownLayout = stackLayout !== 'container';
+  const isHorizontal = !overlay && !ownLayout && siblingStackDirection === 'row';
   const dropDirection = isHorizontal ? 'horizontal' : 'vertical';
   const overlayFit = overlay ? readOverlayFit(children) : null;
-  const childrenStackStyle = overlay
+  const childrenStackStyle: React.CSSProperties = stackLayout === 'document'
+    ? { display: 'block' }
+    : stackLayout === 'class'
+    ? {}
+    : overlay
     ? {
         display: 'grid',
         width: '100%',
@@ -115,7 +129,7 @@ export function ContainerChildren({
         children,
       });
 
-  const childWrapperStyles = (child: BlockConfig): React.CSSProperties => ({
+  const childWrapperStyles = (child: BlockConfig): React.CSSProperties => ownLayout ? (itemStyle ? itemStyle(child) : {}) : ({
     ...(overlay
       ? {
           ...getOverlayChildItemStyles(child.styles, {
@@ -179,17 +193,25 @@ export function ContainerChildren({
       </div>
     );
   }
+  // The docs editor reads like a document: a thin line marks where the drop lands and nothing moves.
+  const docsDrop = Boolean(frame) && !holdsFrameOnly;
+  const lineEdges = isHorizontal ? { before: 'left', after: 'right' } as const : { before: 'top', after: 'bottom' } as const;
   return (
     <Droppable droppableId={block.id} direction={dropDirection as any} isDropDisabled={holdsFrameOnly}>
       {(provided, snapshot) => {
         const showDropChrome =
-          !holdsFrameOnly && (children.length === 0 || snapshot.isDraggingOver);
+          !holdsFrameOnly && (children.length === 0 || (snapshot.isDraggingOver && !docsDrop));
+        const lineAt = (childIndex: number): 'before' | 'after' | null => {
+          if (!docsDrop || !snapshot.isDraggingOver) return null;
+          if (snapshot.placeholderIndex === childIndex) return 'before';
+          return childIndex === children.length - 1 && snapshot.placeholderIndex === children.length ? 'after' : null;
+        };
         return (
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
           data-container-children="true"
-          className={`${stackClassName} npb-drop-target`.trim()}
+          className={[stackClassName, 'npb-drop-target'].filter(Boolean).join(' ')}
           style={{
             ...childrenStackStyle,
             ...(needsEmptyDropMinHeight ? { minHeight: "60px" } : {}),
@@ -202,14 +224,14 @@ export function ContainerChildren({
               : undefined,
             outlineOffset: showDropChrome ? "-1px" : undefined,
             borderRadius: showDropChrome ? "4px" : undefined,
-            background: snapshot.isDraggingOver
+            background: snapshot.isDraggingOver && !docsDrop
               ? "rgba(59,130,246,0.06)"
               : undefined,
           }}>
           {children.length > 0 ? (
             children.map((child: BlockConfig, childIndex: number) => (
               <React.Fragment key={child.id}>
-              {snapshot.placeholderIndex === childIndex && <DropPlaceholder />}
+              {!docsDrop && snapshot.placeholderIndex === childIndex && <DropPlaceholder />}
               <Draggable
                 draggableId={child.id}
                 index={childIndex}
@@ -233,6 +255,7 @@ export function ContainerChildren({
                       dragHandleProps={dragProvided.dragHandleProps}
                       onBlockChange={onBlockChange}
                     />
+                    {lineAt(childIndex) ? <DropLine edge={lineEdges[lineAt(childIndex) ?? 'before']} /> : null}
                   </div>
                 )}
               </Draggable>
@@ -240,10 +263,14 @@ export function ContainerChildren({
             ))
           ) : (
             <div className="text-center text-npb-text-muted p-8">
-              <small>Drag blocks here</small>
+              <small>
+                {docsDrop && frame?.takesBlocks(block.name)
+                  ? 'This page is empty. Drag a block here, or click one in the Blocks tab.'
+                  : 'Drag blocks here'}
+              </small>
             </div>
           )}
-          {children.length > 0 && snapshot.placeholderIndex === children.length && <DropPlaceholder />}
+          {!docsDrop && children.length > 0 && snapshot.placeholderIndex === children.length && <DropPlaceholder />}
           {provided.placeholder}
         </div>
         );
@@ -321,7 +348,8 @@ function BlockEditorToolbarPanel({
     onMouseLeave: () => void;
   };
   chromeMode: CanvasChromeMode;
-  onToggleChromeMode: () => void;
+  /** Absent where blocks always fill their slot (the docs editor), so the toggle isn't offered. */
+  onToggleChromeMode?: () => void;
   blockId: string;
   askAiLabel: string;
 }) {
@@ -407,31 +435,33 @@ function BlockEditorToolbarPanel({
             )}
           </>
         )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              title={chromeMode === "hug" ? "Span full width" : "Hug content"}
-              aria-label={chromeMode === "hug" ? "Span full width" : "Hug content"}
-              aria-pressed={chromeMode === "span"}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleChromeMode();
-              }}
-              className="h-6 w-6 p-0 text-npb-text-secondary hover:text-npb-text-primary">
-              {chromeMode === "hug" ? (
-                <UnfoldHorizontal className="w-3 h-3" />
-              ) : (
-                <FoldHorizontal className="w-3 h-3" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            {chromeMode === "hug" ? "Span full width" : "Hug content"}
-          </TooltipContent>
-        </Tooltip>
+        {onToggleChromeMode ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                title={chromeMode === "hug" ? "Span full width" : "Hug content"}
+                aria-label={chromeMode === "hug" ? "Span full width" : "Hug content"}
+                aria-pressed={chromeMode === "span"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleChromeMode();
+                }}
+                className="h-6 w-6 p-0 text-npb-text-secondary hover:text-npb-text-primary">
+                {chromeMode === "hug" ? (
+                  <UnfoldHorizontal className="w-3 h-3" />
+                ) : (
+                  <FoldHorizontal className="w-3 h-3" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {chromeMode === "hug" ? "Span full width" : "Hug content"}
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
         {!isEditing ? <AskAiButton blockId={blockId} blockLabel={askAiLabel} /> : null}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -492,8 +522,9 @@ export default function BlockRenderer({
   const [editorChromeMode, setEditorChromeMode] = useState<CanvasChromeMode>(() =>
     inPageColumn && block.name === "core/paragraph" ? "span" : defaultCanvasChromeMode(block.name),
   );
+  // A docs page is a document: every block fills the column, as on the published page.
   const chromeMode: CanvasChromeMode =
-    isPreview || (inPageColumn && block.name === "core/paragraph") ? "span" : editorChromeMode;
+    isPreview || docsFrame || (inPageColumn && block.name === "core/paragraph") ? "span" : editorChromeMode;
   const chromeAlign = readCanvasChromeAlign({
     styles: block.styles,
     content:
@@ -627,7 +658,8 @@ export default function BlockRenderer({
    * hover-anywhere behavior.
    */
   const useTopToolbarHoverStrip = isContainer && !isPreview;
-  const baseBlockLabel = blockRegistry[block.name]?.label || block.name;
+  const registryLabel = blockRegistry[block.name]?.label || block.name;
+  const baseBlockLabel = docsFrame ? docsBlockLabel({ id: block.name, label: registryLabel }) : registryLabel;
   const iconRefForToolbar =
     block.name === 'core/icon' ? extractIconReferenceFromBlockContent(block.content) : null;
   const iconRefFullLabel =
@@ -721,8 +753,9 @@ export default function BlockRenderer({
     open: toolbarOpen,
     engageHandlers: toolbarEngageHandlers,
     chromeMode,
-    onToggleChromeMode: () =>
-      setEditorChromeMode((mode) => (mode === "hug" ? "span" : "hug")),
+    onToggleChromeMode: docsFrame
+      ? undefined
+      : () => setEditorChromeMode((mode) => (mode === "hug" ? "span" : "hug")),
     blockId: block.id,
     askAiLabel: block.label || findBlockEntry(block.name)?.label || block.name,
   };

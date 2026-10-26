@@ -1,10 +1,18 @@
 import type { DocsFrameRegion } from "./docs-types";
 
 /**
- * The two parts of the docs frame that open settings when clicked: the top bar and the sidebar.
- * Everything inside them (links, search, the phone Menu button) keeps working, so the page and
- * the sidebar behave on the canvas as they do for visitors.
+ * What a click on the docs frame does in the editor. Links between pages (sidebar, breadcrumbs,
+ * previous/next) open that page, as they would for a visitor. The top bar opens its settings and
+ * the rest of the sidebar shows the Pages tab. Search and the phone Menu button keep their own job.
  */
+
+/** The frame's links between the pages of the docs. */
+const PAGE_LINKS = ".np-docs__sidebar a[href], .np-docs__crumbs a[href], .np-docs__pager a[href]";
+
+/** The address a clicked page link points to, or null when the click wasn't on one. */
+export function readFramePageLink(target: Element): string | null {
+	return target.closest(PAGE_LINKS)?.getAttribute("href") ?? null;
+}
 
 /** Controls that must keep doing their own job when clicked, even inside the top bar or the sidebar. */
 const OWN_JOB = "[data-np-docs-menu], [data-np-docs-close], [data-np-docs-backdrop]";
@@ -18,19 +26,17 @@ export function readFrameRegion(target: Element): DocsFrameRegion | null {
 }
 
 /**
- * Editor-only look for those two parts: an outline and a small name while the pointer is over
- * them. Drawn with CSS on the frame's own classes, so the published markup carries nothing extra.
+ * Editor-only look for the top bar: an outline and a small name while the pointer is over it, since
+ * a click there opens settings. The sidebar gets none: its links work as links. Drawn with CSS on
+ * the frame's own classes, so the published markup carries nothing extra.
  */
 export const DOCS_FRAME_EDITOR_CSS = `
-.npb-docs-frame .np-dshell__bar,
-.npb-docs-frame .np-docs__sidebar { cursor: pointer; }
-.npb-docs-frame .np-dshell__bar:hover,
-.npb-docs-frame .np-docs__sidebar:hover {
+.npb-docs-frame .np-dshell__bar { cursor: pointer; }
+.npb-docs-frame .np-dshell__bar:hover {
   outline: 2px solid var(--npb-accent, #3b82f6);
   outline-offset: -2px;
 }
-.npb-docs-frame .np-dshell__bar:hover::after,
-.npb-docs-frame .np-docs__sidebar:hover::after {
+.npb-docs-frame .np-dshell__bar:hover::after {
   position: absolute;
   top: 0;
   left: 0;
@@ -44,8 +50,7 @@ export const DOCS_FRAME_EDITOR_CSS = `
   pointer-events: none;
 }
 .npb-docs-frame .np-dshell__bar:hover::after { content: "Header"; }
-.npb-docs-frame .np-docs__sidebar:hover::after { content: "Sidebar"; }
 @media (prefers-reduced-motion: no-preference) {
-  .npb-docs-frame .np-dshell__bar, .npb-docs-frame .np-docs__sidebar { transition: outline-color 0.12s ease; }
+  .npb-docs-frame .np-dshell__bar { transition: outline-color 0.12s ease; }
 }
 `;

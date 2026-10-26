@@ -1,5 +1,5 @@
 import { useState, type JSX } from "react";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Plus } from "lucide-react";
 import type { DocsSummary } from "@shared/docs";
 import { AdminLayout } from "@/components/AdminLayout";
 import { DocsCard, ExportDocsDialog, useHomepageSlug } from "@/components/docs-admin";
@@ -46,7 +46,20 @@ function DocsScreen({ siteId }: { siteId: string }): JSX.Element {
 	const docs = docsQuery.data ?? [];
 
 	return (
-		<AdminLayout title="Docs" actions={<NewContentButton variant="header" />}>
+		<AdminLayout
+			title="Docs"
+			actions={
+				<div className="flex items-center gap-2">
+					{/* With no docs yet the empty card below offers it, so it is said once. */}
+					{docs.length > 0 ? (
+						<Button type="button" variant="outline" onClick={() => setSettingUp(true)}>
+							<Plus aria-hidden /> Set up docs
+						</Button>
+					) : null}
+					<NewContentButton variant="header" />
+				</div>
+			}
+		>
 			{docsQuery.isLoading || siteId === "" ? <DocsLoading /> : null}
 
 			{docsQuery.isError && !docsQuery.data ? (

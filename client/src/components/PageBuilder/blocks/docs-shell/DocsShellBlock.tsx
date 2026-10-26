@@ -11,7 +11,7 @@ import { catalogMeta } from "../catalog-meta";
 import { useSiteDocsPages } from "../docs-layout/use-site-docs-pages";
 import { useDocsCanvasSource } from "../../docs-mode/docs-canvas-source";
 import { useDocsFrame } from "../../docs-mode/docs-frame-context";
-import { readFrameRegion } from "../../docs-mode/docs-frame-regions";
+import { readFramePageLink, readFrameRegion } from "../../docs-mode/docs-frame-regions";
 import { DocsEditorProvider } from "./docs-editor-context";
 import { DocsShellSettings } from "./docs-shell-settings";
 import { useRootShell } from "./use-root-shell";
@@ -66,8 +66,14 @@ function DocsShellCanvas({ hostBlock, content, styles, isPreview, onNestedBlockC
 				onClickCapture: (event: React.MouseEvent) => {
 					const target = event.target as Element;
 					if (target.closest("a[href], [data-np-search-open]")) event.preventDefault();
-					const region = docsFrame ? readFrameRegion(target) : null;
-					if (!docsFrame || !region) return;
+					if (!docsFrame) return;
+					const link = readFramePageLink(target);
+					if (link !== null && docsFrame.openLink(link)) {
+						event.stopPropagation();
+						return;
+					}
+					const region = readFrameRegion(target);
+					if (!region) return;
 					event.stopPropagation();
 					docsFrame.openRegion(region);
 				},

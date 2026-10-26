@@ -2,22 +2,21 @@ import type { ReactElement, ReactNode } from "react";
 import type { UpdateDocsSettingsInput } from "@shared/docs";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { DocsHeaderSection } from "./DocsHeaderSection";
-import { DocsNavigationSection } from "./DocsNavigationSection";
 import { DocsAddressSection, DocsFeaturesSection, DocsSearchSection } from "./DocsSimpleSections";
 import { useRequiredDocsMode } from "./docs-mode-context";
 import type { DocsSection } from "./docs-types";
 
 const SECTION_TITLES: ReadonlyArray<{ id: DocsSection; title: string }> = [
 	{ id: "header", title: "Header" },
-	{ id: "navigation", title: "Navigation" },
 	{ id: "search", title: "Search" },
 	{ id: "features", title: "Features" },
 	{ id: "address", title: "Address" },
 ];
 
 /**
- * The Docs tab: settings for the whole docs, in five sections that stay closed until clicked (one
- * open at a time). A click on the canvas's top bar or sidebar opens Header or Navigation here.
+ * The Docs tab: settings for the whole docs, in four sections that stay closed until clicked (one
+ * open at a time). A click on the canvas's top bar opens Header here. The pages themselves are in
+ * the left rail's Pages tab, not repeated here.
  */
 export function DocsSettingsTab(): ReactElement {
 	const { settings, saveSettings, isHome, homeId, tree, panel, treeLoading, treeFailed } = useRequiredDocsMode();
@@ -25,7 +24,6 @@ export function DocsSettingsTab(): ReactElement {
 
 	const bodies = (): Record<DocsSection, ReactNode> => ({
 		header: settings ? <DocsHeaderSection settings={settings} save={save} live={isHome} /> : null,
-		navigation: <DocsNavigationSection />,
 		search: settings ? <DocsSearchSection settings={settings} save={save} live={isHome} /> : null,
 		features: settings ? <DocsFeaturesSection settings={settings} save={save} /> : null,
 		address: <DocsAddressSection path={tree?.home.path ?? ""} homeId={homeId} isHome={isHome} />,

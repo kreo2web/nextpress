@@ -50,7 +50,7 @@ function DocsPageCanvas({ hostBlock, content, styles, isPreview, onNestedBlockCh
 				},
 			}}
 		>
-			<ContainerChildren block={hostBlock} isPreview={isPreview ?? false} onBlockChange={onNestedBlockChange} />
+			<ContainerChildren block={hostBlock} isPreview={isPreview ?? false} onBlockChange={onNestedBlockChange} stackLayout="document" />
 		</DocsPageView>
 	);
 }

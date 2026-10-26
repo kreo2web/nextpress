@@ -19,8 +19,8 @@ const CodeExampleBlock = createBlockDefinition<CodeExampleContent>({
 	parseContent: (raw) => readCodeExampleContent(raw),
 	settings: CodeExampleSettings,
 	hasSettings: true,
-	render: ({ value, content, isPreview, onNestedBlockChange }) => (
-		<div className="wp-block-code-example np-example np-example--canvas" data-layout={content.layout}>
+	render: ({ value, content, styles, isPreview, onNestedBlockChange }) => (
+		<div className="wp-block-code-example np-example np-example--canvas" data-layout={content.layout} style={styles}>
 			<ContainerChildren block={value} isPreview={isPreview ?? false} onBlockChange={onNestedBlockChange} stackClassName="np-example-stack" />
 		</div>
 	),

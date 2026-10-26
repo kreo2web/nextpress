@@ -5,6 +5,7 @@ import {
   DEFAULT_DOCS_SETUP_VALUES,
   buildDocsSetupPlan,
   findFirstInvalidStep,
+  suggestDocsPath,
   summarizeDocsSetupStep,
   validateDocsSetupStep,
   type DocsSetupContext,
@@ -20,6 +21,7 @@ const context: DocsSetupContext = {
     { id: 'site-a', name: 'Acme', siteUrl: 'https://acme.com', isDefault: true },
     { id: 'site-b', name: 'Help center', siteUrl: 'https://help.acme.com', isDefault: false },
   ],
+  takenPaths: [],
 };
 
 const values = (changes: Partial<DocsSetupValues> = {}): DocsSetupValues => ({ ...DEFAULT_DOCS_SETUP_VALUES, name: 'Acme Docs', ...changes });
@@ -34,6 +36,19 @@ describe('docs setup checks, step by step', () => {
   it('step 2 checks the address part on this site', () => {
     expect(validateDocsSetupStep({ step: 2, values: values({ path: 'my docs' }), context }).address).toContain('letters, numbers and dashes');
     expect(validateDocsSetupStep({ step: 2, values: values({ path: 'docs' }), context })).toEqual({});
+  });
+
+  it('step 2 says so when other docs on this site already use the address, instead of quietly moving it', () => {
+    const withDocs = { ...context, takenPaths: ['docs'] };
+    expect(validateDocsSetupStep({ step: 2, values: values({ path: 'Docs' }), context: withDocs }).address).toBe('Other docs on this site already use /docs. Pick another address.');
+    expect(validateDocsSetupStep({ step: 2, values: values({ path: 'reference' }), context: withDocs })).toEqual({});
+  });
+
+  it('starts the address at docs, or makes a free one from the name when docs is taken', () => {
+    expect(suggestDocsPath({ name: 'API Reference', takenPaths: [] })).toBe('docs');
+    expect(suggestDocsPath({ name: 'API Reference', takenPaths: ['docs'] })).toBe('api-reference');
+    expect(suggestDocsPath({ name: 'API Reference', takenPaths: ['docs', 'api-reference', 'api-reference-2'] })).toBe('api-reference-3');
+    expect(suggestDocsPath({ name: '!!!', takenPaths: ['docs'] })).toBe('docs-2');
   });
 
   it('step 2 checks the first part of an address of its own, and that no site has it yet', () => {

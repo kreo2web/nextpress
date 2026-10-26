@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 
 /**
  * In-canvas text editor used when a block is in editing mode.
@@ -26,7 +26,32 @@ type InlineTextEditorProps = {
   ariaLabel?: string;
   onFocus?: () => void;
   onBlur?: () => void;
+  /** Keys before the field acts on them (the docs editor's Enter, Backspace and "/" menu). */
+  onKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
+  /**
+   * Takes the focus when it opens, with the caret at the start or the end, so writing can go on
+   * without another click. Without it the field waits to be clicked, as it always has.
+   */
+  focusAt?: "start" | "end";
+  /** Extra ARIA on the field itself (a menu it controls, the option picked in it). */
+  fieldAria?: React.AriaAttributes;
 };
+
+type EditableField = HTMLTextAreaElement | HTMLInputElement;
+
+/** Focuses the field once, when it first appears, with the caret where `focusAt` says. */
+function useFocusOnOpen(focusAt: InlineTextEditorProps["focusAt"]): React.MutableRefObject<EditableField | null> {
+  const field = useRef<EditableField | null>(null);
+  const placeAt = useRef(focusAt);
+  useEffect(() => {
+    const el = field.current;
+    if (!el || !placeAt.current) return;
+    el.focus();
+    const caret = placeAt.current === "start" ? 0 : el.value.length;
+    el.setSelectionRange(caret, caret);
+  }, []);
+  return field;
+}
 
 function setEditorHeightFromScroll(el: HTMLTextAreaElement): void {
   el.style.height = "0px";
@@ -45,7 +70,11 @@ export function InlineTextEditor({
   ariaLabel,
   onFocus,
   onBlur,
+  onKeyDown,
+  focusAt,
+  fieldAria,
 }: InlineTextEditorProps) {
+  const field = useFocusOnOpen(focusAt);
   const editorStyle: React.CSSProperties = {
     ...style,
     width: "100%",
@@ -70,7 +99,10 @@ export function InlineTextEditor({
           }}
           onFocus={onFocus}
           onBlur={onBlur}
+          onKeyDown={onKeyDown}
+          {...fieldAria}
           ref={(el) => {
+            field.current = el;
             if (el) setEditorHeightFromScroll(el);
           }}
           placeholder={placeholder}
@@ -96,6 +128,11 @@ export function InlineTextEditor({
           onChange={(e) => onChange(e.target.value)}
           onFocus={onFocus}
           onBlur={onBlur}
+          onKeyDown={onKeyDown}
+          {...fieldAria}
+          ref={(el) => {
+            field.current = el;
+          }}
           placeholder={placeholder}
           aria-label={ariaLabel}
           rows={Math.max(2, Math.min(12, lineCount + 1))}
@@ -114,6 +151,11 @@ export function InlineTextEditor({
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
         onBlur={onBlur}
+        onKeyDown={onKeyDown}
+        {...fieldAria}
+        ref={(el) => {
+          field.current = el;
+        }}
         placeholder={placeholder}
         aria-label={ariaLabel}
         style={{ ...editorStyle, minHeight: 28, height: "auto" }}

@@ -17,15 +17,17 @@ export type DocsFrameValue = {
 	isFrameBlock: (name: string) => boolean;
 	/** True for the one frame block whose column takes blocks: the docs page. */
 	takesBlocks: (name: string) => boolean;
-	/** A click on the frame's top bar or sidebar: opens that part of the Docs tab. */
+	/** A click on the frame's top bar (Docs → Header) or on the sidebar around its links (the Pages tab). */
 	openRegion: (region: DocsFrameRegion) => void;
+	/** A click on a link of the frame (sidebar, breadcrumbs, previous/next): opens that page here. False when it isn't a page of these docs. */
+	openLink: (href: string) => boolean;
 };
 
 const DocsFrameContext = createContext<DocsFrameValue | null>(null);
 
 /** Kept apart from the rest of the docs state and given a stable value, so every canvas block can ask it cheaply. */
-export function DocsFrameProvider({ openRegion, children }: { openRegion: (region: DocsFrameRegion) => void; children: ReactNode }): ReactElement {
-	const value = useMemo<DocsFrameValue>(() => ({ isFrameBlock: isDocsFrameBlockName, takesBlocks, openRegion }), [openRegion]);
+export function DocsFrameProvider({ openRegion, openLink, children }: Pick<DocsFrameValue, "openRegion" | "openLink"> & { children: ReactNode }): ReactElement {
+	const value = useMemo<DocsFrameValue>(() => ({ isFrameBlock: isDocsFrameBlockName, takesBlocks, openRegion, openLink }), [openLink, openRegion]);
 	return (
 		<DocsFrameContext.Provider value={value}>
 			<style dangerouslySetInnerHTML={{ __html: DOCS_FRAME_EDITOR_CSS }} />

@@ -19,8 +19,8 @@ const UpdateBlock = createBlockDefinition<UpdateContent>({
 	parseContent: (raw) => readUpdateContent(raw),
 	settings: UpdateSettings,
 	hasSettings: true,
-	render: ({ value, content, isPreview, onNestedBlockChange }) => (
-		<div className="wp-block-docs-update">
+	render: ({ value, content, styles, isPreview, onNestedBlockChange }) => (
+		<div className="wp-block-docs-update" style={styles}>
 			<UpdateView label={content.label} description={content.description}>
 				<ContainerChildren block={value} isPreview={isPreview ?? false} onBlockChange={onNestedBlockChange} />
 			</UpdateView>

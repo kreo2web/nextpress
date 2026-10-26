@@ -20,7 +20,7 @@ const GridBlock = createBlockDefinition<GridContent>({
 	hasSettings: true,
 	render: ({ value, content, isPreview, onNestedBlockChange }) => (
 		<div className={gridClassNames(content).join(" ")} style={gridStyleVars(content) as React.CSSProperties}>
-			<ContainerChildren block={value} isPreview={isPreview ?? false} stackClassName={GRID_ITEMS_CLASS} onBlockChange={onNestedBlockChange} />
+			<ContainerChildren block={value} isPreview={isPreview ?? false} stackClassName={GRID_ITEMS_CLASS} stackLayout="class" onBlockChange={onNestedBlockChange} />
 		</div>
 	),
 });

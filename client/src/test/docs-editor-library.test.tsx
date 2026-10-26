@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BLOCK_CATALOG } from '@shared/block-catalog';
 import { buildBlockLibraryCategories, DOCS_FRAME_BLOCKS } from '@/components/PageBuilder/BlockLibrary';
 import { blockRegistry } from '@/components/PageBuilder/blocks';
-import { docsBlockLabel, groupDocsBlocks, searchDocsBlocks } from '@/components/PageBuilder/docs-mode/docs-library';
+import { buildDocsLibraryCategories, groupDocsBlocks } from '@/components/PageBuilder/docs-mode/docs-library';
+import { docsBlockLabel } from '@/components/PageBuilder/docs-mode/docs-block-labels';
 import { docsPageBlocks, makePage, renderEditor, SITE_ID } from './docs-editor-harness';
 
 vi.setConfig({ testTimeout: 30_000 });
@@ -20,8 +21,16 @@ vi.mock('@/components/PageBuilder/EditorBar/PagesMenu', () => ({ PagesMenu: () =
 vi.mock('@/components/PageBuilder/EditorBar/DesignMenu', () => ({ DesignMenu: () => null }));
 vi.mock('@/components/PageBuilder/PublishBlockStyles', () => ({ PublishBlockStyles: () => null }));
 
+/** The block list scrolls in a panel that watches its size; `restoreAllMocks` below would empty the setup's mock, so each test gets its own. */
+class ResizeObserverStub {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+}
+
 beforeEach(() => {
   window.HTMLElement.prototype.scrollIntoView = vi.fn();
+  vi.stubGlobal('ResizeObserver', ResizeObserverStub);
 });
 afterEach(() => {
   cleanup();
@@ -80,50 +89,69 @@ describe('the docs sections', () => {
     expect(sections[sections.length - 1].blocks.map((block) => block.id)).toContain('docs/brand-new');
   });
 
-  it('uses the short names of the mockup and finds blocks by name or description', () => {
+  it('uses the short names of the mockup, as the groups of the shared block list', () => {
     const heading = blocks.find((block) => block.id === 'docs/heading')!;
     expect(docsBlockLabel(heading)).toBe('Heading');
-    expect(searchDocsBlocks({ blocks, query: 'callout' }).map((block) => block.id)).toContain('docs/callout');
-    expect(searchDocsBlocks({ blocks, query: '  ' })).toHaveLength(blocks.length);
-    expect(searchDocsBlocks({ blocks, query: 'zzzz nothing' })).toEqual([]);
+
+    const categories = buildDocsLibraryCategories();
+    expect(categories.map((category) => category.id)).toEqual(groupDocsBlocks(blocks).map((section) => section.id));
+    const labels = categories.flatMap((category) => category.blocks.map((block) => block.label));
+    expect(labels).toEqual(expect.arrayContaining(['Heading', 'Text', 'List', 'Divider', 'Example']));
+    expect(labels).not.toContain('Docs text');
+    // Only the label changes: each block keeps its own id, so dragging and adding work as before.
+    expect(categories.flatMap((category) => category.blocks.map((block) => block.id)).sort()).toEqual(blocks.map((block) => block.id).sort());
   });
 });
 
-describe('the inserter in the docs editor', () => {
-  it('shows the docs group in sections, and no block outside it', async () => {
-    renderEditor({ page: makePage({ id: 'p-docs', blocks: docsPageBlocks() }) });
-    const library = await screen.findByTestId('docs-block-library');
+/** The rail opens on Pages; the blocks are one tab over. */
+const openBlocks = async (user: ReturnType<typeof renderEditor>['user']): Promise<HTMLElement> => {
+  await user.click(await screen.findByRole('tab', { name: 'Blocks' }));
+  return screen.findByTestId('docs-block-library');
+};
 
-    const shown = within(library)
-      .getAllByRole('button')
-      .map((button) => button.textContent?.trim());
+/** The section headers of the list (each opens and closes, so it carries aria-expanded). */
+const sectionNames = (library: HTMLElement): string[] =>
+  Array.from(library.querySelectorAll('button[aria-expanded]')).map((button) => button.textContent?.trim() ?? '');
+
+/** The names on the block tiles (each tile is one draggable). */
+const tileNames = (library: HTMLElement): string[] =>
+  Array.from(library.querySelectorAll('[data-dnd-debug-id]')).map((tile) => tile.textContent?.trim() ?? '');
+
+describe('the inserter in the docs editor', () => {
+  it('shows the docs group in foldable sections, as the page builder shows its groups, and no block outside it', async () => {
+    const { user } = renderEditor({ page: makePage({ id: 'p-docs', blocks: docsPageBlocks() }) });
+    const library = await openBlocks(user);
+
+    const shown = tileNames(library);
     const expected = buildBlockLibraryCategories({ mode: 'docs' })[0].blocks.map((block) => docsBlockLabel(block));
     expect(shown.sort()).toEqual(expected.sort());
     for (const outside of ['Button', 'Columns', 'Form', 'Spacer', 'Docs shell', 'Docs page', 'Post title', 'Header']) {
       expect(shown).not.toContain(outside);
     }
-    for (const section of ['Writing', 'Callouts', 'Code', 'Structure']) {
-      expect(within(library).getByRole('region', { name: section })).toBeInTheDocument();
-    }
+    expect(sectionNames(library)).toEqual(expect.arrayContaining(['Writing', 'Callouts', 'Code', 'Structure']));
+
+    // The rail's "fold all" closes every section, as in the page builder.
+    await user.click(screen.getByRole('button', { name: 'Collapse all block groups' }));
+    await waitFor(() => expect(tileNames(library)).toEqual([]));
+    await user.click(screen.getByRole('button', { name: 'Expand all block groups' }));
+    await waitFor(() => expect(tileNames(library).length).toBe(expected.length));
   });
 
   it('narrows to the blocks that match what is typed, and says so when none do', async () => {
     const { user } = renderEditor({ page: makePage({ id: 'p-docs', blocks: docsPageBlocks() }) });
-    const library = await screen.findByTestId('docs-block-library');
+    const library = await openBlocks(user);
 
-    await user.type(within(library).getByLabelText('Find a docs block'), 'table');
-    // Buttons by their names: the clear button has only an aria-label.
-    const names = within(library).getAllByRole('button').map((button) => button.getAttribute('aria-label') || button.textContent?.trim());
-    expect(names.sort()).toEqual(['Clear search', 'Table']);
+    await user.type(within(library).getByLabelText('Search blocks'), 'table');
+    expect(tileNames(library)).toEqual(['Table']);
 
-    await user.clear(within(library).getByLabelText('Find a docs block'));
-    await user.type(within(library).getByLabelText('Find a docs block'), 'zzzz');
-    expect(within(library).getByText(/No docs block matches/)).toBeInTheDocument();
+    await user.clear(within(library).getByLabelText('Search blocks'));
+    await user.type(within(library).getByLabelText('Search blocks'), 'zzzz');
+    expect(within(library).getByText(/No blocks match/)).toBeInTheDocument();
   });
 
   it('adds a block when it is clicked, so the keyboard can add blocks too, and picks it', async () => {
     const { user } = renderEditor({ page: makePage({ id: 'p-docs', blocks: docsPageBlocks() }) });
-    const library = await screen.findByTestId('docs-block-library');
+    const library = await openBlocks(user);
     expect(document.querySelector('.wp-block-callout')).toBeNull();
 
     await user.click(within(library).getByRole('button', { name: 'Callout' }));
@@ -133,8 +161,8 @@ describe('the inserter in the docs editor', () => {
   });
 
   it('lets a block be dragged into the page column but not into the frame around it', async () => {
-    renderEditor({ page: makePage({ id: 'p-docs', blocks: docsPageBlocks() }) });
-    const library = await screen.findByTestId('docs-block-library');
+    const { user } = renderEditor({ page: makePage({ id: 'p-docs', blocks: docsPageBlocks() }) });
+    const library = await openBlocks(user);
     const handle = within(library).getByRole('button', { name: 'Callout' });
     const droppable = (name: string) => {
       const frameBlock = document.querySelector(`.wp-block-${name}`);

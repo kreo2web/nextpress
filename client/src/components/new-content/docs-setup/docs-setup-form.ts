@@ -3,6 +3,7 @@ import type { ActiveSiteItem } from "@/hooks/useActiveSite";
 import {
 	buildDocsAddress,
 	findSiteUsingHost,
+	normalizeAddressPart,
 	validateAddressPart,
 	validateFullHost,
 	validateSubdomain,
@@ -59,6 +60,8 @@ export type DocsSetupContext = {
 	/** The current site's address without scheme or `www.`; empty when the site has no address. */
 	base: string;
 	sites: ActiveSiteItem[];
+	/** Address parts the site's other docs already use: `docs` for docs at `/docs`. */
+	takenPaths: readonly string[];
 };
 
 const MAX_NAME_LENGTH = 200;
@@ -74,12 +77,37 @@ const addressOf = ({ values, context }: { values: DocsSetupValues; context: Docs
 	buildDocsAddress({ place: values.place, path: values.path, subdomain: values.subdomain, base: context.base });
 
 const validateAddress = ({ values, context }: { values: DocsSetupValues; context: DocsSetupContext }): string | undefined => {
-	if (values.place === "this-site") return validateAddressPart(values.path) ?? undefined;
+	if (values.place === "this-site") {
+		const typedError = validateAddressPart(values.path);
+		if (typedError) return typedError;
+		const part = normalizeAddressPart(values.path);
+		return context.takenPaths.includes(part) ? `Other docs on this site already use /${part}. Pick another address.` : undefined;
+	}
 	const typedError = context.base ? validateSubdomain(values.subdomain) : validateFullHost(values.subdomain);
 	if (typedError) return typedError;
 	const owner = findSiteUsingHost({ sites: context.sites, host: addressOf({ values, context }).host });
 	return owner ? `${owner.name?.trim() || "Another site"} already uses this address.` : undefined;
 };
+
+/** An address part made from the docs' name: "API Reference" becomes `api-reference`. */
+const addressPartFromName = (name: string): string =>
+	name
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
+/**
+ * The address the Where step starts with: `docs`, or, when other docs already use it, one made
+ * from the name (numbered if that is taken too), so a second docs never lands on `/docs-2` unseen.
+ */
+export function suggestDocsPath({ name, takenPaths }: { name: string; takenPaths: readonly string[] }): string {
+	const first = DEFAULT_DOCS_SETUP_VALUES.path;
+	if (!takenPaths.includes(first)) return first;
+	const base = addressPartFromName(name) || first;
+	const candidates = Array.from({ length: takenPaths.length + 1 }, (_, index) => (index === 0 ? base : `${base}-${index + 1}`));
+	return candidates.find((candidate) => !takenPaths.includes(candidate)) ?? base;
+}
 
 /** The problems on one step. Step 3 only has switches, so it can't be wrong. */
 export function validateDocsSetupStep({

@@ -14,8 +14,8 @@ const ParamsBlock = createBlockDefinition<ParamsContent>({
 	parseContent: (raw) => readParamsContent(raw),
 	settings: ParamsSettings,
 	hasSettings: true,
-	render: ({ content }) => (
-		<div className="wp-block-params">
+	render: ({ content, styles }) => (
+		<div className="wp-block-params" style={styles}>
 			<ParamsListView items={content.items} />
 		</div>
 	),

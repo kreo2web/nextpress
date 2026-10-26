@@ -94,6 +94,19 @@ describe('grid', () => {
     expect(screen.getByText('Second item')).toBeInTheDocument();
   });
 
+  it('leaves the items list to the grid CSS on the canvas, so "stretch" works there as on the page', () => {
+    const { container: dom } = renderCanvas(grid());
+    const items = dom.querySelector<HTMLElement>('.np-grid__items');
+    expect(items?.style.display).toBe('');
+    expect(items?.style.alignItems).toBe('');
+    expect(items?.style.flexDirection).toBe('');
+  });
+
+  it('passes a stretched cell\'s height through the editor\'s boxes to the item, on the canvas only', () => {
+    expect(GRID_CSS).toContain('.npb-canvas-page .wp-block-grid .np-grid__items > [data-rfd-draggable-id] div:has([data-block-id])');
+    expect(GRID_CSS).toMatch(/\[data-block-id\]:not\([^)]*\[data-block-id\] \[data-block-id\]\) > div > \* \{ height: 100%; \}/);
+  });
+
   it('sets the column count from the settings chips', () => {
     const onUpdate = vi.fn();
     render(<GridSettings block={grid()} onUpdate={onUpdate} />);

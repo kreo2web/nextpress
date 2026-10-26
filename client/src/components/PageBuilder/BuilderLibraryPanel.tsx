@@ -15,7 +15,8 @@ export type BuilderLibraryPanelProps = {
   onInsertTemplate?: (blocks: BlockConfig[]) => void;
 };
 
-const panelShellClass =
+/** The raised, scrolling panel the block list sits in; the docs editor's Blocks tab uses it too. */
+export const LIBRARY_PANEL_CLASS =
   'relative h-full overflow-hidden rounded-[var(--npb-radius-surface)] bg-npb-surface-raised';
 const scrollPanelBottomFade = (
   <div className="npb-editor-scroll-fade" aria-hidden />
@@ -35,7 +36,7 @@ export function BuilderLibraryPanel({
 }: BuilderLibraryPanelProps): ReactElement {
   return (
     <div
-      className={panelShellClass}
+      className={LIBRARY_PANEL_CLASS}
       data-testid="builder-library-panel"
       role="region"
       aria-label="Block library">

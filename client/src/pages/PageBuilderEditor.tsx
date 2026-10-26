@@ -58,6 +58,8 @@ import { DocsPageSwitcher } from '@/components/PageBuilder/docs-mode/DocsPageSwi
 import { DocsViewSwitch } from '@/components/PageBuilder/docs-mode/DocsViewSwitch';
 import { describeMdxBlock, useDocsEditorState } from '@/components/PageBuilder/docs-mode/docs-editor-state';
 import { mergeDocsPageOther } from '@/components/PageBuilder/docs-mode/docs-page-draft';
+import { findNavItemById } from '@/components/PageBuilder/docs-mode/docs-nav-model';
+import { useDocsTree } from '@/components/PageBuilder/docs-mode/use-docs-tree';
 
 type PageState = {
   blocks: BlockConfig[];
@@ -297,6 +299,9 @@ export default function PageBuilderEditor({
 
   // A page whose page shell holds a docs shell is a docs page: it opens in the docs editor.
   const isDocs = !isPost && !isTemplate && pageState.isInitialized && isDocsPageBlocks(pageState.blocks);
+  // A docs page sits under its docs home and groups; the publish dialog shows its whole address.
+  const docsTreeOfPage = useDocsTree({ pageId: isDocs && data?.id ? String(data.id) : '' }).tree;
+  const docsPagePath = docsTreeOfPage && data?.id ? findNavItemById({ home: docsTreeOfPage.home, id: String(data.id) })?.path.replace(/^\/+/, '') : undefined;
   const docsContent = isDocs ? readDocsPageContent(pageState.blocks) : null;
   // Blocks MDX has no form for would be dropped by a round trip, so MDX stays off while the page has any.
   const mdxBlockedBy = useMemo(() => (docsContent ? blocksToMdx(docsContent).skipped : []), [docsContent]);
@@ -1243,6 +1248,7 @@ latestPageStateRef.current = {
                     : undefined
                 }
                 contentType={isInlineEditing || isPost ? 'post' : 'page'}
+                pagePath={isDocs ? docsPagePath : undefined}
               />
             )}
           </div>

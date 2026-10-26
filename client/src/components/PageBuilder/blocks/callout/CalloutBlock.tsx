@@ -16,8 +16,8 @@ const CalloutBlock = createBlockDefinition<CalloutContent>({
 	parseContent: (raw) => readCalloutContent(raw),
 	settings: CalloutSettings,
 	hasSettings: true,
-	render: ({ value, content, isPreview, onNestedBlockChange }) => (
-		<div className="wp-block-callout">
+	render: ({ value, content, styles, isPreview, onNestedBlockChange }) => (
+		<div className="wp-block-callout" style={styles}>
 			<Callout type={content.type} title={content.title}>
 				<ContainerChildren block={value} isPreview={isPreview ?? false} onBlockChange={onNestedBlockChange} />
 			</Callout>

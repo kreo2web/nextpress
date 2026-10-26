@@ -99,7 +99,39 @@ export type BlockLibraryProps = {
   categories?: BlockLibraryCategory[];
   openCategories?: Record<string, boolean>;
   onCategoryOpenChange?: (categoryId: string, open: boolean) => void;
+  /**
+   * A click (or Enter) on a tile adds that block without dragging. The docs editor passes it so the
+   * keyboard can add blocks too; without it a tile is dragged only, as in the page builder.
+   */
+  onPick?: (block: BlockDefinition) => void;
+  /** Tiles can't be dragged: the docs editor's MDX view, where a click writes the block's MDX instead. */
+  dragDisabled?: boolean;
 };
+
+/** A tile's face: the block's icon in its well and its name. */
+function TileFace({ block }: { block: BlockDefinition }) {
+  return (
+    <>
+      <div className="w-10 h-10 bg-npb-surface-inset rounded-none flex items-center justify-center group-hover:bg-npb-interactive-bg-active transition-colors">
+        {block.icon ? (
+          <block.icon className="w-5 h-5 text-npb-text-secondary" />
+        ) : (
+          <Box className="w-5 h-5 text-npb-text-secondary" />
+        )}
+      </div>
+      <p
+        className="text-sm font-medium text-npb-text-primary w-full leading-snug min-w-0"
+        title={block.label}>
+        {truncateWithEllipsis({
+          text: block.label,
+          maxChars: NPB_BLOCK_LIBRARY_CARD_LABEL_MAX_CHARS,
+        })}
+      </p>
+    </>
+  );
+}
+
+const TILE_FACE_CLASS = 'flex flex-col items-center gap-3 text-center overflow-ellipsis';
 
 const BLOCK_SEARCH_INPUT_ID = 'block-library-search';
 
@@ -107,6 +139,8 @@ export default function BlockLibrary({
   categories: categoriesProp,
   openCategories: openCategoriesProp,
   onCategoryOpenChange,
+  onPick,
+  dragDisabled = false,
 }: BlockLibraryProps) {
   const categories = categoriesProp ?? DEFAULT_CATEGORIES;
 
@@ -233,7 +267,8 @@ export default function BlockLibrary({
                           <Draggable
                             key={block.id}
                             draggableId={block.id}
-                            index={startIndex + index}>
+                            index={startIndex + index}
+                            isDragDisabled={dragDisabled}>
                             {(provided, snapshot) => (
                               <Card
                                 ref={provided.innerRef}
@@ -246,25 +281,21 @@ export default function BlockLibrary({
                                     : ''
                                 }`}>
                                 <CardContent className="p-4">
-                                  <div
-                                    className="flex flex-col items-center gap-3 text-center overflow-ellipsis cursor-grab active:cursor-grabbing"
-                                    {...provided.dragHandleProps}>
-                                    <div className="w-10 h-10 bg-npb-surface-inset rounded-none flex items-center justify-center group-hover:bg-npb-interactive-bg-active transition-colors">
-                                      {block.icon ? (
-                                        <block.icon className="w-5 h-5 text-npb-text-secondary" />
-                                      ) : (
-                                        <Box className="w-5 h-5 text-npb-text-secondary" />
-                                      )}
+                                  {onPick ? (
+                                    <button
+                                      type="button"
+                                      {...provided.dragHandleProps}
+                                      onClick={() => onPick(block)}
+                                      className={`${TILE_FACE_CLASS} w-full rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-npb-focus focus-visible:ring-offset-2 focus-visible:ring-offset-npb-surface-base ${dragDisabled ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}>
+                                      <TileFace block={block} />
+                                    </button>
+                                  ) : (
+                                    <div
+                                      className={`${TILE_FACE_CLASS} cursor-grab active:cursor-grabbing`}
+                                      {...provided.dragHandleProps}>
+                                      <TileFace block={block} />
                                     </div>
-                                    <p
-                                      className="text-sm font-medium text-npb-text-primary w-full leading-snug min-w-0"
-                                      title={block.label}>
-                                      {truncateWithEllipsis({
-                                        text: block.label,
-                                        maxChars: NPB_BLOCK_LIBRARY_CARD_LABEL_MAX_CHARS,
-                                      })}
-                                    </p>
-                                  </div>
+                                  )}
                                 </CardContent>
                               </Card>
                             )}

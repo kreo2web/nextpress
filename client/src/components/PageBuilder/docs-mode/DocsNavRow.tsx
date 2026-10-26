@@ -102,7 +102,12 @@ export function DocsNavRow({ item, isCurrent, isHome = false, expanded, onToggle
 			{/* The title keeps the room: the highlight already says which page is open, and a group is always a draft on purpose. */}
 			{isHome ? <House className="h-3.5 w-3.5 shrink-0 text-npb-text-muted" aria-label="Docs home" role="img" /> : null}
 			{item.hidden ? <EyeOff className="h-3.5 w-3.5 shrink-0 text-npb-text-muted" aria-label="Hidden from the sidebar" role="img" /> : null}
-			{status && item.kind !== "group" ? <span className="shrink-0 rounded-full bg-npb-surface-inset px-1.5 py-0.5 text-[11px] font-medium text-npb-text-muted">{status}</span> : null}
+			{/* A dot, not a word, so the title keeps its room in the narrow rail; the word is in the tooltip and for screen readers. */}
+			{status && item.kind !== "group" ? (
+				<span className="mx-1 h-1.5 w-1.5 shrink-0 rounded-full bg-npb-status-warning" title={status}>
+					<span className="sr-only">{status}</span>
+				</span>
+			) : null}
 			{menu}
 		</div>
 	);

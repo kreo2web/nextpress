@@ -18,7 +18,7 @@ type NewDocsPageDialogProps = {
 	/** Skips "which docs": the Docs screen opens this for the docs a person is looking at. */
 	homeId?: string;
 	onClose: () => void;
-	/** Offered when the site has no docs, so the dialog never ends in a dead end. */
+	/** "Set up new docs": the way out when the site has no docs, and the way to another docs when it has some. */
 	onSetupDocs?: () => void;
 };
 
@@ -192,6 +192,11 @@ export function NewDocsPageDialog({ siteId, homeId, onClose, onSetupDocs }: NewD
 					</div>
 
 					<DialogFooter className="border-t border-npb-divider bg-npb-surface-raised px-5 py-3">
+						{onSetupDocs && docs.length > 0 ? (
+							<Button type="button" variant="link" className="mr-auto h-auto px-0" onClick={onSetupDocs} disabled={saving}>
+								Set up new docs
+							</Button>
+						) : null}
 						<Button type="button" variant="outline" onClick={onClose} disabled={saving}>
 							Cancel
 						</Button>

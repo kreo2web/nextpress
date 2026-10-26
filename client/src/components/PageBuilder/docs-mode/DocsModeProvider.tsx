@@ -1,15 +1,19 @@
 import { useCallback, useMemo, useRef, type MutableRefObject, type ReactElement, type ReactNode } from "react";
+import { useLocation } from "wouter";
 import { replaceDocsPageContent } from "@shared/docs/docs-page-frame";
 import type { BlockConfig } from "@shared/schema-types";
+import { pageEditorPath } from "@/lib/admin-content-routes";
 import { findBlock, insertNewBlock } from "@/lib/handlers/treeUtils";
 import { buildDocsCanvasSource, DocsCanvasSourceProvider } from "./docs-canvas-source";
 import { findDocsPageBlock, readPageToggles, togglePatch } from "./docs-blocks";
 import type { DocsEditorState } from "./docs-editor-state";
-import { locateNavItem } from "./docs-nav-model";
+import { buildDocsLibraryCategories } from "./docs-library";
+import { findNavItemByHref, locateNavItem } from "./docs-nav-model";
 import { DocsFrameProvider } from "./docs-frame-context";
 import { DocsModeContextProvider, type DocsDragBridge, type DocsModeValue } from "./docs-mode-context";
 import type { DocsFrameRegion, DocsPageMeta, DocsPageToggleKey } from "./docs-types";
 import { useDocsPanel } from "./use-docs-panel";
+import { useDocsRail } from "./use-docs-rail";
 import { useDocsSettings } from "./use-docs-settings";
 import { useDocsTree, useRefreshDocsTrees } from "./use-docs-tree";
 
@@ -39,18 +43,28 @@ type Props = {
 	dragBridge: MutableRefObject<DocsDragBridge>;
 	/** Replaces the whole tree as one undo step (`newStep`) or into the step a run already opened. */
 	applyBlocks: (next: BlockConfig[], options: { newStep: boolean }) => void;
+	/** Brings back the left rail and the right panel when a click on the canvas opens something in them. */
+	showRail: () => void;
+	showPanel: () => void;
+	/** Picks a block and opens it for typing, as a double-click does. */
+	startEditing: (id: string) => void;
 	children: ReactNode;
 };
+
+/** Blocks a writing edit leaves open for typing; the rest are picked, so their settings show. */
+const OPENS_FOR_TYPING: ReadonlySet<string> = new Set(["docs/text", "docs/heading", "docs/list", "core/quote", "core/code"]);
 
 /** The address up to the page's own part: `/docs/guides/` for `/docs/guides/install`. */
 const addressPrefixOf = ({ path, slug }: { path: string; slug: string }): string => (slug && path.endsWith(slug) ? path.slice(0, path.length - slug.length) : "/");
 
 function DocsModeActive({ docs, ...props }: Props & { docs: DocsModeProps }): ReactElement {
-	const { pageId, siteId, blocks, getBlocks, meta, onMetaChange, selectedBlockId, selectBlock, updateBlock, commitBlocks, applyBlocks, save, dragBridge, children } = props;
+	const { pageId, siteId, blocks, getBlocks, meta, onMetaChange, selectedBlockId, selectBlock, updateBlock, commitBlocks, applyBlocks, save, dragBridge, showRail, showPanel, startEditing, children } = props;
 	const { state: editor } = docs;
 	const { tree, isLoading, failed } = useDocsTree({ pageId });
 	const refreshDocsTrees = useRefreshDocsTrees();
 	const panel = useDocsPanel({ pickedBlockId: selectedBlockId });
+	const rail = useDocsRail();
+	const [, navigate] = useLocation();
 	const mdxInsert = useRef<((text: string) => void) | null>(null);
 
 	const homeId = tree?.home.id ?? "";
@@ -94,11 +108,57 @@ function DocsModeActive({ docs, ...props }: Props & { docs: DocsModeProps }): Re
 		[applyBlocks, getBlocks],
 	);
 
-	const latest = useRef({ selectBlock, openSection: panel.openSection });
-	latest.current = { selectBlock, openSection: panel.openSection };
+	// Blocks that open for typing after a writing edit; any other block is only picked.
+	const caretRequest = useRef<{ id: string; caret: "start" | "end" } | null>(null);
+	const applyWriting = useCallback<DocsModeValue["applyWriting"]>(
+		({ blocks: next, editId, caret }) => {
+			commitBlocks(next);
+			if (!editId) {
+				selectBlock(null);
+				return;
+			}
+			caretRequest.current = { id: editId, caret };
+			const edited = findBlock(next, editId);
+			if (edited && OPENS_FOR_TYPING.has(edited.name)) startEditing(editId);
+			else selectBlock(editId);
+		},
+		[commitBlocks, selectBlock, startEditing],
+	);
+	const menuBlocks = useMemo(() => buildDocsLibraryCategories().flatMap((category) => category.blocks), []);
+	const takeCaret = useCallback((blockId: string) => {
+		const request = caretRequest.current;
+		if (!request || request.id !== blockId) return null;
+		caretRequest.current = null;
+		return request.caret;
+	}, []);
+
+	const openPage = useCallback(
+		(id: string) => {
+			if (id !== pageId) navigate(pageEditorPath(id));
+		},
+		[navigate, pageId],
+	);
+
+	// Read through a ref so the frame's handlers stay the same between renders (every canvas block reads them).
+	const latest = useRef({ selectBlock, openSection: panel.openSection, setRailTab: rail.setTab, showRail, showPanel, tree, openPage });
+	latest.current = { selectBlock, openSection: panel.openSection, setRailTab: rail.setTab, showRail, showPanel, tree, openPage };
 	const openRegion = useCallback((region: DocsFrameRegion) => {
-		latest.current.selectBlock(null);
-		latest.current.openSection(region === "header" ? "header" : "navigation");
+		const now = latest.current;
+		now.selectBlock(null);
+		if (region === "header") {
+			now.openSection("header");
+			now.showPanel();
+			return;
+		}
+		now.setRailTab("pages");
+		now.showRail();
+	}, []);
+	const openLink = useCallback((href: string): boolean => {
+		const { tree: current, openPage: open } = latest.current;
+		const item = current ? findNavItemByHref({ home: current.home, href }) : null;
+		if (!item) return false;
+		open(item.id);
+		return true;
 	}, []);
 
 	const value: DocsModeValue = {
@@ -122,6 +182,8 @@ function DocsModeActive({ docs, ...props }: Props & { docs: DocsModeProps }): Re
 		refreshTree: refreshDocsTrees,
 		syncAfterServerChange: docs.onServerChange,
 		panel,
+		rail,
+		openPage,
 		dragBridge,
 		mdxInsert,
 		selectedBlock,
@@ -129,13 +191,19 @@ function DocsModeActive({ docs, ...props }: Props & { docs: DocsModeProps }): Re
 		insertBlock,
 		applyContent,
 		saveNow: save,
+		getBlocks,
+		applyWriting,
+		takeCaret,
+		menuBlocks,
 	};
 	const source = useMemo(() => buildDocsCanvasSource({ tree, pageId, isHome, meta, draft: editor.draft }), [editor.draft, isHome, meta, pageId, tree]);
 
 	return (
 		<DocsModeContextProvider value={value}>
 			<DocsCanvasSourceProvider value={source}>
-				<DocsFrameProvider openRegion={openRegion}>{children}</DocsFrameProvider>
+				<DocsFrameProvider openRegion={openRegion} openLink={openLink}>
+					{children}
+				</DocsFrameProvider>
 			</DocsCanvasSourceProvider>
 		</DocsModeContextProvider>
 	);

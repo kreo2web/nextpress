@@ -1,4 +1,3 @@
-import type { BlockConfig } from "../schema-types.js";
 import { DIAGRAM_BLOCK_NAME, readDiagramContent } from "../blocks/diagram-model.js";
 import { readDocsHeadingContent } from "../blocks/docs-heading-model.js";
 import { readDocsListContent } from "../blocks/docs-list-model.js";

@@ -15,8 +15,8 @@ const DocsListBlock = createBlockDefinition<DocsListContent>({
 	parseContent: (raw) => readDocsListContent(raw),
 	settings: DocsListSettings,
 	hasSettings: true,
-	render: ({ content, isEditing, setContent }) => (
-		<div className="wp-block-docs-list np-prose">
+	render: ({ content, styles, isEditing, setContent }) => (
+		<div className="wp-block-docs-list np-prose" style={styles}>
 			{isEditing ? (
 				<InlineTextEditor
 					value={listToLines(content)}

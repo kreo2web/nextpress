@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
-import { useLocation } from "wouter";
 import type { DocsItemKind, DocsTreeItem } from "@shared/docs";
 import type { DropResult } from "@/lib/dnd";
-import { pageEditorPath } from "@/lib/admin-content-routes";
 import { DocsAddItem } from "./DocsAddItem";
 import { DocsDeleteDialog } from "./DocsDeleteDialog";
 import { DocsNavList, NAV_LIST_PREFIX, NAV_ROW_PREFIX } from "./DocsNavList";
@@ -30,20 +28,13 @@ const readDrop = (result: DropResult): { id: string; toParentId: string; toIndex
  */
 export function DocsNavigationSection(): ReactElement {
 	const docs = useRequiredDocsMode();
-	const { tree, treeLoading, treeFailed, pageId, homeId, dragBridge } = docs;
-	const [, navigate] = useLocation();
+	const { tree, treeLoading, treeFailed, pageId, homeId, dragBridge, openPage } = docs;
 	const actions = useDocsNavActions({ docs });
 	const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [deleting, setDeleting] = useState<DocsTreeItem | null>(null);
 	const home = tree?.home ?? null;
 
-	const openPage = useCallback(
-		(id: string): void => {
-			if (id !== pageId) navigate(pageEditorPath(id));
-		},
-		[navigate, pageId],
-	);
 	const toggle = useCallback(
 		(id: string): void =>
 			setCollapsed((current) => {
@@ -113,7 +104,7 @@ export function DocsNavigationSection(): ReactElement {
 	const confirmDelete = async (item: DocsTreeItem): Promise<void> => {
 		setDeleting(null);
 		const removed = await actions.remove({ id: item.id });
-		if (removed && item.id === pageId) navigate(pageEditorPath(homeId));
+		if (removed && item.id === pageId) openPage(homeId);
 	};
 
 	return (

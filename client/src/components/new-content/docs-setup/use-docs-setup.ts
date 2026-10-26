@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useActiveSite } from "@/hooks/useActiveSite";
+import { useSiteDocs } from "@/hooks/use-site-docs";
 import { useSiteAccess } from "@/hooks/use-site-access";
 import { useDomainVerify, type DomainVerifyState } from "@/hooks/use-domain-verify";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ import {
 	buildDocsSetupPlan,
 	findFirstInvalidStep,
 	readDocsAddress,
+	suggestDocsPath,
 	validateDocsSetupStep,
 	type DocsSetupContext,
 	type DocsSetupErrors,
@@ -80,7 +82,11 @@ export function useDocsSetup({ onClose }: { onClose: () => void }): DocsSetup {
 	const [run, setRun] = useState<SetupRunState>({ status: "idle" });
 
 	const base = siteBaseDomain(activeSite?.siteUrl);
-	const context = useMemo<DocsSetupContext>(() => ({ base, sites }), [base, sites]);
+	const otherDocs = useSiteDocs({ siteId: activeSiteId }).data;
+	const takenPaths = useMemo(() => (otherDocs ?? []).map((entry) => entry.path.replace(/^\/+/, "")), [otherDocs]);
+	const context = useMemo<DocsSetupContext>(() => ({ base, sites, takenPaths }), [base, sites, takenPaths]);
+	/** Until someone types an address, the Where step offers a free one (`suggestDocsPath`). */
+	const pathTyped = useRef(false);
 	const address = readDocsAddress({ values, context });
 	const ownAddress = access.isMainSiteAdmin ? { allowed: true, reason: null } : { allowed: false, reason: NOT_MAIN_ADMIN };
 
@@ -111,6 +117,7 @@ export function useDocsSetup({ onClose }: { onClose: () => void }): DocsSetup {
 	};
 
 	const setAddressPart = (text: string): void => {
+		if (values.place === "this-site") pathTyped.current = true;
 		setValue(values.place === "own-address" ? "subdomain" : "path", text);
 		domainCheck.reset();
 	};
@@ -170,6 +177,7 @@ export function useDocsSetup({ onClose }: { onClose: () => void }): DocsSetup {
 			void finish();
 			return;
 		}
+		if (step === 1 && !pathTyped.current) setValue("path", suggestDocsPath({ name: values.name, takenPaths }));
 		leaveStep(nextStepOf[step]);
 	};
 

@@ -7,6 +7,8 @@ import {
   PAGE_SHELL_BLOCK_NAME,
 } from '@shared/page-shell-model';
 import { retargetRootIntoShell } from '@shared/page-tools/retarget-root-into-shell';
+import { DOCS_PAGE_BLOCK_NAME } from '@shared/blocks/docs-page-model';
+import { fitToDocsColumn } from '@shared/docs/docs-column-spacing';
 
 export type InsertBlockResult = {
   blocks: BlockConfig[];
@@ -82,19 +84,21 @@ export function insertNewBlock(rootBlocks: BlockConfig[], parentId: string | nul
     return { blocks: clone, newId: newBlock.id };
   }
   
-  function insert(list: BlockConfig[]): boolean {
+  // A block that lands in a docs page (or in a block inside one) lines up with the page's text.
+  function insert(list: BlockConfig[], inDocsPage: boolean): boolean {
     for (const b of list) {
+      const docs = inDocsPage || b.name === DOCS_PAGE_BLOCK_NAME;
       if (b.id === target.parentId) {
         if (!Array.isArray(b.children)) b.children = [];
-        b.children.splice(target.index, 0, newBlock!);
+        b.children.splice(target.index, 0, docs ? fitToDocsColumn(newBlock!) : newBlock!);
         return true;
       }
       
-      if (b.children && insert(b.children)) return true;
+      if (b.children && insert(b.children, docs)) return true;
     }
     return false;
   }
-  if (!insert(clone)) return { blocks: rootBlocks };
+  if (!insert(clone, false)) return { blocks: rootBlocks };
   return { blocks: clone, newId: newBlock.id };
 }
 

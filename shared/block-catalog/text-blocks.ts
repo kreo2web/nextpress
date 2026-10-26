@@ -163,6 +163,8 @@ export const TEXT_BLOCKS: readonly WrittenBlockEntry[] = [
 		label: "Quote",
 		description: "Add a blockquote",
 		category: "advanced",
+		// MDX writes it as `> ` lines, so docs pages take it as well.
+		alsoIn: ["docs"],
 		kind: "block",
 		defaultContent: () => structured(QUOTE_DEFAULT_CONTENT),
 		defaultStyles: { margin: "1em 0" },

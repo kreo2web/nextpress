@@ -36,6 +36,20 @@ export const navDescendants = (item: DocsTreeItem): DocsTreeItem[] => item.child
 /** The home first, then every row in sidebar order: for pickers and lists that show the whole tree. */
 export const flattenNavTree = (home: DocsTreeItem): DocsTreeItem[] => [home, ...navDescendants(home)];
 
+/** A page or group of these docs, or the home itself, by id. */
+export const findNavItemById = ({ home, id }: { home: DocsTreeItem; id: string }): DocsTreeItem | null => flattenNavTree(home).find((item) => item.id === id) ?? null;
+
+const trimSlash = (path: string): string => (path.length > 1 ? path.replace(/\/+$/, "") : path);
+
+/**
+ * The page of these docs that a link on the canvas points to (the sidebar, breadcrumbs and
+ * previous/next all link by address), or null for a link that leaves the docs.
+ */
+export function findNavItemByHref({ home, href }: { home: DocsTreeItem; href: string }): DocsTreeItem | null {
+	const path = trimSlash(new URL(href, "http://canvas.invalid").pathname);
+	return flattenNavTree(home).find((item) => item.kind === "page" && trimSlash(item.path) === path) ?? null;
+}
+
 const none = (reason: string): NavPlan => ({ kind: "none", reason });
 
 const ids = (items: DocsTreeItem[]): string[] => items.map((item) => item.id);

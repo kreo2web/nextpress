@@ -4,10 +4,10 @@ import { DEFAULT_DOCS_TEXT_CONTENT, readDocsTextContent, type DocsTextContent } 
 import { DocsTextView } from "@shared/blocks/docs-prose-views";
 import { createBlockDefinition } from "../createBlockDefinition";
 import { catalogMeta } from "../catalog-meta";
-import { InlineTextEditor } from "../shared/inline-text-editor";
+import { DocsTextField } from "../../docs-mode/DocsTextField";
 import { DocsTextSettings } from "./docs-text-settings";
 
-/** Canvas view: the same paragraph as the page; double-click to type in place, with the paragraph's own field. */
+/** Canvas view: the same paragraph as the page; double-click to type in place, where Enter, markers and "/" work as in a document. */
 const DocsTextBlock = createBlockDefinition<DocsTextContent>({
 	...catalogMeta("docs/text"),
 	icon: Type,
@@ -15,15 +15,16 @@ const DocsTextBlock = createBlockDefinition<DocsTextContent>({
 	parseContent: (raw) => readDocsTextContent(raw),
 	settings: DocsTextSettings,
 	hasSettings: true,
-	render: ({ content, isEditing, setContent }) => (
-		<div className="wp-block-docs-text np-prose">
+	render: ({ value, content, styles, isEditing, setContent }) => (
+		<div className="wp-block-docs-text np-prose" style={styles}>
 			{isEditing ? (
-				<InlineTextEditor
+				<DocsTextField
+					blockId={value.id}
+					field="text"
+					kind="paragraph"
 					value={content.text}
 					onChange={(text) => setContent((prev) => ({ ...prev, text }))}
-					style={{ color: "inherit", font: "inherit", lineHeight: "inherit" }}
-					multiline
-					placeholder="Write a paragraph"
+					placeholder="Write, or type / for a block"
 					ariaLabel="Paragraph text"
 				/>
 			) : content.text.trim() ? (

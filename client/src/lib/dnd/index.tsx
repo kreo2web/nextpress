@@ -362,6 +362,28 @@ export function DropPlaceholder() {
   );
 }
 
+const DROP_LINE_EDGE_CLASS: Record<'top' | 'bottom' | 'left' | 'right', string> = {
+  top: 'inset-x-0 -top-[5px] h-0.5 before:-left-1 before:-top-[3px]',
+  bottom: 'inset-x-0 -bottom-[5px] h-0.5 before:-left-1 before:-top-[3px]',
+  left: 'inset-y-0 -left-[5px] w-0.5 before:-top-1 before:-left-[3px]',
+  right: 'inset-y-0 -right-[5px] w-0.5 before:-top-1 before:-left-[3px]',
+};
+
+/**
+ * Drop line: a thin accent line on one edge of the block the drop lands next to, drawn over the gap
+ * so nothing on the page moves while the pointer does. Render it inside a `relative` block wrapper.
+ * The docs editor uses it; the page builder keeps the bar above.
+ */
+export function DropLine({ edge }: { edge: 'top' | 'bottom' | 'left' | 'right' }) {
+  return (
+    <div
+      aria-hidden="true"
+      data-drop-line={edge}
+      className={`pointer-events-none absolute z-10 rounded-full bg-npb-accent before:absolute before:h-2 before:w-2 before:rounded-full before:border-2 before:border-npb-accent before:bg-npb-surface-base before:content-[''] ${DROP_LINE_EDGE_CLASS[edge]}`}
+    />
+  );
+}
+
 /**
  * Draggable elements that belong directly to `droppableEl`, excluding nested
  * droppable descendants (e.g. blocks inside a group on the root canvas).

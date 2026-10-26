@@ -34,6 +34,8 @@ interface PublishDialogProps {
   contentType?: 'post' | 'page';
   /** Edits the editor holds beside the blocks (the docs editor's title and page settings), sent with the publish. */
   extraPayload?: PublishExtra;
+  /** The page's whole address when it sits under another page (`docs/guides/deploy`), so the dialog shows where it really lives. */
+  pagePath?: string;
 }
 
 export default function PublishDialog({
@@ -44,6 +46,7 @@ export default function PublishDialog({
   disabledReason,
   contentType = 'page',
   extraPayload,
+  pagePath,
 }: PublishDialogProps) {
   const [open, setOpen] = useState(false);
   const [slug, setSlug] = useState(post?.slug || "");
@@ -204,9 +207,11 @@ export default function PublishDialog({
     ? activeSites?.sites.find((site) => site.id === pageSiteId)
     : activeSites?.activeSite;
   const liveUrl = post?.slug
-    ? buildPublicContentUrl({ site: contentSite, slug: post.slug, kind: contentType })
+    ? buildPublicContentUrl({ site: contentSite, slug: post.slug, kind: contentType, pagePath })
     : null;
-  const addressPrefix = contentType === 'post' ? '/post/' : '/';
+  // The parent part of a nested page's address stays as it is; only the page's own part is edited here.
+  const parentPath = pagePath && post?.slug && pagePath.endsWith(post.slug) ? pagePath.slice(0, pagePath.length - post.slug.length) : '';
+  const addressPrefix = contentType === 'post' ? '/post/' : `/${parentPath}`;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

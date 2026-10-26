@@ -59,6 +59,7 @@ import type { BuilderSidebarTab } from './BuilderSidebar';
 import { DocsModeProvider, type DocsModeProps } from './docs-mode/DocsModeProvider';
 import { DocsInspectorSidebar } from './docs-mode/DocsInspectorSidebar';
 import { DocsResponsiveSidebar } from './docs-mode/DocsResponsiveSidebar';
+import { docsBlockLabel } from './docs-mode/docs-block-labels';
 import { MdxView } from './docs-mode/MdxView';
 import { isDocsFrameBlockName } from './docs-mode/docs-frame-context';
 import type { DocsDragBridge } from './docs-mode/docs-mode-context';
@@ -910,7 +911,13 @@ export default function PageBuilder({
           commitBlocks={(next) => commitBlocks(next)}
           applyBlocks={applyAssistantBlocks}
           save={handleSave}
-          dragBridge={docsDragBridge}>
+          dragBridge={docsDragBridge}
+          showRail={() => setSidebarVisible(true)}
+          showPanel={() => setInspectorVisible(true)}
+          startEditing={(id) => {
+            pickBlock(id);
+            setEditingBlockId(id);
+          }}>
         <EditorColorMemoryProvider blocks={blocks}>
         <EditorPopupsProvider blocks={blocks}>
         <DeviceViewProvider device={deviceView}>
@@ -981,7 +988,7 @@ export default function PageBuilder({
                 {def?.icon ? (
                   <def.icon className="w-4 h-4 text-npb-text-secondary" />
                 ) : null}
-                <span style={{ opacity: 0.85 }}>{def?.label || id}</span>
+                <span style={{ opacity: 0.85 }}>{def ? (docsMode ? docsBlockLabel(def) : def.label) : id}</span>
               </div>
             );
           }}>

@@ -17,8 +17,8 @@ const DiagramBlock = createBlockDefinition<DiagramContent>({
 	parseContent: (raw) => readDiagramContent(raw),
 	settings: DiagramSettings,
 	hasSettings: true,
-	render: ({ content }) => (
-		<div className="wp-block-docs-diagram">
+	render: ({ content, styles }) => (
+		<div className="wp-block-docs-diagram" style={styles}>
 			<DiagramView source={content.code} caption={content.caption} />
 		</div>
 	),

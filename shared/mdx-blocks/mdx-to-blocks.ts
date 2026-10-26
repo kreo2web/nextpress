@@ -1,5 +1,6 @@
 import { parseMdxAsWritten } from "../markdown/parse-markdown.js";
 import type { BlockConfig } from "../schema-types.js";
+import { fitToDocsColumn } from "../docs/docs-column-spacing.js";
 import { createMapContext, mapFlow } from "./map-flow.js";
 
 export type MdxToBlocksResult = { ok: true; blocks: BlockConfig[] } | { ok: false; message: string; line: number | null };
@@ -17,5 +18,6 @@ export const mdxToBlocks = ({ text, newId }: { text: string; newId: () => string
 	const parsed = parseMdxAsWritten({ text });
 	if (!parsed.ok) return parsed;
 	const ctx = createMapContext({ source: parsed.source, newId });
-	return { ok: true, blocks: mapFlow({ ctx, nodes: parsed.tree.children ?? [] }) };
+	// MDX is how docs pages are written, so its blocks line up with a docs page's text.
+	return { ok: true, blocks: mapFlow({ ctx, nodes: parsed.tree.children ?? [] }).map(fitToDocsColumn) };
 };

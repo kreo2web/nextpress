@@ -52,7 +52,7 @@ describe("block catalog", () => {
 		expect(inDocs).toEqual(expect.arrayContaining(["docs/callout", "docs/code-group", "docs/example", "docs/file-tree", "docs/params"]));
 	});
 
-	it("lists nine core blocks in the docs group too, each still at home in its own group", () => {
+	it("lists the core blocks a docs page takes in the docs group too, each still at home in its own group", () => {
 		const borrowed = RAW_BLOCK_ENTRIES.filter((entry) => entry.alsoIn?.includes("docs")).map((entry) => entry.name);
 		expect(borrowed).toEqual(
 			expect.arrayContaining([
@@ -61,6 +61,7 @@ describe("block catalog", () => {
 				"core/grid",
 				"core/image",
 				"core/markdown",
+				"core/quote",
 				"core/separator",
 				"core/steps",
 				"core/table",

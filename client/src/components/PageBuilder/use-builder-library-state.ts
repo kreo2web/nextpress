@@ -15,10 +15,13 @@ export type BuilderLibraryState = {
 
 /**
  * Keeps library accordion state outside panel markup so compact and split
- * shells use identical fold-all behavior.
+ * shells use identical fold-all behavior. `build` makes the groups once; the
+ * docs editor passes its own (the docs sections), the page builder the default.
  */
-export function useBuilderLibraryState(): BuilderLibraryState {
-  const categories = useMemo(() => buildBlockLibraryCategories(), []);
+export function useBuilderLibraryState({
+  build = buildBlockLibraryCategories,
+}: { build?: () => BlockLibraryCategory[] } = {}): BuilderLibraryState {
+  const categories = useMemo(() => build(), [build]);
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(
     () =>
       categories.reduce<Record<string, boolean>>(

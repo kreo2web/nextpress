@@ -14,6 +14,8 @@ import { CodeGroupSettings } from "./code-group-settings";
 
 type CodeGroupCanvasProps = {
 	hostBlock: BlockConfig;
+	/** The block's own box (width, spacing), applied as on the published page. */
+	styles?: React.CSSProperties;
 	isPreview?: boolean;
 	onNestedBlockChange?: (updated: BlockConfig) => void;
 };
@@ -23,7 +25,7 @@ type CodeGroupCanvasProps = {
  * open is local (not saved). Selecting a block inside a closed tab, for example from the layers
  * panel, opens that tab so the block is visible.
  */
-function CodeGroupCanvas({ hostBlock, isPreview, onNestedBlockChange }: CodeGroupCanvasProps) {
+function CodeGroupCanvas({ hostBlock, styles, isPreview, onNestedBlockChange }: CodeGroupCanvasProps) {
 	const actions = useBlockActions();
 	const { codes } = useMemo(() => readCodeGroupTabs(hostBlock.children ?? []), [hostBlock.children]);
 	const [openId, setOpenId] = useState<string | null>(null);
@@ -47,7 +49,7 @@ function CodeGroupCanvas({ hostBlock, isPreview, onNestedBlockChange }: CodeGrou
 	};
 
 	return (
-		<div className="wp-block-tabs np-tabs--underline np-code-group">
+		<div className="wp-block-tabs np-tabs--underline np-code-group" style={styles}>
 			<TabsListView
 				id={hostBlock.id}
 				titles={labels}
@@ -74,8 +76,8 @@ const CodeGroupBlock = createBlockDefinition<CodeGroupContent>({
 	parseContent: (raw) => readCodeGroupContent(raw),
 	settings: CodeGroupSettings,
 	hasSettings: true,
-	render: ({ value, isPreview, onNestedBlockChange }) => (
-		<CodeGroupCanvas hostBlock={value} isPreview={isPreview} onNestedBlockChange={onNestedBlockChange} />
+	render: ({ value, styles, isPreview, onNestedBlockChange }) => (
+		<CodeGroupCanvas hostBlock={value} styles={styles} isPreview={isPreview} onNestedBlockChange={onNestedBlockChange} />
 	),
 });
 

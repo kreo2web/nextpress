@@ -9,7 +9,7 @@ import type { DocsPanelTab, DocsSection } from "./docs-types";
  */
 export function useDocsPanel({ pickedBlockId }: { pickedBlockId: string | null }): DocsPanel {
 	const [tab, setTab] = useState<DocsPanelTab>("page");
-	const [section, setSection] = useState<DocsSection | null>("navigation");
+	const [section, setSection] = useState<DocsSection | null>(null);
 	const [lastPick, setLastPick] = useState<string | null>(pickedBlockId);
 
 	if (pickedBlockId !== lastPick) {

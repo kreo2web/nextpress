@@ -10,7 +10,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { getQueryFn } from '@/lib/queryClient';
 import PageBuilderEditor from '@/pages/PageBuilderEditor';
-import { docsTree, treeItem } from './fixtures/docs-fixtures';
+import { docsSummary, docsTree, treeItem } from './fixtures/docs-fixtures';
 import { installFakeFetch, type FakeCall, type FakeRoutes } from './fixtures/fake-fetch';
 
 /**
@@ -101,11 +101,13 @@ export const setWindowWide = (wide: boolean): void => {
 
 /** The tree the docs editor reads for `pageId`'s docs: the fixture's Acme Docs, with this page found in it. */
 export const treeFor = (changes: Partial<DocsTree> = {}): DocsTree => ({ ...docsTree(), ...changes });
-export { docsTree, treeItem };
+export { docsSummary, docsTree, treeItem };
 
 /** Answers every request the editor makes on its own, so a test only adds the ones it is about. */
 export const baseRoutes = ({ page, tree = docsTree() }: { page: Page; tree?: DocsTree }): FakeRoutes => ({
   [`GET /api/docs/items/${page.id}`]: () => ({ json: tree }),
+  // The docs on the site: the Pages tab and the page switcher list them.
+  'GET /api/docs?*': { json: { docs: [docsSummary({ homeId: tree.home.id, name: tree.settings.title })] } },
   [`GET /api/pages/${page.id}`]: () => ({ json: page }),
   [`PUT /api/pages/${page.id}`]: (call: FakeCall) => ({ json: { ...page, ...(call.body ?? {}), version: (page.version ?? 0) + 1 } }),
   'GET /api/ai-builder/status*': { json: { enabled: false, canManage: true } },

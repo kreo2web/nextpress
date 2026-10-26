@@ -1,9 +1,11 @@
 import { createContext, useContext, type MutableRefObject } from "react";
 import type { DocsSettings, DocsTree, UpdateDocsSettingsInput } from "@shared/docs";
 import type { BlockConfig } from "@shared/schema-types";
+import type { BlockDefinition } from "../blocks/types";
 import type { DropResult } from "@/lib/dnd";
 import type { DocsEditorState } from "./docs-editor-state";
-import type { DocsPageMeta, DocsPageToggleKey, DocsPageToggles, DocsPanelTab, DocsSection } from "./docs-types";
+import type { WritingResult } from "./docs-writing";
+import type { DocsPageMeta, DocsPageToggleKey, DocsPageToggles, DocsPanelTab, DocsRailTab, DocsSection } from "./docs-types";
 
 /**
  * How the navigation list and the page builder share one drag and drop. The builder owns the
@@ -24,6 +26,14 @@ export type DocsPanel = {
 	setSection: (section: DocsSection | null) => void;
 	/** Shows the Docs tab with one section open. */
 	openSection: (section: DocsSection) => void;
+};
+
+/** The left rail's tab: Pages, Blocks or Assistant. */
+export type DocsRail = {
+	tab: DocsRailTab;
+	/** Counts every `setTab`, even to the tab already open, so the phone rail (one rail for both sides) can show it again. */
+	shown: number;
+	setTab: (tab: DocsRailTab) => void;
 };
 
 /**
@@ -62,6 +72,9 @@ export type DocsModeValue = {
 	syncAfterServerChange: () => Promise<void>;
 
 	panel: DocsPanel;
+	rail: DocsRail;
+	/** Opens another page of these docs in the editor (this page's changes are kept as a draft, as for any page you leave). */
+	openPage: (pageId: string) => void;
 	dragBridge: MutableRefObject<DocsDragBridge>;
 	/** Set by the MDX view while it is open: puts text at the cursor. Null in the Visual view. */
 	mdxInsert: MutableRefObject<((text: string) => void) | null>;
@@ -73,6 +86,18 @@ export type DocsModeValue = {
 	applyContent: (children: BlockConfig[], options: { newStep: boolean }) => BlockConfig[];
 	/** Saves the page now, as the Save button does; `blocks` is the tree to save when it is newer than what has been drawn yet. */
 	saveNow: (blocks?: BlockConfig[]) => void;
+
+	/** The whole tree as it is now, for edits that build on it. */
+	getBlocks: () => BlockConfig[];
+	/** A writing edit (Enter, Backspace, a marker, the "/" menu) as one undo step; then the block to write in next opens, caret placed. */
+	applyWriting: (result: Omit<WritingResult, "editId"> & { editId: string | null }) => void;
+	/** Where the caret goes when this block's text opens, if an edit asked; read once. */
+	takeCaret: (blockId: string) => WritingResult["caret"] | null;
+	/**
+	 * What the "/" menu offers: the Blocks tab's docs blocks, in its order. Handed down from here
+	 * because the paragraph block can't import the block list (the list needs every block loaded first).
+	 */
+	menuBlocks: BlockDefinition[];
 };
 
 const DocsModeContext = createContext<DocsModeValue | null>(null);

@@ -90,6 +90,8 @@ import {
   BORDER_RADIUS_PRESETS,
 } from "@shared/dimension-presets";
 import { BLOCK_FONT_CATALOG } from "@shared/font-catalog";
+import { useDocsFrame } from "./docs-mode/docs-frame-context";
+import { docsBlockLabel } from "./docs-mode/docs-block-labels";
 
 interface BlockSettingsProps {
   block: BlockConfig;
@@ -100,6 +102,8 @@ interface BlockSettingsProps {
 }
 
 export default function BlockSettings({ block, onUpdate, onHoverArea, parentBlock = null }: BlockSettingsProps) {
+  // In the docs editor blocks go by their docs names ("Text", not "Docs text").
+  const docsFrame = useDocsFrame();
   const [customCss, setCustomCss] = useState(block.customCss || '');
   // The sidebar is not remounted when another block is selected, so re-seed the textarea.
   useEffect(() => {
@@ -854,7 +858,7 @@ export default function BlockSettings({ block, onUpdate, onHoverArea, parentBloc
               <BlockIcon className="h-4 w-4 shrink-0 text-npb-text-muted" aria-hidden />
             ) : null}
             <h3 className="min-w-0 truncate text-sm font-semibold text-npb-text-primary">
-              {blockDef?.label || block.name}
+              {docsFrame ? docsBlockLabel({ id: block.name, label: blockDef?.label || block.name }) : blockDef?.label || block.name}
             </h3>
           </div>
           {contentOnly ? null : (

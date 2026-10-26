@@ -1,6 +1,6 @@
 import { GRID_MAX_SPANS, gridSpanVarName } from "./grid-model.js";
 
-/** Rules shared by the published page and the editor canvas. `!important` on display beats the canvas's inline flex stack. */
+/** Rules shared by the published page and the editor canvas. The canvas puts no layout of its own on the items list, so these rules lay it out in both. */
 const GRID_BASE = `
 .wp-block-grid { width: 100%; min-width: 0; }
 .wp-block-grid .np-grid__items {
@@ -58,8 +58,24 @@ ${eachPosition((position) => `${canvasItem(position)} { ${sizeOf(position)} }`)}
 ${CANVAS_ITEMS} > [aria-hidden="true"] { grid-column: auto; grid-row: auto; }
 `;
 
+/**
+ * Canvas only: the editor wraps each item in boxes of its own (drag, outline, toolbar), between the
+ * cell and the item's block. Each box on that path passes the cell's height down, so a stretched item
+ * fills its cell as it does on the page. Boxes inside the item's block, and the toolbar beside the
+ * path, are left alone.
+ */
+const CANVAS_ITEM = ".npb-canvas-page .wp-block-grid .np-grid__items > [data-rfd-draggable-id]";
+/** "Inside the item" is counted from the cell down: the Grid itself sits in a block box of its own. */
+const CANVAS_ITEM_BLOCK = `${CANVAS_ITEM} [data-block-id]:not(${CANVAS_ITEM} [data-block-id] [data-block-id])`;
+const CANVAS_FILL = `
+${CANVAS_ITEM} div:has([data-block-id]):not(${CANVAS_ITEM} [data-block-id] div),
+${CANVAS_ITEM_BLOCK},
+${CANVAS_ITEM_BLOCK} > div,
+${CANVAS_ITEM_BLOCK} > div > * { height: 100%; }
+`;
+
 /** Published and editor CSS for the Grid block. Phone is 767px and under, tablet 768 to 1023px. */
-export const GRID_CSS = `${GRID_BASE}${SPAN_BASE}
+export const GRID_CSS = `${GRID_BASE}${SPAN_BASE}${CANVAS_FILL}
 @media (min-width: 768px) and (max-width: 1023px) {
   .wp-block-grid .np-grid__items { ${TABLET} }
 ${eachPosition((position) => `  ${pageItem(position)} { ${tabletSizeOf(position)} }`)}

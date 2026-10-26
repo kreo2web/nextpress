@@ -1,4 +1,6 @@
+import { buildBlockLibraryCategories, type BlockLibraryCategory } from "../BlockLibrary";
 import type { BlockDefinition } from "../blocks/types";
+import { docsBlockLabel } from "./docs-block-labels";
 
 /**
  * How the docs inserter groups its blocks: the sections of the docs editor mockup. A block that
@@ -9,7 +11,7 @@ import type { BlockDefinition } from "../blocks/types";
 export type DocsLibrarySection = { id: string; name: string; blocks: BlockDefinition[] };
 
 const SECTIONS: ReadonlyArray<{ id: string; name: string; ids: readonly string[] }> = [
-	{ id: "writing", name: "Writing", ids: ["docs/heading", "docs/text", "docs/list", "core/separator"] },
+	{ id: "writing", name: "Writing", ids: ["docs/heading", "docs/text", "docs/list", "core/quote", "core/separator"] },
 	{ id: "callouts", name: "Callouts", ids: ["docs/callout"] },
 	{ id: "code", name: "Code", ids: ["core/code", "docs/code-group", "docs/example", "docs/diagram"] },
 	{ id: "structure", name: "Structure", ids: ["core/steps", "core/tabs", "core/grid", "core/accordion", "core/table", "docs/file-tree"] },
@@ -17,16 +19,6 @@ const SECTIONS: ReadonlyArray<{ id: string; name: string; ids: readonly string[]
 	{ id: "media", name: "Media", ids: ["core/image", "core/video"] },
 ];
 
-/** Names shorter and plainer than the catalog's, for blocks that sit in a docs-only list already. */
-const DISPLAY_LABELS: Readonly<Record<string, string>> = {
-	"docs/heading": "Heading",
-	"docs/text": "Text",
-	"docs/list": "List",
-	"core/separator": "Divider",
-	"docs/example": "Example",
-};
-
-export const docsBlockLabel = (block: BlockDefinition): string => DISPLAY_LABELS[block.id] ?? block.label;
 
 /** The blocks sorted into sections, in the order above; empty sections are left out. */
 export function groupDocsBlocks(blocks: BlockDefinition[]): DocsLibrarySection[] {
@@ -44,12 +36,14 @@ export function groupDocsBlocks(blocks: BlockDefinition[]): DocsLibrarySection[]
 	return [...sections, { id: "more", name: "More", blocks: rest }].filter((section) => section.blocks.length > 0);
 }
 
-/** Blocks whose label or description holds the words typed in the search box. */
-export function searchDocsBlocks({ blocks, query }: { blocks: BlockDefinition[]; query: string }): BlockDefinition[] {
-	const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-	if (words.length === 0) return blocks;
-	return blocks.filter((block) => {
-		const haystack = `${docsBlockLabel(block)} ${block.label} ${block.description ?? ""}`.toLowerCase();
-		return words.every((word) => haystack.includes(word));
-	});
+/**
+ * The docs editor's block list: the Docs group in the sections above, each block under its docs
+ * name, in the shape the page builder's block list takes, so both editors show one list.
+ */
+export function buildDocsLibraryCategories(): BlockLibraryCategory[] {
+	const docsGroup = buildBlockLibraryCategories({ mode: "docs" }).flatMap((category) => category.blocks);
+	return groupDocsBlocks(docsGroup).map((section) => ({
+		...section,
+		blocks: section.blocks.map((block) => ({ ...block, label: docsBlockLabel(block) })),
+	}));
 }
