@@ -4,8 +4,76 @@ import type { ReleaseHighlight } from "./release-highlight-meta";
 /** In-app release notes. Consumer-facing copy only. Keep in sync with package.json on release. */
 export const RELEASE_MANIFEST = {
 	version: NEXTPRESS_CONFIG.version,
-	releaseDate: "2026-10-03",
+	releaseDate: "2026-10-28",
 	highlights: [
+		{
+			kind: "update",
+			title: "A page assistant in the editor",
+			description:
+				"Ask the assistant to build or change the page you are editing. Connect the AI provider you use in Settings. Your chats are kept, so you can pick up where you left off.",
+		},
+		{
+			kind: "update",
+			title: "Roles and invite links",
+			description:
+				"Give each person the subscriber, editor or admin role on a site, or send an invite link. The dashboard only shows what each person can do.",
+		},
+		{
+			kind: "update",
+			title: "Docs",
+			description:
+				"Write documentation with a sidebar, search, previous and next links, and a copy button on every page. Put your docs on your site or on a separate address.",
+		},
+		{
+			kind: "update",
+			title: "Write blog posts in their blog's look",
+			description:
+				"Posts open in a calm writing editor and show inside the look you set once for the whole blog. Choose whether the blog's home page lists posts as cards, a grid or a list.",
+		},
+		{
+			kind: "update",
+			title: "Linked parts",
+			description:
+				"Make a header, footer or any section once under Templates and use it on many pages. One edit changes it everywhere.",
+		},
+		{
+			kind: "update",
+			title: "Update from the dashboard",
+			description:
+				"Owners and admins of the main site see Update available in the sidebar and can update in one click. Your sites stay online while the new version downloads.",
+		},
+		{
+			kind: "update",
+			title: "Site search and a sitemap",
+			description: "Add a Search block so visitors can find your pages. Search engines get a sitemap of your published pages.",
+		},
+		{
+			kind: "improvement",
+			title: "Change or reset your password",
+			description:
+				"Change your password from the account menu. If an admin can't sign in, a new password can be set from the server with nextpress reset-password.",
+		},
+		{
+			kind: "improvement",
+			title: "One control for padding and margin",
+			description: "Every block sets its padding and margin in the same place, with ready sizes to pick from.",
+		},
+		{
+			kind: "fix",
+			title: "Menus and dialogs look right",
+			description:
+				"The quick search, dropdowns, menus and dialogs no longer show a thick black box, and buttons and menus show their hover colors again, in light and dark mode.",
+		},
+		{
+			kind: "fix",
+			title: "The editor matches the published page",
+			description: "Block settings, page width and padding now look the same in the editor as they do for visitors.",
+		},
+		{
+			kind: "fix",
+			title: "Upgrades apply every database change",
+			description: "An upgrade no longer misses database changes from the versions in between.",
+		},
 		{
 			kind: "improvement",
 			title: "Link previews show your site",
