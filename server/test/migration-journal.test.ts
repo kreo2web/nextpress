@@ -58,7 +58,8 @@ describe("migration journal", () => {
 				.map((part) => part.replace(/--[^\n]*/g, "").trim())
 				.filter(Boolean);
 			for (const statement of statements) {
-				const commands = statement.split(";").filter((part) => part.trim());
+				// A DO block is one command; its procedural body contains semicolons.
+				const commands = statement.replace(/\$\$[\s\S]*?\$\$/g, "$$body$$").split(";").filter((part) => part.trim());
 				expect(
 					commands.length,
 					`${tag}.sql has multiple commands without a breakpoint`,

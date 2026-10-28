@@ -23,8 +23,7 @@ async function runMigrations(): Promise<void> {
 	}
 }
 
-runMigrations().catch((error: unknown) => {
-	const message = error instanceof Error ? error.message : String(error);
-	console.error("[migrate] Failed:", message);
+runMigrations().catch((error: Error) => {
+	console.error("[migrate] Failed:", { atFunction: "runMigrations", error });
 	process.exit(1);
 });

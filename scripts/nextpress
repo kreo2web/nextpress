@@ -984,11 +984,19 @@ run_schema_migrations() {
 	local image="${1:-$(app_image)}"
 
 	info "Applying database migrations from $image..."
-	if compose run --rm --no-deps app node dist/migrate.js; then
-		return 0
-	fi
-	warn "node dist/migrate.js failed; trying pnpm drizzle-kit migrate for older images."
-	compose run --rm --no-deps app pnpm drizzle-kit migrate
+	compose run --rm --no-deps app node -e '
+const { existsSync } = require("node:fs");
+const { spawnSync } = require("node:child_process");
+if (existsSync("dist/migrate.js")) {
+  const result = spawnSync(process.execPath, ["dist/migrate.js"], { stdio: "inherit" });
+  if (result.error) console.error("[migrate] Could not start migration runner:", result.error);
+  process.exit(result.status ?? 1);
+}
+console.warn("[migrate] Older image; using drizzle-kit migrate.");
+const result = spawnSync("pnpm", ["drizzle-kit", "migrate"], { stdio: "inherit" });
+if (result.error) console.error("[migrate] Could not start legacy runner:", result.error);
+process.exit(result.status ?? 1);
+'
 }
 
 run_default_content_seed() {
