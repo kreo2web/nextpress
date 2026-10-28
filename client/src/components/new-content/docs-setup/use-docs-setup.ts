@@ -42,7 +42,7 @@ export type DocsSetup = {
 	values: DocsSetupValues;
 	step: DocsSetupStep;
 	errors: DocsSetupErrors;
-	/** The current site's address, which "On this site" and "On their own address" both build on. */
+	/** The current site's address, which "On this site" and "On a separate address" both build on. */
 	base: string;
 	context: DocsSetupContext;
 	address: DocsAddress;

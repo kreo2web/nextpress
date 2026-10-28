@@ -134,8 +134,8 @@ export function DocsSetupWhereStep({ setup, disabled }: WhereStepProps): JSX.Ele
 			</PlaceOption>
 			<PlaceOption
 				value="own-address"
-				title="On their own address"
-				description={`For example docs.${base || "example.com"}. It is checked and gets its certificate the same way a site address does.`}
+				title="On a separate address"
+				description={`Like docs.${base || "example.com"}, apart from your main site.`}
 				selected={!thisSite}
 				unavailable={ownAddress.reason}
 			>

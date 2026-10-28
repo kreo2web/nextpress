@@ -65,7 +65,7 @@ describe('Set up your docs: on their own address', () => {
   describe('on their own address', () => {
     const chooseOwnAddress = async ({ user, dialog }: Pick<Setup, 'user' | 'dialog'>) => {
       await nameThenContinue({ user, dialog });
-      await user.click(within(dialog).getByRole('radio', { name: 'On their own address' }));
+      await user.click(within(dialog).getByRole('radio', { name: 'On a separate address' }));
     };
 
     it('shows whether the address points here and whether its certificate is ready, as soon as it is picked', async () => {
@@ -139,7 +139,7 @@ describe('Set up your docs: on their own address', () => {
       const { dialog, user } = renderSetup();
       await nameThenContinue({ user, dialog });
 
-      const own = within(dialog).getByRole('radio', { name: 'On their own address' });
+      const own = within(dialog).getByRole('radio', { name: 'On a separate address' });
       expect(own).toBeDisabled();
       expect(within(dialog).getByText("Only the main site's admins can add a new address.")).toBeInTheDocument();
       expect(within(dialog).getByRole('radio', { name: 'On this site' })).toBeChecked();

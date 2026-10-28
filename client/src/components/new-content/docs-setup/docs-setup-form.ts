@@ -49,7 +49,7 @@ export type DocsSetupStep = 1 | 2 | 3;
 
 export const DOCS_SETUP_STEP_LIST: { step: DocsSetupStep; title: string; blurb: string }[] = [
 	{ step: 1, title: "Name", blurb: "What your docs are called" },
-	{ step: 2, title: "Where they live", blurb: "An address on this site, or their own" },
+	{ step: 2, title: "Where they live", blurb: "On this site or a separate address" },
 	{ step: 3, title: "What they have", blurb: "Search, sidebar, page tools" },
 ];
 
