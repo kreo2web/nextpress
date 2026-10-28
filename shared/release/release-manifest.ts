@@ -40,7 +40,7 @@ export const RELEASE_MANIFEST = {
 			kind: "update",
 			title: "Update from the dashboard",
 			description:
-				"Owners and admins of the main site see Update available in the sidebar and can update in one click. Your sites stay online while the new version downloads.",
+				"From this version on, owners and admins of the main site see Update available in the sidebar and can update in one click. Your sites stay online while the new version downloads.",
 		},
 		{
 			kind: "update",
