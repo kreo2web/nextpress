@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { BlockConfig } from "@shared/schema-types";
-import { getRenderProps, parseStructuredContent } from "../render-helpers";
+import { getRenderProps, parseStructuredContent, renderChildBlocks } from "../render-helpers";
 import { isSafePublicMediaUrl } from "@shared/bind-post-list";
 import { readBoundHeadings } from "@shared/page-headings";
 import { normalizeWebsiteUrl, normalizeXProfileUrl } from "@shared/safe-http-url";
@@ -291,6 +291,16 @@ export function PostTocBlock(block: BlockConfig) {
 				</ListTag>
 			)}
 		</nav>
+	);
+}
+
+/** A written post's writing: its blocks in a reading column, inside the blog's look. */
+export function PostBodyBlock(block: BlockConfig) {
+	const { style, className, attributes } = getRenderProps(block);
+	return (
+		<div className={["wp-block-post-body", "np-prose", className].filter(Boolean).join(" ")} style={style} {...attributes}>
+			{renderChildBlocks(block.children ?? [])}
+		</div>
 	);
 }
 

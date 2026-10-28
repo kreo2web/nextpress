@@ -16,6 +16,7 @@ import { blockRegistry } from './blocks';
 import { BlockActionsProvider } from './BlockActionsContext';
 import { PageProvider, type PostDocumentFields, type PostDocumentValue } from './PageContext';
 import { parsePostOther } from '@shared/posts/post-other';
+import { parsePageOther } from '@shared/page-other';
 import type { AuthorDisplay } from '@shared/author-display';
 import { savePageDraftWithHistory } from '@/lib/pageDraftStorage';
 import {
@@ -60,6 +61,9 @@ import { DocsModeProvider, type DocsModeProps } from './docs-mode/DocsModeProvid
 import { DocsInspectorSidebar } from './docs-mode/DocsInspectorSidebar';
 import { DocsResponsiveSidebar } from './docs-mode/DocsResponsiveSidebar';
 import { docsBlockLabel } from './docs-mode/docs-block-labels';
+import { BlogModeProvider, type BlogModeProps } from './blog-mode/BlogModeProvider';
+import { BlogInspectorSidebar, BlogResponsiveSidebar } from './blog-mode/BlogSidebars';
+import { POST_FRAME_BLOCK_NAMES, POST_FRAME_EDITABLE } from '@shared/blog/compose-blog-post';
 import { MdxView } from './docs-mode/MdxView';
 import { isDocsFrameBlockName } from './docs-mode/docs-frame-context';
 import type { DocsDragBridge } from './docs-mode/docs-mode-context';
@@ -114,18 +118,15 @@ interface PageBuilderProps {
   onPageMetaChange?: (
     meta: Partial<{ title: string; slug: string; status: string }>,
   ) => void;
-  onPostDocumentChange?: (patch: {
-    excerpt?: string;
-    featuredImage?: string;
-    categories?: string[];
-    tags?: string[];
-  }) => void;
+  onPostDocumentChange?: (patch: PostDocumentFields) => void;
   currentPostId?: string;
   contentType?: 'post' | 'page' | 'template';
   isTemplateEditor?: boolean;
   /** `docs` turns the builder into the docs editor (see `docs-mode/`); it needs `docs` too. Pages and posts leave it out. */
   mode?: 'page' | 'docs';
   docs?: DocsModeProps;
+  /** A written post: the page builder becomes the blog writing editor (its blog's look around the body). */
+  blog?: BlogModeProps | null;
 }
 
 export default function PageBuilder({
@@ -145,9 +146,12 @@ export default function PageBuilder({
   isTemplateEditor = false,
   mode = 'page',
   docs,
+  blog = null,
 }: PageBuilderProps) {
   const data = post;
   const docsMode = mode === 'docs' && docs ? docs : null;
+  const blogMode = docsMode ? null : blog;
+
   const docsDragBridge = useRef<DocsDragBridge>({ handleDrop: null, describe: null });
   const isTemplate = isTemplateEditor;
   const resolvedContentType =
@@ -177,25 +181,28 @@ export default function PageBuilder({
     publishedAt?: string | Date | null;
     createdAt?: string | Date | null;
     author?: AuthorDisplay | null;
+    allowComments?: boolean | null;
     other?: unknown;
   } | undefined;
-  const parsedPostOther = parsePostOther(postRecord?.other);
-  const [postDoc, setPostDoc] = useState({
-    excerpt: String(postRecord?.excerpt ?? ''),
-    featuredImage: String(postRecord?.featuredImage ?? ''),
-    categories: postRecord?.categories ?? parsedPostOther.categories ?? [],
-    tags: postRecord?.tags ?? parsedPostOther.tags ?? [],
-  });
+  /** The post's own fields as the editor holds them until Save (the canvas and the writing editor's Post tab edit them). */
+  const postDocFrom = (record: typeof postRecord) => {
+    const other = parsePostOther(record?.other);
+    const seo = parsePageOther(record?.other).seo;
+    return {
+      excerpt: String(record?.excerpt ?? ''),
+      featuredImage: String(record?.featuredImage ?? ''),
+      categories: record?.categories ?? other.categories ?? [],
+      tags: record?.tags ?? other.tags ?? [],
+      allowComments: record?.allowComments !== false,
+      publishedAt: record?.publishedAt instanceof Date ? record.publishedAt.toISOString() : record?.publishedAt ?? null,
+      seo: { metaTitle: seo?.metaTitle ?? '', metaDescription: seo?.metaDescription ?? '' },
+    };
+  };
+  const [postDoc, setPostDoc] = useState(() => postDocFrom(postRecord));
   const [prevPostDocId, setPrevPostDocId] = useState(postRecord?.id);
   if (postRecord?.id !== prevPostDocId) {
     setPrevPostDocId(postRecord?.id);
-    const nextOther = parsePostOther(postRecord?.other);
-    setPostDoc({
-      excerpt: String(postRecord?.excerpt ?? ''),
-      featuredImage: String(postRecord?.featuredImage ?? ''),
-      categories: postRecord?.categories ?? nextOther.categories ?? [],
-      tags: postRecord?.tags ?? nextOther.tags ?? [],
-    });
+    setPostDoc(postDocFrom(postRecord));
   }
   const historyMutationRef = useRef(0);
   const pendingDeleteUndoRef = useRef<number | null>(null);
@@ -232,6 +239,11 @@ export default function PageBuilder({
 
   // Refs for stable callback identity in commitBlocks and handlers
   const currentStateRef = useRef(currentState);
+  /** A post's frame block in the writing editor: drawn (date line, author box…) or fixed (title, subtitle, cover). Never moved, copied or deleted. */
+  const isPostFrame = useCallback(
+    (id: string): boolean => Boolean(blogMode) && POST_FRAME_BLOCK_NAMES.has(findBlock(currentStateRef.current, id)?.name ?? ''),
+    [blogMode],
+  );
   currentStateRef.current = currentState;
 
   const onBlocksChangeRef = useRef(onBlocksChange);
@@ -640,6 +652,7 @@ export default function PageBuilder({
 
   const handleDuplicate = useCallback(
     (id: string) => {
+      if (isPostFrame(id)) return;
       let newId: string | undefined;
       commitBlocks((prev) => {
         const { found, next, duplicatedId } = duplicateBlockDeep(
@@ -658,7 +671,7 @@ export default function PageBuilder({
         setActiveTab('settings');
       }
     },
-    [commitBlocks, setActiveTab],
+    [commitBlocks, isPostFrame, setActiveTab],
   );
 
   /** Puts one block after the selected block (or at the end) with fresh ids, then selects it. */
@@ -719,11 +732,11 @@ export default function PageBuilder({
   const handleCopy = useCallback(
     (id: string) => {
       const block = findBlock(blocks, id);
-      if (!block) return;
+      if (!block || isPostFrame(id)) return;
       copyBlockToClipboard({ block });
       void pageTransfer.copyBlock(block);
     },
-    [blocks, pageTransfer],
+    [blocks, isPostFrame, pageTransfer],
   );
 
   const handlePaste = useCallback(() => {
@@ -732,6 +745,7 @@ export default function PageBuilder({
 
   const handleDelete = useCallback(
     (id: string) => {
+      if (isPostFrame(id)) return;
       const shouldClearSelection =
         selectedBlockId === id ||
         (selectedBlockId != null && isDescendant(blocks, id, selectedBlockId));
@@ -770,7 +784,7 @@ export default function PageBuilder({
         ),
       });
     },
-    [blocks, commitBlocks, selectedBlockId, setActiveTab, toast, undoAndSync],
+    [blocks, commitBlocks, isPostFrame, selectedBlockId, setActiveTab, toast, undoAndSync],
   );
 
   // Keep keyboard-shortcut refs current (handlers defined above the listener)
@@ -837,6 +851,9 @@ export default function PageBuilder({
       featuredImage: patch.featuredImage ?? current.featuredImage,
       categories: patch.categories ?? current.categories,
       tags: patch.tags ?? current.tags,
+      allowComments: patch.allowComments ?? current.allowComments,
+      publishedAt: patch.publishedAt !== undefined ? patch.publishedAt : current.publishedAt,
+      seo: patch.seo ? { ...current.seo, ...patch.seo } : current.seo,
     }));
     if (patch.title !== undefined) {
       onPageMetaChange?.({ title: patch.title });
@@ -855,10 +872,9 @@ export default function PageBuilder({
           featuredImage: postDoc.featuredImage,
           categories: postDoc.categories,
           tags: postDoc.tags,
-          publishedAt:
-            postRecord?.publishedAt instanceof Date
-              ? postRecord.publishedAt.toISOString()
-              : postRecord?.publishedAt ?? null,
+          publishedAt: postDoc.publishedAt,
+          allowComments: postDoc.allowComments,
+          seo: postDoc.seo,
           createdAt:
             postRecord?.createdAt instanceof Date
               ? postRecord.createdAt.toISOString()
@@ -882,14 +898,15 @@ export default function PageBuilder({
     if (id !== editingBlockIdRef.current) setEditingBlockId(null);
   }, []);
 
-  /** Picks a block, or puts the pick down. The docs frame is never picked: it is drawn, not edited. */
+  /** Picks a block, or puts the pick down. The docs frame and a post's drawn frame are never picked: they are drawn, not edited. */
   const pickBlock = useCallback(
     (id: string | null) => {
-      const target = id && docsMode ? findBlock(currentStateRef.current, id) : null;
-      setSelectedBlockId(target && isDocsFrameBlockName(target.name) ? null : id);
+      const target = id && (docsMode || blogMode) ? findBlock(currentStateRef.current, id) : null;
+      const drawn = target && (isDocsFrameBlockName(target.name) || (blogMode && POST_FRAME_BLOCK_NAMES.has(target.name) && !POST_FRAME_EDITABLE.has(target.name)));
+      setSelectedBlockId(drawn ? null : id);
       if (id !== editingBlockIdRef.current) setEditingBlockId(null);
     },
-    [docsMode],
+    [blogMode, docsMode],
   );
   const docsView = docsMode?.state.view ?? 'visual';
 
@@ -918,6 +935,16 @@ export default function PageBuilder({
             pickBlock(id);
             setEditingBlockId(id);
           }}>
+        <BlogModeProvider
+          blog={blogMode}
+          getBlocks={getCurrentBlocks}
+          commitBlocks={(next) => commitBlocks(next)}
+          selectedBlockId={selectedBlockId}
+          selectBlock={pickBlock}
+          startEditing={(id) => {
+            pickBlock(id);
+            setEditingBlockId(id);
+          }}>
         <EditorColorMemoryProvider blocks={blocks}>
         <EditorPopupsProvider blocks={blocks}>
         <DeviceViewProvider device={deviceView}>
@@ -928,7 +955,7 @@ export default function PageBuilder({
           editingBlockId,
           hoveredBlockId,
           onSelect: (id) => {
-            if (docsMode) {
+            if (docsMode || blogMode) {
               pickBlock(id);
               return;
             }
@@ -942,6 +969,7 @@ export default function PageBuilder({
           },
           onStartEditing: (id) => {
             if (docsMode && isDocsFrameBlockName(findBlock(currentStateRef.current, id)?.name ?? '')) return;
+            if (blogMode && !POST_FRAME_EDITABLE.has(findBlock(currentStateRef.current, id)?.name ?? '') && POST_FRAME_BLOCK_NAMES.has(findBlock(currentStateRef.current, id)?.name ?? '')) return;
             setSelectedBlockId(id);
             setEditingBlockId(id);
           },
@@ -988,7 +1016,7 @@ export default function PageBuilder({
                 {def?.icon ? (
                   <def.icon className="w-4 h-4 text-npb-text-secondary" />
                 ) : null}
-                <span style={{ opacity: 0.85 }}>{def ? (docsMode ? docsBlockLabel(def) : def.label) : id}</span>
+                <span style={{ opacity: 0.85 }}>{def ? (docsMode || blogMode ? docsBlockLabel(def) : def.label) : id}</span>
               </div>
             );
           }}>
@@ -1004,6 +1032,8 @@ export default function PageBuilder({
               <MotionSidebarPanel visible={sidebarVisible} className="h-full shrink-0">
                 {docsMode ? (
                   <DocsResponsiveSidebar parentBlock={parentBlock} updateBlock={updateBlockPartial} setHoverHighlight={setHoverHighlight} onToggleSidebar={toggleSidebar} />
+                ) : blogMode ? (
+                  <BlogResponsiveSidebar slug={pageMeta?.slug ?? ''} onSlugChange={(slug) => onPageMetaChange?.({ slug })} parentBlock={parentBlock} updateBlock={updateBlockPartial} setHoverHighlight={setHoverHighlight} onToggleSidebar={toggleSidebar} />
                 ) : (
                 <BuilderResponsiveSidebar
                   activeTab={activeTab}
@@ -1042,6 +1072,7 @@ export default function PageBuilder({
                   }
                 }}
                 docsView={docsMode ? docsView : undefined}
+                writing={Boolean(blogMode)}
                 sidebarVisible={sidebarVisible}
                 onToggleSidebar={toggleSidebar}
                 inspectorVisible={isWideLayout ? inspectorVisible : undefined}
@@ -1084,6 +1115,8 @@ export default function PageBuilder({
                   <MotionSidebarPanel visible={inspectorVisible} className="h-full shrink-0">
                     {docsMode ? (
                       <DocsInspectorSidebar parentBlock={parentBlock} updateBlock={updateBlockPartial} setHoverHighlight={setHoverHighlight} onToggleInspector={toggleInspector} />
+                    ) : blogMode ? (
+                      <BlogInspectorSidebar slug={pageMeta?.slug ?? ''} onSlugChange={(slug) => onPageMetaChange?.({ slug })} parentBlock={parentBlock} updateBlock={updateBlockPartial} setHoverHighlight={setHoverHighlight} onToggleInspector={toggleInspector} />
                     ) : (
                     <BuilderInspectorSidebar
                       selectedBlock={selectedBlock}
@@ -1124,6 +1157,7 @@ export default function PageBuilder({
         </DeviceViewProvider>
         </EditorPopupsProvider>
         </EditorColorMemoryProvider>
+        </BlogModeProvider>
         </DocsModeProvider>
       </PageProvider>
     </div>

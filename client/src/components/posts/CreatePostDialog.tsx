@@ -1,85 +1,21 @@
-import { useState, useReducer } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useId, useState, type FormEvent, type JSX } from "react";
+import { Loader2, PenLine } from "lucide-react";
 import { useLocation } from "wouter";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { newPostBody } from "@shared/blog/compose-blog-post";
+import type { Blog } from "@shared/schema-types";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus, Loader2 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
-import { appendSiteIdToUrl } from "@/lib/site-api";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useActiveSite } from "@/hooks/useActiveSite";
-import { showErrorToast, showSuccessToast } from "@/lib/sonner-toast";
-import type { Blog } from "@shared/schema-types";
+import { apiRequest } from "@/lib/queryClient";
+import { generateId } from "@/lib/utils";
+import { BlogSetupDialog } from "./blog-setup-dialog";
 
-interface BlogsResponse {
-  blogs: Blog[];
-  total: number;
-}
-
-type DialogStep = "select-blog" | "create-blog";
-
-type FormState = {
-  selectedBlogId: string;
-  postTitle: string;
-  newBlogName: string;
-  newBlogDescription: string;
-  isCreating: boolean;
-  isCreatingBlog: boolean;
-};
-
-type FormAction =
-  | { type: 'SET_BLOG'; payload: string }
-  | { type: 'SET_POST_TITLE'; payload: string }
-  | { type: 'SET_BLOG_NAME'; payload: string }
-  | { type: 'SET_BLOG_DESC'; payload: string }
-  | { type: 'SET_CREATING'; payload: boolean }
-  | { type: 'SET_CREATING_BLOG'; payload: boolean }
-  | { type: 'RESET' };
-
-const initialFormState: FormState = {
-  selectedBlogId: "",
-  postTitle: "",
-  newBlogName: "",
-  newBlogDescription: "",
-  isCreating: false,
-  isCreatingBlog: false,
-};
-
-function formReducer(state: FormState, action: FormAction): FormState {
-  switch (action.type) {
-    case 'SET_BLOG':
-      return { ...state, selectedBlogId: action.payload };
-    case 'SET_POST_TITLE':
-      return { ...state, postTitle: action.payload };
-    case 'SET_BLOG_NAME':
-      return { ...state, newBlogName: action.payload };
-    case 'SET_BLOG_DESC':
-      return { ...state, newBlogDescription: action.payload };
-    case 'SET_CREATING':
-      return { ...state, isCreating: action.payload };
-    case 'SET_CREATING_BLOG':
-      return { ...state, isCreatingBlog: action.payload };
-    case 'RESET':
-      return initialFormState;
-    default:
-      return state;
-  }
-}
+type BlogsResponse = { blogs: Blog[] };
 
 interface CreatePostDialogProps {
   open: boolean;
@@ -87,252 +23,145 @@ interface CreatePostDialogProps {
   initialTitle?: string;
 }
 
-/**
- * Two-step dialog for creating a new post:
- * Step 1 — Select an existing blog or switch to "create blog" mode
- * Step 2 — (inline) Create a new blog, then return to step 1
- *
- * Once a blog is selected and a title is entered, the dialog creates
- * the post via POST /api/posts and navigates to the page builder.
- */
-export function CreatePostDialog({ open, onOpenChange, initialTitle = '' }: CreatePostDialogProps) {
+type Problem = { field: "title" | "form"; message: string };
+
+/** A title (and which blog, when there are several), then the writing editor opens on the new post. */
+function NewPostStep({ blogs, firstBlogId, initialTitle, onSetUpBlog, onClose }: { blogs: Blog[]; firstBlogId: string; initialTitle: string; onSetUpBlog: () => void; onClose: () => void }): JSX.Element {
   const [, setLocation] = useLocation();
-  const { activeSiteId } = useActiveSite();
+  const queryClient = useQueryClient();
+  const ids = { title: useId(), blog: useId() };
+  const [title, setTitle] = useState(initialTitle);
+  const [blogId, setBlogId] = useState(firstBlogId);
+  const [problem, setProblem] = useState<Problem | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  // Dialog state - step is separate for clarity
-  const [step, setStep] = useState<DialogStep>("select-blog");
-  const [form, dispatchForm] = useReducer(formReducer, {
-    ...initialFormState,
-    postTitle: initialTitle,
-  });
-
-  // Fetch existing blogs
-  const { data: blogsData, isLoading: blogsLoading, refetch: refetchBlogs } = useQuery<BlogsResponse>({
-    queryKey: ["/api/blogs", { status: "any", siteId: activeSiteId }],
-    enabled: open && Boolean(activeSiteId),
-  });
-
-  const blogs = blogsData?.blogs ?? [];
-
-  /** Reset all dialog state */
-  const resetState = () => {
-    setStep("select-blog");
-    dispatchForm({ type: 'RESET' });
-  };
-
-  const handleClose = (isOpen: boolean) => {
-    if (!isOpen) resetState();
-    onOpenChange(isOpen);
-  };
-
-  /** Create a new blog, then auto-select it */
-  const handleCreateBlog = async () => {
-    if (!form.newBlogName.trim()) return;
-
-    dispatchForm({ type: 'SET_CREATING_BLOG', payload: true });
-    try {
-      const response = await apiRequest(
-        "POST",
-        appendSiteIdToUrl("/api/blogs", activeSiteId),
-        {
-          name: form.newBlogName.trim(),
-          description: form.newBlogDescription.trim() || undefined,
-          status: "publish",
-        },
-      );
-      const blog = await response.json();
-
-      showSuccessToast(`"${blog.name}" is ready`);
-
-      // Refresh the blogs list and auto-select the new blog
-      await refetchBlogs();
-      dispatchForm({ type: 'SET_BLOG', payload: blog.id });
-      dispatchForm({ type: 'SET_BLOG_NAME', payload: '' });
-      dispatchForm({ type: 'SET_BLOG_DESC', payload: '' });
-      setStep("select-blog");
-    } catch (err) {
-      console.error("Error creating blog:", err);
-      showErrorToast("Failed to create blog");
-    } finally {
-      dispatchForm({ type: 'SET_CREATING_BLOG', payload: false });
+  const submit = async (event: FormEvent): Promise<void> => {
+    event.preventDefault();
+    if (!title.trim()) {
+      setProblem({ field: "title", message: "Give the post a title." });
+      return;
     }
-  };
-
-  /** Create the post via API and navigate to page builder */
-  const handleCreatePost = async () => {
-    if (!form.postTitle.trim() || !form.selectedBlogId) return;
-
-    dispatchForm({ type: 'SET_CREATING', payload: true });
+    setSaving(true);
+    setProblem(null);
     try {
-      const response = await apiRequest("POST", "/api/posts", {
-        title: form.postTitle.trim(),
-        blogId: form.selectedBlogId,
-        status: "draft",
-        blocks: [],
-      });
-      const post = await response.json();
-
-      showSuccessToast("Post created successfully");
-      handleClose(false);
+      // A written post is only its body; the blog's look is put around it when it is shown.
+      const response = await apiRequest("POST", "/api/posts", { title: title.trim(), blogId, status: "draft", blocks: newPostBody({ newId: generateId }) });
+      const post = (await response.json()) as { id: string };
+      void queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      onClose();
       setLocation(`/admin/page-builder/post/${post.id}`);
-    } catch (err) {
-      console.error("Error creating post:", err);
-      showErrorToast("Failed to create post");
-    } finally {
-      dispatchForm({ type: 'SET_CREATING', payload: false });
+    } catch (error) {
+      console.error({ atFunction: "newPost.create", data: { blogId, title, error }, message: "Creating the post failed" });
+      setProblem({ field: "form", message: "We couldn't create the post. Check your connection and try again." });
+      setSaving(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      if (step === "create-blog" && form.newBlogName.trim()) {
-        handleCreateBlog();
-      } else if (step === "select-blog" && form.postTitle.trim() && form.selectedBlogId) {
-        handleCreatePost();
-      }
-    }
-  };
-
-  // ── Create Blog sub-form ──────────────────────────────────────────────
-  if (step === "create-blog") {
-    return (
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Create a Blog</DialogTitle>
-            <DialogDescription>
-              Give your blog a name. You can add more details later.
-            </DialogDescription>
+  return (
+    <Dialog open onOpenChange={(open) => !open && !saving && onClose()}>
+      <DialogContent className="flex max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg flex-col gap-0 p-0" showCloseButton={!saving}>
+        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col" aria-busy={saving || undefined}>
+          <DialogHeader className="flex-row items-center gap-3 border-b border-npb-divider px-5 py-4 text-left">
+            <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-md bg-npb-surface-inset text-npb-text-primary">
+              <PenLine className="size-4" />
+            </span>
+            <DialogTitle className="text-base">New blog post</DialogTitle>
+            <DialogDescription className="sr-only">Give the post a title; the writing editor opens on it.</DialogDescription>
           </DialogHeader>
-
-          <div className="grid gap-4 py-4">
+          <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto px-5 py-5">
             <div className="grid gap-2">
-              <Label htmlFor="blog-name">Blog Name</Label>
-              <Input
-                id="blog-name"
-                placeholder="e.g. Engineering Blog"
-                value={form.newBlogName}
-                onChange={(e) => dispatchForm({ type: 'SET_BLOG_NAME', payload: e.target.value })}
-                onKeyDown={handleKeyDown}
-                autoFocus
-              />
+              <Label htmlFor={ids.title}>Title</Label>
+              <Input id={ids.title} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What the post is about" autoFocus disabled={saving} aria-invalid={problem?.field === "title" || undefined} />
+              {problem?.field === "title" ? (
+                <p role="alert" className="text-sm text-npb-status-error">
+                  {problem.message}
+                </p>
+              ) : null}
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="blog-desc">Description (optional)</Label>
-              <Input
-                id="blog-desc"
-                placeholder="What is this blog about?"
-                value={form.newBlogDescription}
-                onChange={(e) => dispatchForm({ type: 'SET_BLOG_DESC', payload: e.target.value })}
-                onKeyDown={handleKeyDown}
-              />
-            </div>
+            {blogs.length > 1 ? (
+              <div className="grid gap-2 [&_[data-slot=native-select-wrapper]]:w-full">
+                <Label htmlFor={ids.blog}>Blog</Label>
+                <NativeSelect id={ids.blog} value={blogId} disabled={saving} onChange={(event) => setBlogId(event.target.value)}>
+                  {blogs.map((blog) => (
+                    <NativeSelectOption key={blog.id} value={blog.id}>
+                      {blog.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
+            ) : null}
+            {problem?.field === "form" ? (
+              <p role="alert" className="text-sm text-npb-status-error">
+                {problem.message}
+              </p>
+            ) : null}
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStep("select-blog")}>
-              Back
+          <DialogFooter className="border-t border-npb-divider bg-npb-surface-raised px-5 py-3">
+            <Button type="button" variant="link" className="mr-auto h-auto px-0" onClick={onSetUpBlog} disabled={saving}>
+              Set up a new blog
             </Button>
-            <Button
-              onClick={handleCreateBlog}
-              disabled={!form.newBlogName.trim() || form.isCreatingBlog}
-            >
-              {form.isCreatingBlog && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Create Blog
+            <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? <Loader2 aria-hidden className="animate-spin" /> : null}
+              {saving ? "Creating…" : "Create post"}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  // ── Main form: select blog + post title ───────────────────────────────
-  return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>New Post</DialogTitle>
-          <DialogDescription>
-            Select a blog and enter a title for your new post.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-4 py-4">
-          {/* Blog selector */}
-          <div className="grid gap-2">
-            <Label htmlFor="blog-select">Blog</Label>
-            {blogsLoading ? (
-              <div className="flex items-center gap-2 text-sm text-npb-text-muted py-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading blogs...
-              </div>
-            ) : blogs.length === 0 ? (
-              <div className="text-sm text-npb-text-muted py-2">
-                No blogs yet.{" "}
-                <Button
-                  variant="link"
-                  className="p-0 h-auto text-sm"
-                  onClick={() => setStep("create-blog")}
-                >
-                  Create your first blog
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Select value={form.selectedBlogId} onValueChange={(v) => dispatchForm({ type: 'SET_BLOG', payload: v })}>
-                  <SelectTrigger id="blog-select" className="flex-1">
-                    <SelectValue placeholder="Choose a blog..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {blogs.map((blog) => (
-                      <SelectItem key={blog.id} value={blog.id}>
-                        {blog.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setStep("create-blog")}
-                  title="Create new blog"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Post title */}
-          <div className="grid gap-2">
-            <Label htmlFor="post-title">Post Title</Label>
-            <Input
-              id="post-title"
-              placeholder="Enter post title..."
-              value={form.postTitle}
-              onChange={(e) => dispatchForm({ type: 'SET_POST_TITLE', payload: e.target.value })}
-              onKeyDown={handleKeyDown}
-              autoFocus={blogs.length > 0}
-            />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => handleClose(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleCreatePost}
-            disabled={!form.postTitle.trim() || !form.selectedBlogId || form.isCreating}
-          >
-            {form.isCreating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Create Post
-          </Button>
-        </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
+}
+
+function LoadingBlogs({ onClose }: { onClose: () => void }): JSX.Element {
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-base">New blog post</DialogTitle>
+          <DialogDescription className="sr-only">Checking your blogs.</DialogDescription>
+        </DialogHeader>
+        <div role="status" aria-label="Checking your blogs" className="grid gap-3">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-9 w-full" />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * A new blog post, from New, the Posts screen or the editor's blog menu. A site without a blog sets
+ * one up first ("Set up your blog"); then a title, and the writing editor opens on the post.
+ */
+export function CreatePostDialog({ open, onOpenChange, initialTitle = "" }: CreatePostDialogProps): JSX.Element | null {
+  const { activeSiteId } = useActiveSite();
+  const [settingUp, setSettingUp] = useState(false);
+  const [madeBlog, setMadeBlog] = useState<Blog | null>(null);
+  const blogsQuery = useQuery<BlogsResponse>({
+    queryKey: ["/api/blogs", { status: "any", siteId: activeSiteId }],
+    enabled: open && Boolean(activeSiteId),
+  });
+  if (!open) return null;
+  const close = (): void => {
+    setSettingUp(false);
+    setMadeBlog(null);
+    onOpenChange(false);
+  };
+  const blogs = [...(blogsQuery.data?.blogs ?? []), ...(madeBlog && !blogsQuery.data?.blogs.some((blog) => blog.id === madeBlog.id) ? [madeBlog] : [])];
+
+  if (blogsQuery.isLoading) return <LoadingBlogs onClose={close} />;
+  if (settingUp || blogs.length === 0) {
+    return (
+      <BlogSetupDialog
+        onCreated={(blog) => {
+          setMadeBlog(blog);
+          setSettingUp(false);
+        }}
+        onClose={blogs.length > 0 ? () => setSettingUp(false) : close}
+      />
+    );
+  }
+  return <NewPostStep blogs={blogs} firstBlogId={madeBlog?.id ?? blogs[0].id} initialTitle={initialTitle} onSetUpBlog={() => setSettingUp(true)} onClose={close} />;
 }

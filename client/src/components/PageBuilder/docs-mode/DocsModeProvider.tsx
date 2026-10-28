@@ -4,6 +4,7 @@ import { replaceDocsPageContent } from "@shared/docs/docs-page-frame";
 import type { BlockConfig } from "@shared/schema-types";
 import { pageEditorPath } from "@/lib/admin-content-routes";
 import { findBlock, insertNewBlock } from "@/lib/handlers/treeUtils";
+import { WritingProvider } from "../writing/writing-context";
 import { buildDocsCanvasSource, DocsCanvasSourceProvider } from "./docs-canvas-source";
 import { findDocsPageBlock, readPageToggles, togglePatch } from "./docs-blocks";
 import type { DocsEditorState } from "./docs-editor-state";
@@ -50,9 +51,6 @@ type Props = {
 	startEditing: (id: string) => void;
 	children: ReactNode;
 };
-
-/** Blocks a writing edit leaves open for typing; the rest are picked, so their settings show. */
-const OPENS_FOR_TYPING: ReadonlySet<string> = new Set(["docs/text", "docs/heading", "docs/list", "core/quote", "core/code"]);
 
 /** The address up to the page's own part: `/docs/guides/` for `/docs/guides/install`. */
 const addressPrefixOf = ({ path, slug }: { path: string; slug: string }): string => (slug && path.endsWith(slug) ? path.slice(0, path.length - slug.length) : "/");
@@ -108,29 +106,7 @@ function DocsModeActive({ docs, ...props }: Props & { docs: DocsModeProps }): Re
 		[applyBlocks, getBlocks],
 	);
 
-	// Blocks that open for typing after a writing edit; any other block is only picked.
-	const caretRequest = useRef<{ id: string; caret: "start" | "end" } | null>(null);
-	const applyWriting = useCallback<DocsModeValue["applyWriting"]>(
-		({ blocks: next, editId, caret }) => {
-			commitBlocks(next);
-			if (!editId) {
-				selectBlock(null);
-				return;
-			}
-			caretRequest.current = { id: editId, caret };
-			const edited = findBlock(next, editId);
-			if (edited && OPENS_FOR_TYPING.has(edited.name)) startEditing(editId);
-			else selectBlock(editId);
-		},
-		[commitBlocks, selectBlock, startEditing],
-	);
 	const menuBlocks = useMemo(() => buildDocsLibraryCategories().flatMap((category) => category.blocks), []);
-	const takeCaret = useCallback((blockId: string) => {
-		const request = caretRequest.current;
-		if (!request || request.id !== blockId) return null;
-		caretRequest.current = null;
-		return request.caret;
-	}, []);
 
 	const openPage = useCallback(
 		(id: string) => {
@@ -191,10 +167,6 @@ function DocsModeActive({ docs, ...props }: Props & { docs: DocsModeProps }): Re
 		insertBlock,
 		applyContent,
 		saveNow: save,
-		getBlocks,
-		applyWriting,
-		takeCaret,
-		menuBlocks,
 	};
 	const source = useMemo(() => buildDocsCanvasSource({ tree, pageId, isHome, meta, draft: editor.draft }), [editor.draft, isHome, meta, pageId, tree]);
 
@@ -202,7 +174,9 @@ function DocsModeActive({ docs, ...props }: Props & { docs: DocsModeProps }): Re
 		<DocsModeContextProvider value={value}>
 			<DocsCanvasSourceProvider value={source}>
 				<DocsFrameProvider openRegion={openRegion} openLink={openLink}>
-					{children}
+					<WritingProvider getBlocks={getBlocks} commitBlocks={commitBlocks} selectBlock={selectBlock} startEditing={startEditing} menuBlocks={menuBlocks}>
+						{children}
+					</WritingProvider>
 				</DocsFrameProvider>
 			</DocsCanvasSourceProvider>
 		</DocsModeContextProvider>

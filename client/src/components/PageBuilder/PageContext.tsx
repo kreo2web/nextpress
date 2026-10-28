@@ -3,12 +3,19 @@ import type { PageOther, PageIconSettings } from '@shared/schema-types';
 import { DEFAULT_PAGE_ICONS } from '@shared/page-other';
 import type { AuthorDisplay } from '@shared/author-display';
 
+/** The text search engines and shared links show for a post (`other.seo`). */
+export type PostSearchText = { metaTitle?: string; metaDescription?: string };
+
 export type PostDocumentFields = {
   title?: string;
   excerpt?: string;
   featuredImage?: string;
   categories?: string[];
   tags?: string[];
+  allowComments?: boolean;
+  /** When the post says it was published; empty means "when it is published". */
+  publishedAt?: string | null;
+  seo?: PostSearchText;
 };
 
 export type PostDocumentValue = {
@@ -23,6 +30,8 @@ export type PostDocumentValue = {
   publishedAt?: string | null;
   createdAt?: string | null;
   author?: AuthorDisplay | null;
+  allowComments?: boolean;
+  seo?: PostSearchText;
   updateDocument: (patch: PostDocumentFields) => void;
 };
 

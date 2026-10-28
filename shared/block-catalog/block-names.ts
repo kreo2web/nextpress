@@ -72,6 +72,7 @@ export const BLOCK_NAMES = [
 	"post/navigation",
 	"post/info",
 	"post/progress",
+	"post/body",
 ] as const;
 
 export type BlockName = (typeof BLOCK_NAMES)[number];

@@ -19,6 +19,12 @@ import { storeSlugToIdMapping } from '@/lib/editorStorage';
 import { setParentIds } from '@/lib/handlers/treeUtils';
 import { generateId } from '@/lib/utils';
 import { ensureRootPageShell, readPageDesign } from '@shared/page-shell-model';
+import { parsePageOther } from '@shared/page-other';
+import { composeBlogPost, findPostBody, isWrittenPost, writtenPostBlocks } from '@shared/blog/compose-blog-post';
+import type { BlogPostLook } from '@shared/blog/blog-post-look';
+import { lookOfBlog, useBlog } from '@/components/PageBuilder/blog-mode/use-blog';
+import { mergeSearchText } from '@/components/PageBuilder/blog-mode/post-search-text';
+import type { PostDocumentFields, PostSearchText } from '@/components/PageBuilder/PageContext';
 import { apiRequest } from '@/lib/queryClient';
 import { addMissingIconDrawings } from '@/lib/icon-drawing-capture';
 import {
@@ -90,11 +96,16 @@ type PageAction =
 function blocksWithRootShell({
   blocks,
   leftoverDesign,
+  postLook = null,
 }: {
   blocks: unknown;
   leftoverDesign?: PageOther['design'];
+  /** A written post's blog look: its body is shown inside it (a saved draft may hold an older look). */
+  postLook?: BlogPostLook | null;
 }): BlockConfig[] {
   const parented = setParentIds(Array.isArray(blocks) ? (blocks as BlockConfig[]) : [], null);
+  const body = postLook ? findPostBody(parented) : null;
+  if (postLook && body) return composeBlogPost({ body: { ...body, parentId: null }, look: postLook });
   return ensureRootPageShell({
     blocks: parented,
     leftoverDesign,
@@ -229,6 +240,9 @@ export default function PageBuilderEditor({
     featuredImage: '',
     categories: [] as string[],
     tags: [] as string[],
+    allowComments: true,
+    publishedAt: null as string | null,
+    seo: { metaTitle: '', metaDescription: '' } as PostSearchText,
   });
   const draftSaveRef = useRef<NodeJS.Timeout | null>(null);
   const previewHandoffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -282,6 +296,11 @@ export default function PageBuilderEditor({
     enabled: !!(resolvedPageId || postId) && !waitingForSite,
   });
 
+  // A written post opens inside its blog's look, so the editor waits for the blog before drawing it.
+  const writtenBlogId = isPost && rawData && isWrittenPost((rawData as Post).blocks as BlockConfig[]) ? String((rawData as Post).blogId ?? '') : '';
+  const writtenBlog = useBlog({ blogId: writtenBlogId });
+  const waitingForBlog = writtenBlogId !== '' && writtenBlog.isLoading;
+
   /** Normalise raw API data into the EditorData shape */
   const data: EditorData | undefined = rawData
     ? isTemplate
@@ -297,6 +316,8 @@ export default function PageBuilderEditor({
       ? '/admin/templates'
       : '/admin/pre-designed-blocks';
 
+  // A post that is only a body (made in the writing editor) opens in the writing editor, inside its blog's look.
+  const isWritten = isPost && !inlinePostId && pageState.isInitialized && findPostBody(pageState.blocks) !== null;
   // A page whose page shell holds a docs shell is a docs page: it opens in the docs editor.
   const isDocs = !isPost && !isTemplate && pageState.isInitialized && isDocsPageBlocks(pageState.blocks);
   // A docs page sits under its docs home and groups; the publish dialog shows its whole address.
@@ -347,6 +368,8 @@ export default function PageBuilderEditor({
       featuredImage?: string | null;
       categories?: string[];
       tags?: string[];
+      allowComments?: boolean | null;
+      publishedAt?: string | Date | null;
       other?: PageOther | unknown;
     };
     remoteVersion: number;
@@ -356,6 +379,7 @@ export default function PageBuilderEditor({
       blocksWithRootShell({
         blocks: source.blocks,
         leftoverDesign: (source as { other?: PageOther }).other?.design,
+        postLook: writtenBlogId ? lookOfBlog(writtenBlog.data) : null,
       }),
     );
     const next: PageState = {
@@ -377,11 +401,15 @@ export default function PageBuilderEditor({
       },
     });
     const loadedOther = parsePostOther(source.other);
+    const loadedSeo = parsePageOther(source.other).seo;
     setPostDoc({
       excerpt: String(source.excerpt ?? ''),
       featuredImage: String(source.featuredImage ?? ''),
       categories: source.categories ?? loadedOther.categories ?? [],
       tags: source.tags ?? loadedOther.tags ?? [],
+      allowComments: source.allowComments !== false,
+      publishedAt: source.publishedAt instanceof Date ? source.publishedAt.toISOString() : source.publishedAt ?? null,
+      seo: { metaTitle: loadedSeo?.metaTitle ?? '', metaDescription: loadedSeo?.metaDescription ?? '' },
     });
     latestPageStateRef.current = next;
     hasUnsavedServerChangesRef.current = false;
@@ -401,7 +429,7 @@ export default function PageBuilderEditor({
   const dataMatchesCurrent =
     dataId != null && (dataId === currentId || (dataSlug != null && dataSlug !== '' && dataSlug === currentId));
 
-  if (dataMatchesCurrent && dataId !== prevDataId && data) {
+  if (dataMatchesCurrent && dataId !== prevDataId && data && !waitingForBlog) {
     setPrevDataId(dataId);
 
     // Load local draft — skip for templates (they save directly)
@@ -733,17 +761,15 @@ latestPageStateRef.current = {
     queueDraftSave(meta);
   };
 
-  const handlePostDocumentChange = (patch: {
-    excerpt?: string;
-    featuredImage?: string;
-    categories?: string[];
-    tags?: string[];
-  }) => {
+  const handlePostDocumentChange = (patch: PostDocumentFields) => {
     setPostDoc((current) => ({
       excerpt: patch.excerpt ?? current.excerpt,
       featuredImage: patch.featuredImage ?? current.featuredImage,
       categories: patch.categories ?? current.categories,
       tags: patch.tags ?? current.tags,
+      allowComments: patch.allowComments ?? current.allowComments,
+      publishedAt: patch.publishedAt !== undefined ? patch.publishedAt : current.publishedAt,
+      seo: patch.seo ? { ...current.seo, ...patch.seo } : current.seo,
     }));
   };
 
@@ -982,15 +1008,19 @@ latestPageStateRef.current = {
         title: fromBlocks.title || pageState.title,
         slug: pageState.slug,
         status: pageState.status,
-        blocks: saveBlocks,
+        // A written post saves its body alone; the blog's look is put around it when it is shown.
+        blocks: isWritten ? writtenPostBlocks(saveBlocks) : saveBlocks,
         excerpt: fromBlocks.excerpt ?? postDoc.excerpt ?? null,
         featuredImage: fromBlocks.featuredImage ?? postDoc.featuredImage ?? null,
+        // The writing editor's Post tab owns these; a page-builder post keeps its own settings window for them.
+        ...(editorContentType === 'post' && isWritten ? { allowComments: postDoc.allowComments, publishedAt: postDoc.publishedAt } : {}),
         other:
           editorContentType === 'post'
             ? {
                 ...existingOther,
                 categories: postDoc.categories,
                 tags: postDoc.tags,
+                ...(isWritten ? { seo: mergeSearchText({ saved: parsePageOther(existingOther).seo, edited: postDoc.seo }) } : {}),
               }
             : isDocs
               ? mergeDocsPageOther({ existing: data.other as PageOther | undefined, draft: docsState.draft })
@@ -1238,7 +1268,7 @@ latestPageStateRef.current = {
             {!isTemplate && (
               <PublishDialog
                 post={isInlineEditing ? inlinePostData ?? undefined : data}
-                blocks={pageState.blocks}
+                blocks={isWritten ? writtenPostBlocks(pageState.blocks) : pageState.blocks}
                 onPublished={handlePublished}
                 disabled={isSaving || (isDocs && docsState.mdxIssue !== null)}
                 disabledReason={isDocs && docsState.mdxIssue ? describeMdxBlock(docsState.mdxIssue) : undefined}
@@ -1282,6 +1312,7 @@ latestPageStateRef.current = {
             isTemplateEditor={isTemplate}
             mode={isDocs ? 'docs' : 'page'}
             docs={isDocs ? { state: docsState, onServerChange: handleDocsServerChange } : undefined}
+            blog={isWritten && writtenBlogId ? { blogId: writtenBlogId } : null}
           />
         </div>
       </div>

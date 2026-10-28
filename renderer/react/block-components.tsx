@@ -113,6 +113,7 @@ export const BLOCK_COMPONENTS: Record<string, React.FC<BlockConfig>> = {
 	"post/toc": PostBlocks.PostTocBlock,
 	"post/list": PostBlocks.PostListBlock,
 	"post/progress": PostBlocks.PostProgressBlock,
+	"post/body": PostBlocks.PostBodyBlock,
 
 	// Legacy/Special blocks
 	"core/counter": CounterBlock,

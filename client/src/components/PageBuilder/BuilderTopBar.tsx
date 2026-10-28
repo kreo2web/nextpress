@@ -53,6 +53,7 @@ export function BuilderTopBar({
   onCreateNewPost,
   pageTransfer,
   docsView,
+  writing = false,
 }: {
   data: any;
   isTemplate: boolean;
@@ -84,8 +85,12 @@ export function BuilderTopBar({
   pageTransfer?: PageTransferActions;
   /** Set only in the docs editor: it has no Blog, Design or Page menus, and in MDX there is no canvas to size. */
   docsView?: "visual" | "mdx";
+  /** A written post in the blog writing editor: its look comes from the blog, so page design tools are hidden. */
+  writing?: boolean;
 }) {
   const inDocs = docsView !== undefined;
+  // Docs and written posts have a fixed frame: no page design, page menu or layer list.
+  const fixedFrame = inDocs || writing;
   const showCanvasTools = docsView !== "mdx";
   const { isDark, toggleTheme } = useTheme();
   const deviceHint =
@@ -166,7 +171,7 @@ export function BuilderTopBar({
               </TooltipTrigger>
               <TooltipContent>{deviceHint}</TooltipContent>
             </Tooltip>
-            {blockOptions.length > 0 && !isPreviewMode && !inDocs ? (
+            {blockOptions.length > 0 && !isPreviewMode && !fixedFrame ? (
               <Select
                 value={shownBlockId}
                 onValueChange={(id) => {
@@ -249,6 +254,7 @@ export function BuilderTopBar({
             </Button>
           </BlogMenu>
 
+          {writing ? null : (
           <DesignMenu
             currentPostId={data?.id}
             currentType={contentType === "template" ? "template" : contentType}
@@ -259,6 +265,7 @@ export function BuilderTopBar({
               Design
             </Button>
           </DesignMenu>
+          )}
             </>
           )}
 
@@ -287,7 +294,7 @@ export function BuilderTopBar({
                 <RotateCw className="w-4 h-4" />
               </Button>
             )}
-            {inDocs ? null : (
+            {fixedFrame ? null : (
             <PagesMenu
               currentPageId={data?.id}
               onPageSettingsClick={onPageSettingsClick}

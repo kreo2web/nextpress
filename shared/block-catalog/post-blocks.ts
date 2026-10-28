@@ -186,6 +186,15 @@ export const POST_BLOCKS: readonly WrittenBlockEntry[] = [
 		defaultStyles: { margin: "0.5em 0" },
 	},
 	{
+		name: "post/body",
+		label: "Post body",
+		description: "A written post's writing, shown inside its blog's look",
+		category: "post",
+		kind: "container",
+		defaultContent: () => structured({}),
+		defaultStyles: { width: "100%", boxSizing: "border-box", margin: "0", padding: "0" },
+	},
+	{
 		name: "post/progress",
 		label: "Reading Progress",
 		description: "Show a reading progress indicator bar",

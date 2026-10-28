@@ -17,6 +17,9 @@ export type SaveEditorBlocksParams = {
   blocks: BlockConfig[];
   excerpt?: string | null;
   featuredImage?: string | null;
+  /** Posts only. Left out (not sent) when undefined, so a page builder save never changes them. */
+  allowComments?: boolean;
+  publishedAt?: string | null;
   other?: Record<string, unknown>;
 };
 
@@ -33,6 +36,8 @@ export async function saveEditorBlocks({
   blocks,
   excerpt,
   featuredImage,
+  allowComments,
+  publishedAt,
   other,
 }: SaveEditorBlocksParams): Promise<Page | Post | Template> {
   const target = resolveEditorSaveTarget({ contentType, id, expectedVersion });
@@ -48,6 +53,8 @@ export async function saveEditorBlocks({
   if (target.contentType === 'post') {
     if (excerpt !== undefined) extra.excerpt = excerpt;
     if (featuredImage !== undefined) extra.featuredImage = featuredImage;
+    if (allowComments !== undefined) extra.allowComments = allowComments;
+    if (publishedAt !== undefined) extra.publishedAt = publishedAt;
   }
   if (other && target.contentType !== 'template') extra.other = other;
 

@@ -9,12 +9,16 @@ import { assertCanOnItem, readerCanEdit } from '../lib/access';
 import { resolveSiteThemeSettings } from './shared/resolve-site-theme-settings';
 import { mergePageOtherWithThemeDefaults } from '@shared/theme-to-page-design';
 import { scheduleSearchIndexRebuild } from '../lib/site-search';
+import { readBlogHome, updateBlogHomeList } from '../lib/blog-home/blog-home';
+import { uniquePageSlug } from './shared/duplicate-page';
+import { DEFAULT_BLOG_HOME_LIST, readBlogHomeListPatch, type BlogHomeList } from '@shared/blog/blog-home-list';
+import type { JsonValue } from '@shared/blocks/docs-types';
 
 /**
  * Builds a PostList block config pre-configured for a specific blog.
  * This block is placed on the auto-created blog page so it lists that blog's posts.
  */
-function buildBlogPostListBlock(blogId: string) {
+function buildBlogPostListBlock(blogId: string, list: BlogHomeList = DEFAULT_BLOG_HOME_LIST) {
   return {
     id: crypto.randomUUID(),
     name: 'post/list',
@@ -23,12 +27,8 @@ function buildBlogPostListBlock(blogId: string) {
     parentId: null,
     category: 'post' as const,
     content: {
-      layout: 'cards',
       postsPerPage: 6,
-      showExcerpt: true,
-      showFeaturedImage: true,
-      showDate: true,
-      showAuthor: true,
+      ...list,
       blogId,
       orderBy: 'date',
       order: 'desc',
@@ -186,14 +186,20 @@ export function createBlogsRoutes(deps: Deps): Router {
           other: { isBlogPage: true, blogId: blog.id },
         });
 
-        // Auto-create the blog's index page with a PostList block
+        // Auto-create the blog's index page with a PostList block. The blog setup names its address
+        // (`blog`), publishes it and picks how it lists posts; other callers keep the old defaults.
+        const home = (req.body?.home ?? {}) as { address?: string; publish?: boolean; list?: JsonValue };
+        const homeSlug = await uniquePageSlug({
+          title: typeof home.address === 'string' && home.address.trim() ? home.address : `blog-${String(blog.slug)}`,
+          isTaken: async (candidate) => Boolean(await models.pages.findBySiteAndSlug(siteId, candidate)),
+        });
         const blogPage = await models.pages.create({
           title: String(blog.name),
-          slug: `blog-${String(blog.slug)}`,
+          slug: homeSlug,
           siteId,
           authorId: String(userId),
-          status: 'draft',
-          blocks: [buildBlogPostListBlock(blog.id)],
+          status: home.publish === true ? 'publish' : 'draft',
+          blocks: [buildBlogPostListBlock(blog.id, { ...DEFAULT_BLOG_HOME_LIST, ...readBlogHomeListPatch(home.list) })],
           other: pageOther,
         } as any);
 
@@ -242,6 +248,52 @@ export function createBlogsRoutes(deps: Deps): Router {
       }
       res.json(result);
     })
+  );
+
+  /**
+   * GET /api/blogs/:id/home — The blog's home page: its address, whether it is live, and how it lists posts.
+   */
+  router.get(
+    '/:id/home',
+    requireAuth,
+    asyncHandler(async (req, res) => {
+      const id = req.params.id;
+      const { err, result } = await safeTryAsync(async () => {
+        await assertCanOnItem({ req, models, kind: 'blog', id });
+        const blog = await models.blogs.findById(id);
+        return blog ? readBlogHome({ models, blog }) : null;
+      });
+      if (err) {
+        const status = readErrorStatus(err);
+        if (status >= 500) console.error({ atFunction: 'blogs.home', data: { blogId: id, error: err }, message: 'Failed to read the blog home' });
+        return res.status(status).json({ message: status >= 500 ? "Couldn't read the blog's home page" : err.message });
+      }
+      if (!result) return res.status(404).json({ message: 'This blog has no home page.' });
+      res.json(result);
+    }),
+  );
+
+  /**
+   * PUT /api/blogs/:id/home/list — Changes how the blog's home page lists posts (layout and what each post shows).
+   */
+  router.put(
+    '/:id/home/list',
+    requireAuth,
+    asyncHandler(async (req, res) => {
+      const id = req.params.id;
+      const { err, result } = await safeTryAsync(async () => {
+        await assertCanOnItem({ req, models, kind: 'blog', id });
+        const blog = await models.blogs.findById(id);
+        return blog ? updateBlogHomeList({ models, hooks, blog, list: readBlogHomeListPatch(req.body as JsonValue) }) : null;
+      });
+      if (err) {
+        const status = readErrorStatus(err);
+        if (status >= 500) console.error({ atFunction: 'blogs.homeList', data: { blogId: id, error: err }, message: 'Failed to change the blog home list' });
+        return res.status(status).json({ message: status >= 500 ? "Couldn't change how the blog lists posts" : err.message });
+      }
+      if (!result) return res.status(404).json({ message: 'This blog has no home page.' });
+      res.json(result);
+    }),
   );
 
   /**

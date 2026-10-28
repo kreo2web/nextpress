@@ -145,4 +145,6 @@ export const BLOCK_AGENT_NOTES: Record<BlockName, string> = {
 		"Date, categories, tags and reading time of the current post. Only on post templates and inside posts.",
 	"post/progress":
 		"A reading-progress bar. Only on long posts.",
+	"post/body":
+		"The writing of a written post (one made in the blog writing editor): its blocks are this block alone, and the blog's look (title, date, cover, author, comments) is put around it when the post is shown. Put writing blocks in it: docs/text, docs/heading, docs/list, core/quote, core/separator, core/image, core/gallery, core/video, core/code, docs/callout, core/table, core/button. Never on a page, never inside another block.",
 };

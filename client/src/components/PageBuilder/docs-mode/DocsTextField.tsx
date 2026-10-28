@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { InlineTextEditor } from "../blocks/shared/inline-text-editor";
 import type { BlockDefinition } from "../blocks/types";
 import { generateBlockId } from "../utils";
-import { useDocsMode } from "./docs-mode-context";
+import { useWriting } from "../writing/writing-context";
 import { readSlashQuery, readWritingTurn, removeEmptyBlock, replaceBlock, splitBlock, splitText } from "./docs-writing";
 
 /** Blocks picked from the "/" menu start empty where the catalog's sample text would only be deleted. */
@@ -52,15 +52,15 @@ type Props = {
  * Typing in a docs paragraph or heading, as in a document: Enter starts a new paragraph (Shift+Enter
  * is a line break), Backspace in an empty one removes it and carries on in the block above, typing
  * `## `, `- `, `1. `, `[] `, `> ` or three backticks at the start makes that block, and "/" opens a
- * menu of docs blocks to pick by name. Outside the docs editor it is the plain field.
+ * menu of the editor's blocks to pick by name. Outside an editor that writes it is the plain field.
  */
 export function DocsTextField({ blockId, field, value, onChange, kind, placeholder, ariaLabel }: Props): ReactElement {
-	const docs = useDocsMode();
+	const docs = useWriting();
 	const menuId = useId();
 	const [caret] = useState(() => docs?.takeCaret(blockId) ?? "end");
 	const [active, setActive] = useState(0);
 	const [dismissedAt, setDismissedAt] = useState<string | null>(null);
-	const blocks = docs?.menuBlocks ?? [];
+	const blocks = useMemo(() => docs?.menuBlocks ?? [], [docs?.menuBlocks]);
 
 	const query = kind === "paragraph" ? readSlashQuery(value) : null;
 	const menuOpen = query !== null && dismissedAt !== value;

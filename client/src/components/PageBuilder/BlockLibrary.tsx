@@ -30,7 +30,8 @@ if (import.meta.env.DEBUG_BUILDER) {
 // A template part means nothing until a template is chosen, so it is added from the Templates group,
 // not dragged in from here.
 // `core/docs-layout` is the older all-in-one docs block, kept only so existing pages keep working.
-const HIDDEN_FROM_LIBRARY = new Set([TEMPLATE_PART_BLOCK_NAME, "core/divider", "core/docs-layout"]);
+// `post/body` is a written post's writing: the blog writing editor makes it, nothing is dropped as one.
+const HIDDEN_FROM_LIBRARY = new Set([TEMPLATE_PART_BLOCK_NAME, "core/divider", "core/docs-layout", "post/body"]);
 
 const allBlocks = Object.values(blockRegistry).filter(
   (block, index, arr) =>

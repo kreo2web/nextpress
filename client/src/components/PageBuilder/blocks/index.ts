@@ -74,6 +74,7 @@ import PostCommentsBlock from './post-comments/PostCommentsBlock';
 import PostNavigationBlock from './post-navigation/PostNavigationBlock';
 import PostInfoBlock from './post-info/PostInfoBlock';
 import PostProgressBlock from './post-progress/PostProgressBlock';
+import PostBodyBlock from './post-body/PostBodyBlock';
 
 if (import.meta.env.DEBUG_BUILDER) {
   console.log('Imported Blocks:', {
@@ -116,6 +117,7 @@ if (import.meta.env.DEBUG_BUILDER) {
     PostNavigationBlock,
     PostInfoBlock,
     PostProgressBlock,
+    PostBodyBlock,
   });
 }
 
@@ -200,6 +202,7 @@ export const blockRegistry: Record<string, BlockDefinition> = {
   'post/navigation': PostNavigationBlock,
   'post/info': PostInfoBlock,
   'post/progress': PostProgressBlock,
+  'post/body': PostBodyBlock,
 };
 
 /** A new block as the editor inserts it. Same helper the SDK and the AI builder use. */

@@ -8,6 +8,7 @@ import {
 } from '@shared/page-shell-model';
 import { retargetRootIntoShell } from '@shared/page-tools/retarget-root-into-shell';
 import { DOCS_PAGE_BLOCK_NAME } from '@shared/blocks/docs-page-model';
+import { POST_BODY_BLOCK_NAME } from '@shared/blog/compose-blog-post';
 import { fitToDocsColumn } from '@shared/docs/docs-column-spacing';
 
 export type InsertBlockResult = {
@@ -84,10 +85,10 @@ export function insertNewBlock(rootBlocks: BlockConfig[], parentId: string | nul
     return { blocks: clone, newId: newBlock.id };
   }
   
-  // A block that lands in a docs page (or in a block inside one) lines up with the page's text.
+  // A block that lands in a docs page or a post's body (or in a block inside one) lines up with the text.
   function insert(list: BlockConfig[], inDocsPage: boolean): boolean {
     for (const b of list) {
-      const docs = inDocsPage || b.name === DOCS_PAGE_BLOCK_NAME;
+      const docs = inDocsPage || b.name === DOCS_PAGE_BLOCK_NAME || b.name === POST_BODY_BLOCK_NAME;
       if (b.id === target.parentId) {
         if (!Array.isArray(b.children)) b.children = [];
         b.children.splice(target.index, 0, docs ? fitToDocsColumn(newBlock!) : newBlock!);

@@ -1,10 +1,8 @@
 import { createContext, useContext, type MutableRefObject } from "react";
 import type { DocsSettings, DocsTree, UpdateDocsSettingsInput } from "@shared/docs";
 import type { BlockConfig } from "@shared/schema-types";
-import type { BlockDefinition } from "../blocks/types";
 import type { DropResult } from "@/lib/dnd";
 import type { DocsEditorState } from "./docs-editor-state";
-import type { WritingResult } from "./docs-writing";
 import type { DocsPageMeta, DocsPageToggleKey, DocsPageToggles, DocsPanelTab, DocsRailTab, DocsSection } from "./docs-types";
 
 /**
@@ -86,18 +84,6 @@ export type DocsModeValue = {
 	applyContent: (children: BlockConfig[], options: { newStep: boolean }) => BlockConfig[];
 	/** Saves the page now, as the Save button does; `blocks` is the tree to save when it is newer than what has been drawn yet. */
 	saveNow: (blocks?: BlockConfig[]) => void;
-
-	/** The whole tree as it is now, for edits that build on it. */
-	getBlocks: () => BlockConfig[];
-	/** A writing edit (Enter, Backspace, a marker, the "/" menu) as one undo step; then the block to write in next opens, caret placed. */
-	applyWriting: (result: Omit<WritingResult, "editId"> & { editId: string | null }) => void;
-	/** Where the caret goes when this block's text opens, if an edit asked; read once. */
-	takeCaret: (blockId: string) => WritingResult["caret"] | null;
-	/**
-	 * What the "/" menu offers: the Blocks tab's docs blocks, in its order. Handed down from here
-	 * because the paragraph block can't import the block list (the list needs every block loaded first).
-	 */
-	menuBlocks: BlockDefinition[];
 };
 
 const DocsModeContext = createContext<DocsModeValue | null>(null);

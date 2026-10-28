@@ -25,6 +25,7 @@ import { resolvePageTemplateParts } from '../lib/template-parts';
 import { siteSearchIndexOf } from '../lib/site-search';
 import { findPageByPath } from '../lib/page-paths/page-paths';
 import { matchesIfNoneMatch } from './shared/if-none-match';
+import { composeWrittenPost } from '../lib/compose-written-post';
 
 /** A browser may reuse its copy of the search index for a minute, then asks again (a cheap 304 when nothing changed). */
 const DOCS_INDEX_CACHE_CONTROL = 'public, max-age=60, must-revalidate';
@@ -201,7 +202,8 @@ export function createPublicRoutes(deps: Deps): Router {
           models,
           siteId: site.id,
           pageId: post.id,
-          blocks: (Array.isArray(post.blocks) ? post.blocks : []) as BlockConfig[],
+          // A written post is shown inside its blog's look, as on the server-rendered page.
+          blocks: (await composeWrittenPost({ models, blogId: post.blogId, blocks: (Array.isArray(post.blocks) ? post.blocks : []) as BlockConfig[] })).blocks,
         });
         const boundBlocks = bindPostBlocks({
           blocks: parts.blocks,

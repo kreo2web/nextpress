@@ -12,6 +12,7 @@ import { DOCS_PAGE_BLOCK_NAME } from "@shared/blocks/docs-page-model";
 import { DOCS_SHELL_BLOCK_NAME } from "@shared/blocks/docs-shell-model";
 import { readListPage } from "@shared/bind-post-list";
 import { resolvePageTemplateParts, templatePartsStamp } from "./template-parts";
+import { composeWrittenPost } from "./compose-written-post";
 import { canonicalUrlWithoutQuery, publishedPageCache, publishedPageCacheKey } from "./published-page-cache";
 import {
 	preparePublishedPost,
@@ -95,7 +96,10 @@ export async function sendPublishedHtml({
 	canonicalUrl: string;
 	siteId?: string;
 }): Promise<void> {
-	const storedBlocks = (Array.isArray(document.blocks) ? document.blocks : []) as BlockConfig[];
+	const savedBlocks = (Array.isArray(document.blocks) ? document.blocks : []) as BlockConfig[];
+	// A written post is its body only; it is shown inside its blog's look.
+	const written = await composeWrittenPost({ models, blogId: document.blogId, blocks: savedBlocks });
+	const storedBlocks = written.blocks;
 	const version = typeof document.version === "number" ? document.version : 0;
 	const stableCanonical = canonicalUrlWithoutQuery(canonicalUrl);
 
@@ -156,6 +160,7 @@ export async function sendPublishedHtml({
 			site,
 		}),
 		templatePartsStamp: templatePartsStamp(parts.usedTemplates),
+		lookStamp: written.lookStamp,
 	});
 	if (cacheable) {
 		const cached = publishedPageCache.read(cacheKey);

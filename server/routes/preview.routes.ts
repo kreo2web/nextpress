@@ -21,6 +21,7 @@ import { enrichPostForApi } from '@shared/posts/post-other';
 import type { BlockConfig } from '@shared/schema-types';
 import { readTemplatePartSiteId } from '@shared/template-usage';
 import { resolvePageTemplateParts } from '../lib/template-parts';
+import { composeWrittenPost } from '../lib/compose-written-post';
 
 const DEFAULT_PREVIEW_TTL_SECONDS = 300;
 const MAX_PREVIEW_TTL_SECONDS = 3600;
@@ -176,7 +177,8 @@ export function createPreviewRoutes(deps: Deps): Router {
             models,
             siteId: await readPostSiteId({ models, blogId: post.blogId }),
             id: post.id,
-            blocks: post.blocks,
+            // A written post is previewed inside its blog's look, as it will be published.
+            blocks: (await composeWrittenPost({ models, blogId: post.blogId, blocks: (Array.isArray(post.blocks) ? post.blocks : []) as BlockConfig[] })).blocks,
           }),
         });
       });
@@ -351,7 +353,7 @@ async function loadPreviewContent({
         models,
         siteId: await readPostSiteId({ models, blogId: post.blogId }),
         id: post.id,
-        blocks: post.blocks,
+        blocks: (await composeWrittenPost({ models, blogId: post.blogId, blocks: (Array.isArray(post.blocks) ? post.blocks : []) as BlockConfig[] })).blocks,
       }),
     };
   }

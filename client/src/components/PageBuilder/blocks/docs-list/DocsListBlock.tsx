@@ -22,6 +22,7 @@ const DocsListBlock = createBlockDefinition<DocsListContent>({
 					value={listToLines(content)}
 					onChange={(lines) => setContent((prev) => ({ ...prev, items: listFromLines({ style: prev.style, lines }) }))}
 					style={{ color: "inherit", font: "inherit", lineHeight: "inherit" }}
+					focusAt="end"
 					multiline
 					placeholder={"First point\nSecond point\n  A detail under it"}
 					ariaLabel="List items, one per line"

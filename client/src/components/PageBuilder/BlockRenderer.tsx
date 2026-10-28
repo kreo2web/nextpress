@@ -235,7 +235,7 @@ export function ContainerChildren({
               <Draggable
                 draggableId={child.id}
                 index={childIndex}
-                isDragDisabled={Boolean(frame?.isFrameBlock(child.name))}>
+                isDragDisabled={Boolean(frame?.isFrameBlock(child.name) || frame?.isFixed(child.name))}>
                 {(dragProvided, dragSnapshot) => (
                   <div
                     ref={dragProvided.innerRef}
@@ -339,8 +339,9 @@ function BlockEditorToolbarPanel({
   isEditing?: boolean;
   onStartEditing?: () => void;
   onStopEditing?: () => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
+  /** Absent for a block that stays where the frame puts it (a post's title, subtitle and cover). */
+  onDuplicate?: () => void;
+  onDelete?: () => void;
   className?: string;
   open: boolean;
   engageHandlers: {
@@ -463,40 +464,44 @@ function BlockEditorToolbarPanel({
           </Tooltip>
         ) : null}
         {!isEditing ? <AskAiButton blockId={blockId} blockLabel={askAiLabel} /> : null}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              title="Duplicate block"
-              aria-label="Duplicate block"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDuplicate();
-              }}
-              className="h-6 w-6 p-0">
-              <Copy className="w-3 h-3" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Duplicate block</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              title="Delete block"
-              aria-label="Delete block"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="h-6 w-6 p-0 text-red-600 hover:text-red-700">
-              <Trash2 className="w-3 h-3" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Delete block</TooltipContent>
-        </Tooltip>
+        {onDuplicate ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                title="Duplicate block"
+                aria-label="Duplicate block"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate();
+                }}
+                className="h-6 w-6 p-0">
+                <Copy className="w-3 h-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Duplicate block</TooltipContent>
+          </Tooltip>
+        ) : null}
+        {onDelete ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                title="Delete block"
+                aria-label="Delete block"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="h-6 w-6 p-0 text-red-600 hover:text-red-700">
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Delete block</TooltipContent>
+          </Tooltip>
+        ) : null}
       </div>
     </TooltipProvider>
   );
@@ -741,15 +746,17 @@ export default function BlockRenderer({
     actions?.onStartEditing?.(block.id);
   };
 
+  // A fixed block (a post's title, subtitle, cover) is typed in where it is: never moved, copied or deleted.
+  const isFixedBlock = Boolean(docsFrame?.isFixed(block.name));
   const toolbarPanelProps = {
     label: blockToolbarLabel,
     labelTooltip: blockToolbarLabelTooltip,
-    dragHandleProps,
+    dragHandleProps: isFixedBlock ? undefined : dragHandleProps,
     isEditing,
     onStartEditing: () => actions?.onStartEditing?.(block.id),
     onStopEditing: () => actions?.onStopEditing?.(),
-    onDuplicate,
-    onDelete,
+    onDuplicate: isFixedBlock ? undefined : onDuplicate,
+    onDelete: isFixedBlock ? undefined : onDelete,
     open: toolbarOpen,
     engageHandlers: toolbarEngageHandlers,
     chromeMode,

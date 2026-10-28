@@ -15,6 +15,8 @@ export type PublishedPageCacheKey = {
 	themeSettingsJson: string;
 	/** From templatePartsStamp. Empty when the page shows no linked parts. */
 	templatePartsStamp: string;
+	/** A written post's blog look (`composeWrittenPost`). Empty for everything else. */
+	lookStamp?: string;
 };
 
 /**
@@ -40,13 +42,15 @@ export function publishedPageCacheKey({
 	themeId,
 	themeSettingsJson,
 	templatePartsStamp,
+	lookStamp = "",
 }: PublishedPageCacheKey): string {
 	const themeHash = createHash("sha256").update(themeSettingsJson).digest("hex").slice(0, 16);
 	const partsHash = templatePartsStamp
 		? createHash("sha256").update(templatePartsStamp).digest("hex").slice(0, 16)
 		: "none";
 	const address = canonicalUrlWithoutQuery(canonicalUrl);
-	return `${documentId}:${version}:${address}:${themeId ?? "none"}:${themeHash}:${partsHash}`;
+	const lookHash = lookStamp ? createHash("sha256").update(lookStamp).digest("hex").slice(0, 16) : "none";
+	return `${documentId}:${version}:${address}:${themeId ?? "none"}:${themeHash}:${partsHash}:${lookHash}`;
 }
 
 export function createPublishedPageCache({ maxEntries }: { maxEntries: number }) {
