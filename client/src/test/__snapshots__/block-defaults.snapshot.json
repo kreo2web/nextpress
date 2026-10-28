@@ -5229,6 +5229,54 @@
     "isContainer": false,
     "label": "Author Box"
   },
+  "post/body": {
+    "category": "post",
+    "defaultContent": {
+      "data": {},
+      "kind": "structured"
+    },
+    "defaultStyles": {
+      "boxSizing": "border-box",
+      "margin": "0",
+      "padding": "0",
+      "width": "100%"
+    },
+    "description": "A written post's writing, shown inside its blog's look",
+    "handlesOwnChildren": true,
+    "hasSettings": false,
+    "id": "post/body",
+    "inserted": {
+      "category": "post",
+      "children": [],
+      "content": {
+        "data": {},
+        "kind": "structured"
+      },
+      "id": "block-under-test",
+      "label": "Post body",
+      "name": "post/body",
+      "other": {
+        "tokenMap": {},
+        "units": {
+          "border": "px",
+          "dimension": "px",
+          "font": "rem",
+          "spacing": "px"
+        }
+      },
+      "parentId": null,
+      "settings": {},
+      "styles": {
+        "boxSizing": "border-box",
+        "margin": "0",
+        "padding": "0",
+        "width": "100%"
+      },
+      "type": "container"
+    },
+    "isContainer": true,
+    "label": "Post body"
+  },
   "post/comments": {
     "category": "post",
     "defaultContent": {
