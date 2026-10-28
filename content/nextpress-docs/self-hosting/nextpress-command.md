@@ -20,6 +20,7 @@ The installer adds the `nextpress` command to your server, at `/usr/local/bin/ne
 | `nextpress reload` | Reloads Caddy |
 | `nextpress export` | Writes your site data to a file |
 | `nextpress import` | Brings the data in a file back into NextPress |
+| `nextpress reset-password` | Sets a new password for an account that can't sign in |
 | `nextpress update-helper` | Turns one-click updates from the dashboard on, off, or shows whether they are on |
 | `nextpress uninstall --yes` | Removes NextPress from the server |
 | `nextpress --version` | Prints the version of the command |
@@ -55,6 +56,10 @@ Run `nextpress restart` to restart all services, or `nextpress reload` to reload
 ## Export and import
 
 `nextpress export` writes your data to a file in the current folder. Import it back with `nextpress import`. See [Back up and move](/docs/self-hosting/back-up-and-move) for the options.
+
+## Reset a password
+
+`nextpress reset-password you@example.com` sets a new password for an account that can't sign in. See [Forgot your password?](/docs/self-hosting/forgot-password).
 
 ## Settings the command reads
 

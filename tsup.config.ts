@@ -15,6 +15,7 @@ export default defineConfig({
     'server/migrate.ts',
     'server/setup-vite.ts',
     'server/transfer-cli.ts',
+    'server/reset-password-cli.ts',
   ],
   outDir: 'dist',
   format: ['esm'],

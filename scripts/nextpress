@@ -14,6 +14,7 @@ readonly MIN_FREE_MB_DOCKER=2048
 readonly BACKUP_KEEP_COUNT=3
 readonly SETUP_URL="http://nextpress.localhost"
 readonly TRANSFER_RUNNER="dist/transfer-cli.js"
+readonly RESET_PASSWORD_RUNNER="dist/reset-password-cli.js"
 # Updates from the admin dashboard (see "Updates from the admin dashboard" below).
 readonly UPDATE_DIR_NAME="update"
 readonly UPDATE_LOG_DIR_NAME="update-logs"
@@ -83,6 +84,7 @@ Commands:
   export                     Export site data to a file.
   import <file>              Import data from an export file.
   reset [--yes]              Reset the instance to a fresh install (backs up first).
+  reset-password <login>     Set a new password for a locked-out account.
   update-helper on|off|status
                              Turn updates from the admin dashboard on or off.
   uninstall --yes            Stop services and remove this install.
@@ -117,6 +119,13 @@ Reset:
   Typical flow: nextpress export --out ~/data.json, then nextpress reset,
   then nextpress import ~/data.json.
 
+Reset password:
+  nextpress reset-password <email or username> [--password-stdin]
+
+  Asks for the new password twice without showing it, saves it and signs
+  that person out everywhere. Sites stay up. Nothing else changes.
+  --password-stdin reads the password from a pipe instead, for scripts.
+
 Entities: users, sites, pages, blogs, posts, comments, media, templates, options
 
 Updates from the admin dashboard:
@@ -140,6 +149,7 @@ Examples:
   nextpress export --with-media-files --out ~/nextpress-export.tar.gz
   nextpress import nextpress-export-20260827-120000.json
   nextpress import nextpress-export.tar.gz --mode skip
+  nextpress reset-password you@example.com
   nextpress logs
 EOF
 }
@@ -1189,7 +1199,7 @@ parse_import_args() {
 	fi
 }
 
-assert_transfer_ready() {
+assert_app_running() {
 	assert_install_dir_exists
 	assert_docker_available
 
@@ -1200,10 +1210,76 @@ assert_transfer_ready() {
 	if ! (cd "$INSTALL_DIR" && compose ps --status running -q app 2>/dev/null | grep -q .); then
 		fail "NextPress is not running. Start it first: nextpress restart"
 	fi
+}
+
+assert_transfer_ready() {
+	assert_app_running
 
 	if ! (cd "$INSTALL_DIR" && compose exec -T app test -f "$TRANSFER_RUNNER") >/dev/null 2>&1; then
 		fail "This NextPress version predates export/import. Run: nextpress upgrade"
 	fi
+}
+
+parse_reset_password_args() {
+	RESET_PASSWORD_LOGIN=""
+	RESET_PASSWORD_STDIN="false"
+	while [ "$#" -gt 0 ]; do
+		case "$1" in
+			--password-stdin) RESET_PASSWORD_STDIN="true"; shift ;;
+			-*) fail "Unknown reset-password option: $1" ;;
+			*)
+				if [ "$RESET_PASSWORD_LOGIN" != "" ]; then
+					fail "Give one email or username. Use: nextpress reset-password <email or username>"
+				fi
+				RESET_PASSWORD_LOGIN="$1"
+				shift
+				;;
+		esac
+	done
+
+	if [ "$RESET_PASSWORD_LOGIN" = "" ]; then
+		fail "Missing email or username. Use: nextpress reset-password <email or username>"
+	fi
+}
+
+# Sets NEW_PASSWORD without ever showing it or putting it in an argument (shell
+# history, process list). Length rules live in the app, so they match sign-in.
+read_new_password() {
+	NEW_PASSWORD=""
+	if [ "$RESET_PASSWORD_STDIN" = "true" ]; then
+		IFS= read -r NEW_PASSWORD || [ "$NEW_PASSWORD" != "" ] || fail "No password came in on the pipe. Nothing was changed."
+		return
+	fi
+
+	# Opening it is the real test: /dev/tty keeps its permissions even when there is no terminal.
+	if ! { true </dev/tty >/dev/tty; } 2>/dev/null; then
+		fail "Refusing to ask for a password without an interactive terminal. Pipe it in with --password-stdin."
+	fi
+
+	local again=""
+	printf '%s' "New password: " >/dev/tty
+	IFS= read -rs NEW_PASSWORD </dev/tty || fail "Could not read the password. Nothing was changed."
+	printf '\n' >/dev/tty
+	printf '%s' "Type it again: " >/dev/tty
+	IFS= read -rs again </dev/tty || fail "Could not read the password. Nothing was changed."
+	printf '\n' >/dev/tty
+
+	if [ "$NEW_PASSWORD" != "$again" ]; then
+		fail "The two passwords don't match. Nothing was changed."
+	fi
+}
+
+run_reset_password() {
+	parse_reset_password_args "$@"
+	assert_app_running
+
+	if ! (cd "$INSTALL_DIR" && compose exec -T app test -f "$RESET_PASSWORD_RUNNER") >/dev/null 2>&1; then
+		fail "This NextPress version can't reset passwords yet. Run: nextpress upgrade"
+	fi
+
+	read_new_password
+	# The app checks the password, saves it and prints the outcome; its exit code is ours.
+	(cd "$INSTALL_DIR" && printf '%s\n' "$NEW_PASSWORD" | compose exec -T app node "$RESET_PASSWORD_RUNNER" "$RESET_PASSWORD_LOGIN")
 }
 
 run_export() {
@@ -2219,6 +2295,9 @@ main() {
 			;;
 		reset)
 			run_reset "${sub_args[@]}"
+			;;
+		reset-password)
+			run_reset_password "${sub_args[@]}"
 			;;
 		update-helper)
 			run_update_helper "${sub_args[@]}"

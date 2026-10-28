@@ -23,6 +23,7 @@
     "test:jest": "jest",
     "db:push": "drizzle-kit push",
     "db:reset": "bash scripts/reset-dev-db.sh",
+    "reset-password": "tsx server/reset-password-cli.ts",
     "seed:defaults": "node dist/seed-default-content.js",
     "seed:responsive-fixtures": "tsx scripts/seed-responsive-fixtures.ts",
     "seed:demo-pages": "tsx scripts/seed-demo-pages.ts",
