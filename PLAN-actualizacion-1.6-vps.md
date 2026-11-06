@@ -96,12 +96,16 @@ pnpm check                     # ya validado: 0 errores
 git push -u myfork local/kreotuweb-1.6
 ```
 
-Verificar que el remoto termina en `2f1e85f` y que solo difieren tus 6 archivos:
+Verificar que el remoto tiene tu último commit. Los hashes cambian con cada commit; lo que
+importa es el contenido:
 
 ```bash
 git log --oneline -5 myfork/local/kreotuweb-1.6
 git diff --stat v1.6.0 myfork/local/kreotuweb-1.6
 ```
+
+El diff debe mostrar **6 archivos de código** (+39/−5) y, si commiteaste este plan y el script,
+esos 2 archivos extra. Nada más: si aparece otro archivo, algo se coló en la rama.
 
 ## Paso 1 — Inventario en el VPS (solo lectura)
 
@@ -171,7 +175,7 @@ sudo apt-get update && sudo apt-get install -y git
 sudo git clone --branch local/kreotuweb-1.6 \
   https://github.com/kreo2web/nextpress.git /opt/nextpress-src
 cd /opt/nextpress-src
-git log --oneline -5                    # 2f1e85f en la cabeza
+git log --oneline -5                    # tip = tu último commit; debajo, 2f1e85f y los 4 parches
 
 sudo docker build -t husseinkizz/nextpress:beta-v1.6.0-kreo .
 ```
